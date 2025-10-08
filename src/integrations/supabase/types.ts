@@ -16,24 +16,30 @@ export type Database = {
     Tables: {
       courses: {
         Row: {
+          category: string | null
           created_at: string
           description: string | null
+          full_description: string | null
           id: string
           instructor_id: string
           title: string
           updated_at: string
         }
         Insert: {
+          category?: string | null
           created_at?: string
           description?: string | null
+          full_description?: string | null
           id?: string
           instructor_id: string
           title: string
           updated_at?: string
         }
         Update: {
+          category?: string | null
           created_at?: string
           description?: string | null
+          full_description?: string | null
           id?: string
           instructor_id?: string
           title?: string
@@ -245,12 +251,36 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: { _role: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       user_role: "student" | "instructor" | "admin"
