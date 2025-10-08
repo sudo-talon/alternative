@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import dicLogo from "@/assets/dic-logo.png";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -37,6 +38,7 @@ export const Navbar = () => {
                 </Button>
               </Link>
             ))}
+            <LanguageSwitcher />
             <Button 
               onClick={() => navigate("/auth")}
               className="ml-4 bg-accent hover:bg-accent/90"
