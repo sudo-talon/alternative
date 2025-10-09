@@ -83,6 +83,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "enrollments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "enrollment_analytics"
+            referencedColumns: ["course_id"]
+          },
+          {
             foreignKeyName: "enrollments_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
@@ -117,6 +124,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          category_id: string | null
           created_at: string
           email: string
           full_name: string
@@ -125,6 +133,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          category_id?: string | null
           created_at?: string
           email: string
           full_name: string
@@ -133,6 +142,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          category_id?: string | null
           created_at?: string
           email?: string
           full_name?: string
@@ -140,7 +150,22 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "category_analytics"
+            referencedColumns: ["category_id"]
+          },
+          {
+            foreignKeyName: "profiles_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "student_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       quiz_questions: {
         Row: {
@@ -249,7 +274,35 @@ export type Database = {
             referencedRelation: "courses"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "quizzes_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "enrollment_analytics"
+            referencedColumns: ["course_id"]
+          },
         ]
+      }
+      student_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
@@ -274,7 +327,23 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      category_analytics: {
+        Row: {
+          category_id: string | null
+          category_name: string | null
+          student_count: number | null
+        }
+        Relationships: []
+      }
+      enrollment_analytics: {
+        Row: {
+          course_id: string | null
+          course_title: string | null
+          total_enrollments: number | null
+          unique_students: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {
