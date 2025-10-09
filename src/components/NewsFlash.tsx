@@ -21,33 +21,50 @@ export const NewsFlash = () => {
   });
 
   return (
-    <Card className="shadow-elevated">
+    <Card className="shadow-elevated overflow-hidden">
       <CardHeader className="bg-gradient-accent">
         <CardTitle className="text-primary-foreground">News Flash</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <ScrollArea className="h-[400px]">
+        <div className="h-[400px] overflow-hidden relative">
           {isLoading ? (
             <div className="p-4 text-center text-muted-foreground">Loading news...</div>
           ) : news && news.length > 0 ? (
-            <div className="p-4 space-y-4">
-              {news.map((item, index) => (
-                <div key={item.id}>
-                  <div className="space-y-2">
-                    <h4 className="font-semibold text-sm leading-tight">{item.title}</h4>
-                    <p className="text-xs text-muted-foreground line-clamp-2">{item.content}</p>
-                    <p className="text-xs text-accent">
-                      {formatDistanceToNow(new Date(item.published_at), { addSuffix: true })}
-                    </p>
+            <div className="animate-marquee-vertical">
+              <div className="p-4 space-y-4">
+                {news.map((item, index) => (
+                  <div key={item.id}>
+                    <div className="space-y-2">
+                      <h4 className="font-semibold text-sm leading-tight">{item.title}</h4>
+                      <p className="text-xs text-muted-foreground line-clamp-2">{item.content}</p>
+                      <p className="text-xs text-accent">
+                        {formatDistanceToNow(new Date(item.published_at), { addSuffix: true })}
+                      </p>
+                    </div>
+                    {index < news.length - 1 && <Separator className="mt-4" />}
                   </div>
-                  {index < news.length - 1 && <Separator className="mt-4" />}
-                </div>
-              ))}
+                ))}
+              </div>
+              {/* Duplicate for seamless loop */}
+              <div className="p-4 space-y-4">
+                {news.map((item, index) => (
+                  <div key={`duplicate-${item.id}`}>
+                    <div className="space-y-2">
+                      <h4 className="font-semibold text-sm leading-tight">{item.title}</h4>
+                      <p className="text-xs text-muted-foreground line-clamp-2">{item.content}</p>
+                      <p className="text-xs text-accent">
+                        {formatDistanceToNow(new Date(item.published_at), { addSuffix: true })}
+                      </p>
+                    </div>
+                    {index < news.length - 1 && <Separator className="mt-4" />}
+                  </div>
+                ))}
+              </div>
             </div>
           ) : (
             <div className="p-4 text-center text-muted-foreground">No news available</div>
           )}
-        </ScrollArea>
+        </div>
       </CardContent>
     </Card>
   );

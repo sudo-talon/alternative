@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { User, Session } from "@supabase/supabase-js";
 import { BookOpen, Users, GraduationCap, LogOut } from "lucide-react";
@@ -17,7 +19,6 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
@@ -31,7 +32,6 @@ const Dashboard = () => {
       }
     });
 
-    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -51,7 +51,7 @@ const Dashboard = () => {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("*")
+        .select("*, student_categories(name)")
         .eq("id", userId)
         .single();
 
@@ -61,6 +61,28 @@ const Dashboard = () => {
       console.error("Error loading profile:", error);
     }
   };
+
+  // Fetch enrolled courses with instructor info
+  const { data: enrolledCourses } = useQuery({
+    queryKey: ["enrolledCourses", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const { data, error } = await supabase
+        .from("enrollments")
+        .select(`
+          *,
+          courses(
+            *,
+            profiles:instructor_id(full_name, email)
+          )
+        `)
+        .eq("student_id", user.id);
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -88,6 +110,11 @@ const Dashboard = () => {
             <p className="text-muted-foreground capitalize">
               Role: {profile?.role || "student"}
             </p>
+            {profile?.student_categories && (
+              <Badge variant="outline" className="mt-2">
+                {profile.student_categories.name}
+              </Badge>
+            )}
           </div>
           <Button variant="outline" onClick={handleSignOut}>
             <LogOut className="mr-2 h-4 w-4" />
@@ -122,10 +149,40 @@ const Dashboard = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">No courses enrolled yet.</p>
-                <Button className="mt-4" onClick={() => navigate("/courses")}>
-                  Browse Available Courses
-                </Button>
+                {enrolledCourses && enrolledCourses.length > 0 ? (
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {enrolledCourses.map((enrollment: any) => (
+                      <Card key={enrollment.id} className="hover-scale">
+                        <CardHeader>
+                          <CardTitle className="text-lg">
+                            {enrollment.courses?.title}
+                          </CardTitle>
+                          <CardDescription>
+                            Instructor: {enrollment.courses?.profiles?.full_name}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
+                            {enrollment.courses?.description}
+                          </p>
+                          <Button 
+                            size="sm" 
+                            onClick={() => navigate(`/course/${enrollment.courses?.title}`)}
+                          >
+                            View Course
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-muted-foreground">No courses enrolled yet.</p>
+                    <Button className="mt-4" onClick={() => navigate("/courses")}>
+                      Browse Available Courses
+                    </Button>
+                  </>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -164,6 +221,12 @@ const Dashboard = () => {
                   <span className="font-semibold">Role:</span>{" "}
                   <span className="capitalize">{profile?.role}</span>
                 </div>
+                {profile?.student_categories && (
+                  <div>
+                    <span className="font-semibold">Category:</span>{" "}
+                    {profile.student_categories.name}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

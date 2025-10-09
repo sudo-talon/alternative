@@ -54,6 +54,23 @@ All colors MUST be HSL.
     --sidebar-ring: 85 25% 35%;
   }
 
+  @keyframes marquee-vertical {
+    0% {
+      transform: translateY(0);
+    }
+    100% {
+      transform: translateY(-50%);
+    }
+  }
+
+  .animate-marquee-vertical {
+    animation: marquee-vertical 20s linear infinite;
+  }
+
+  .animate-marquee-vertical:hover {
+    animation-play-state: paused;
+  }
+
   .dark {
     --background: 222 47% 11%;
     --foreground: 210 40% 98%;
