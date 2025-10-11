@@ -35,6 +35,9 @@ const AdminDashboard = () => {
   const [newCategoryDescription, setNewCategoryDescription] = useState("");
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [selectedCourseId, setSelectedCourseId] = useState("");
+  const [notificationTitle, setNotificationTitle] = useState("");
+  const [notificationMessage, setNotificationMessage] = useState("");
+  const [notificationCategoryId, setNotificationCategoryId] = useState<string>("");
 
   useEffect(() => {
     checkAdminStatus();
@@ -282,6 +285,24 @@ const AdminDashboard = () => {
     },
   });
 
+  const sendNotificationMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc("send_notification_to_users", {
+        p_title: notificationTitle,
+        p_message: notificationMessage,
+        p_type: "announcement",
+        p_category_id: notificationCategoryId || null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Success", description: "Notification sent successfully" });
+      setNotificationTitle("");
+      setNotificationMessage("");
+      setNotificationCategoryId("");
+    },
+  });
+
   // Helper functions
   const resetCourseForm = () => {
     setCourseTitle("");
@@ -362,7 +383,7 @@ const AdminDashboard = () => {
         <h1 className="text-4xl font-bold mb-8">Admin Dashboard</h1>
 
         <Tabs defaultValue="analytics" className="space-y-6">
-          <TabsList className="grid grid-cols-6 w-full">
+          <TabsList className="grid grid-cols-7 w-full">
             <TabsTrigger value="analytics">
               <BarChart3 className="mr-2 h-4 w-4" />
               Analytics
@@ -386,6 +407,10 @@ const AdminDashboard = () => {
             <TabsTrigger value="instructors">
               <Users className="mr-2 h-4 w-4" />
               Instructors
+            </TabsTrigger>
+            <TabsTrigger value="notifications">
+              <UserPlus className="mr-2 h-4 w-4" />
+              Notifications
             </TabsTrigger>
           </TabsList>
 
@@ -834,6 +859,59 @@ const AdminDashboard = () => {
                     ))}
                   </TableBody>
                 </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Notifications Tab */}
+          <TabsContent value="notifications">
+            <Card>
+              <CardHeader>
+                <CardTitle>Send Notifications</CardTitle>
+                <CardDescription>
+                  Send announcements to all users or specific categories
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium">Notification Title</label>
+                  <Input
+                    placeholder="Enter notification title"
+                    value={notificationTitle}
+                    onChange={(e) => setNotificationTitle(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Message</label>
+                  <Textarea
+                    placeholder="Enter notification message"
+                    value={notificationMessage}
+                    onChange={(e) => setNotificationMessage(e.target.value)}
+                    rows={5}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Target Audience</label>
+                  <Select value={notificationCategoryId} onValueChange={setNotificationCategoryId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All users" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All users</SelectItem>
+                      {categories?.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  onClick={() => sendNotificationMutation.mutate()}
+                  disabled={!notificationTitle || !notificationMessage || sendNotificationMutation.isPending}
+                >
+                  {sendNotificationMutation.isPending ? "Sending..." : "Send Notification"}
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>
