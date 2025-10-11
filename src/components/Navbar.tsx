@@ -1,13 +1,28 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import dicLogo from "@/assets/dic-logo.png";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { NotificationBell } from "./NotificationBell";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [user, setUser] = useState(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const navLinks = [
     { name: "Home", path: "/" },
@@ -38,6 +53,7 @@ export const Navbar = () => {
                 </Button>
               </Link>
             ))}
+            {user && <NotificationBell />}
             <LanguageSwitcher />
             <Button 
               onClick={() => navigate("/auth")}

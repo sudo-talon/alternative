@@ -25,6 +25,7 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [newsTitle, setNewsTitle] = useState("");
   const [newsContent, setNewsContent] = useState("");
+  const [targetCategory, setTargetCategory] = useState("");
   const [courseTitle, setCourseTitle] = useState("");
   const [courseDescription, setCourseDescription] = useState("");
   const [courseCategory, setCourseCategory] = useState("");
@@ -171,9 +172,13 @@ const AdminDashboard = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-news"] });
       queryClient.invalidateQueries({ queryKey: ["news"] });
-      toast({ title: "News created successfully" });
+      toast({ 
+        title: "Success", 
+        description: "News created and notifications sent automatically" 
+      });
       setNewsTitle("");
       setNewsContent("");
+      setTargetCategory("");
     },
   });
 
@@ -294,12 +299,28 @@ const AdminDashboard = () => {
     setCourseFullDescription(course.full_description || "");
   };
 
-  const handleCreateNews = () => {
+  const handleCreateNews = async () => {
     if (!newsTitle || !newsContent) {
       toast({ title: "Please fill all fields", variant: "destructive" });
       return;
     }
+    
+    // Create news (notifications will be sent automatically via database trigger)
     createNewsMutation.mutate({ title: newsTitle, content: newsContent });
+    
+    // Optionally send to specific category if selected
+    if (targetCategory && targetCategory !== "all") {
+      const { error } = await supabase.rpc("send_notification_to_users", {
+        p_title: `Category Announcement: ${newsTitle}`,
+        p_message: newsContent,
+        p_type: "announcement",
+        p_category_id: targetCategory,
+      });
+
+      if (error) {
+        console.error("Error sending category notifications:", error);
+      }
+    }
   };
 
   const handleCreateCourse = () => {
@@ -472,9 +493,22 @@ const AdminDashboard = () => {
                     onChange={(e) => setNewsContent(e.target.value)}
                     rows={5}
                   />
+                  <Select value={targetCategory} onValueChange={setTargetCategory}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Target audience (optional - defaults to all)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Users</SelectItem>
+                      {categories?.map((category: any) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name} Category Only
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Button onClick={handleCreateNews}>
                     <Plus className="mr-2 h-4 w-4" />
-                    Publish News
+                    Publish News & Notify Users
                   </Button>
                 </CardContent>
               </Card>
