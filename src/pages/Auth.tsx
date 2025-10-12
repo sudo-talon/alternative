@@ -57,15 +57,28 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: signInData.email,
         password: signInData.password,
       });
 
       if (error) throw error;
 
+      // Check if user is admin
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", data.user?.id)
+        .eq("role", "admin")
+        .single();
+
       toast.success("Signed in successfully!");
-      navigate("/dashboard");
+      
+      if (roleData) {
+        navigate("/admin");
+      } else {
+        navigate("/dashboard");
+      }
     } catch (error: any) {
       toast.error(error.message || "An error occurred during sign in");
     } finally {
