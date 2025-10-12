@@ -107,25 +107,73 @@ const Home = () => {
             {/* About Section */}
             <div>
               <h2 className="text-3xl font-bold mb-6">About Us</h2>
-              <Card className="shadow-elevated">
-                <CardContent className="pt-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-4">
-                      <div className="text-4xl font-bold text-primary">2001</div>
-                      <div>
-                        <h3 className="font-semibold">Established as DIS</h3>
-                        <p className="text-sm text-muted-foreground">
-                          The Defence Intelligence College (DIC) hitherto known as the Defence Intelligence School (DIS) was established in 2001.
-                        </p>
-                      </div>
-                    </div>
-                    <p className="text-muted-foreground">
-                      At inception it was located at a temporary site within the Headquarters of the Defence Intelligence Agency (DIA) in Bonny Camp Lagos.
-                    </p>
-                    <Button onClick={() => navigate("/about")}>Read more</Button>
+              <div className="overflow-hidden gradient-subtle py-8 rounded-lg">
+                <div className="relative">
+                  <div className="flex animate-marquee-horizontal gap-6 px-4">
+                    {[
+                      {
+                        year: "2001",
+                        title: "Established as DIS",
+                        description: "The Defence Intelligence College (DIC) hitherto known as the Defence Intelligence School (DIS) was established in 2001 at a temporary site within the Headquarters of the Defence Intelligence Agency (DIA) in Bonny Camp Lagos."
+                      },
+                      {
+                        year: "2012",
+                        title: "Expansion & Growth",
+                        description: "DIS expanded its curriculum and training facilities, introducing advanced intelligence methodologies and modernizing its infrastructure to meet evolving security challenges."
+                      },
+                      {
+                        year: "2015",
+                        title: "Upgraded to College",
+                        description: "The institution was upgraded from Defence Intelligence School to Defence Intelligence College, reflecting its enhanced academic status and broader mandate in intelligence education."
+                      },
+                      {
+                        year: "2023",
+                        title: "Modern Era",
+                        description: "DIC continues to evolve as a premier institution for intelligence training, incorporating cutting-edge technology and international best practices in its programs."
+                      },
+                      {
+                        year: "2001",
+                        title: "Established as DIS",
+                        description: "The Defence Intelligence College (DIC) hitherto known as the Defence Intelligence School (DIS) was established in 2001 at a temporary site within the Headquarters of the Defence Intelligence Agency (DIA) in Bonny Camp Lagos."
+                      },
+                      {
+                        year: "2012",
+                        title: "Expansion & Growth",
+                        description: "DIS expanded its curriculum and training facilities, introducing advanced intelligence methodologies and modernizing its infrastructure to meet evolving security challenges."
+                      },
+                      {
+                        year: "2015",
+                        title: "Upgraded to College",
+                        description: "The institution was upgraded from Defence Intelligence School to Defence Intelligence College, reflecting its enhanced academic status and broader mandate in intelligence education."
+                      },
+                      {
+                        year: "2023",
+                        title: "Modern Era",
+                        description: "DIC continues to evolve as a premier institution for intelligence training, incorporating cutting-edge technology and international best practices in its programs."
+                      }
+                    ].map((milestone, index) => (
+                      <Card key={index} className="min-w-[320px] shrink-0 shadow-elevated">
+                        <CardContent className="p-6">
+                          <div className="space-y-4">
+                            <div className="flex items-center gap-4">
+                              <div className="text-4xl font-bold text-primary">{milestone.year}</div>
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-lg mb-2">{milestone.title}</h3>
+                              <p className="text-sm text-muted-foreground leading-relaxed">
+                                {milestone.description}
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
+              <div className="mt-4">
+                <Button onClick={() => navigate("/about")}>Read more about our history</Button>
+              </div>
             </div>
           </div>
 
