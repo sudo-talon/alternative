@@ -54,21 +54,25 @@ All colors MUST be HSL.
     --sidebar-ring: 85 25% 35%;
   }
 
-  @keyframes marquee-vertical {
+  @keyframes marquee-horizontal {
     0% {
-      transform: translateY(0);
+      transform: translateX(0);
     }
     100% {
-      transform: translateY(-50%);
+      transform: translateX(-50%);
     }
   }
 
-  .animate-marquee-vertical {
-    animation: marquee-vertical 20s linear infinite;
+  .animate-marquee-horizontal {
+    animation: marquee-horizontal 30s linear infinite;
   }
 
-  .animate-marquee-vertical:hover {
+  .animate-marquee-horizontal:hover {
     animation-play-state: paused;
+  }
+
+  .gradient-subtle {
+    background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--muted)) 100%);
   }
 
   .dark {

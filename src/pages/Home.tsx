@@ -43,7 +43,7 @@ const Home = () => {
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${dicBg})` }}
         >
-          <div className="absolute inset-0 bg-gradient-hero opacity-90"></div>
+          <div className="absolute inset-0 bg-gradient-hero opacity-70"></div>
         </div>
         <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
           <h1 className="text-4xl md:text-6xl font-bold text-primary-foreground mb-6">
