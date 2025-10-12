@@ -1,10 +1,11 @@
 import { Navbar } from "@/components/Navbar";
 import { NewsFlash } from "@/components/NewsFlash";
+import { CommandantsMarquee } from "@/components/CommandantsMarquee";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { GraduationCap, Shield, Users, BookOpen } from "lucide-react";
-import heroImage from "@/assets/hero-image.jpg";
+import dicBg from "@/assets/dic-bg.png";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -40,7 +41,7 @@ const Home = () => {
       <section className="relative h-[600px] flex items-center justify-center overflow-hidden">
         <div 
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${heroImage})` }}
+          style={{ backgroundImage: `url(${dicBg})` }}
         >
           <div className="absolute inset-0 bg-gradient-hero opacity-90"></div>
         </div>
@@ -96,6 +97,11 @@ const Home = () => {
                   </Card>
                 ))}
               </div>
+            </div>
+
+            {/* Commandants Section */}
+            <div>
+              <CommandantsMarquee />
             </div>
 
             {/* About Section */}
