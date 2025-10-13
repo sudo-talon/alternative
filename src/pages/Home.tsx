@@ -114,59 +114,65 @@ const Home = () => {
                       {
                         year: "2001",
                         title: "Established as DIS",
-                        description: "The Defence Intelligence College (DIC) hitherto known as the Defence Intelligence School (DIS) was established in 2001 at a temporary site within the Headquarters of the Defence Intelligence Agency (DIA) in Bonny Camp Lagos."
+                        description: "The Defence Intelligence College (DIC) hitherto known as the Defence Intelligence School (DIS) was established in 2001. At inception it was located at a temporary site within the Headquarters of the Defence Intelligence Agency (DIA) in Bonny Camp Lagos."
                       },
                       {
                         year: "2012",
-                        title: "Expansion & Growth",
-                        description: "DIS expanded its curriculum and training facilities, introducing advanced intelligence methodologies and modernizing its infrastructure to meet evolving security challenges."
+                        title: "Campus Relocation",
+                        description: "The college relocated to a permanent site in Victoria Island, expanding its facilities to accommodate more students and programs."
                       },
                       {
                         year: "2015",
-                        title: "Upgraded to College",
-                        description: "The institution was upgraded from Defence Intelligence School to Defence Intelligence College, reflecting its enhanced academic status and broader mandate in intelligence education."
+                        title: "Curriculum Expansion",
+                        description: "Major curriculum overhaul introducing new specialized courses in cyber intelligence and digital forensics."
                       },
                       {
                         year: "2023",
                         title: "Modern Era",
-                        description: "DIC continues to evolve as a premier institution for intelligence training, incorporating cutting-edge technology and international best practices in its programs."
+                        description: "Partner with Talongeeks to achieve full digitalization of learning systems and international accreditation for all programs. The admin should be able to manage instructors on the Admin Dashboard. The system should also keep a record of activities using the admin dashboard."
                       },
                       {
                         year: "2001",
                         title: "Established as DIS",
-                        description: "The Defence Intelligence College (DIC) hitherto known as the Defence Intelligence School (DIS) was established in 2001 at a temporary site within the Headquarters of the Defence Intelligence Agency (DIA) in Bonny Camp Lagos."
+                        description: "The Defence Intelligence College (DIC) hitherto known as the Defence Intelligence School (DIS) was established in 2001. At inception it was located at a temporary site within the Headquarters of the Defence Intelligence Agency (DIA) in Bonny Camp Lagos."
                       },
                       {
                         year: "2012",
-                        title: "Expansion & Growth",
-                        description: "DIS expanded its curriculum and training facilities, introducing advanced intelligence methodologies and modernizing its infrastructure to meet evolving security challenges."
+                        title: "Campus Relocation",
+                        description: "The college relocated to a permanent site in Victoria Island, expanding its facilities to accommodate more students and programs."
                       },
                       {
                         year: "2015",
-                        title: "Upgraded to College",
-                        description: "The institution was upgraded from Defence Intelligence School to Defence Intelligence College, reflecting its enhanced academic status and broader mandate in intelligence education."
+                        title: "Curriculum Expansion",
+                        description: "Major curriculum overhaul introducing new specialized courses in cyber intelligence and digital forensics."
                       },
                       {
                         year: "2023",
                         title: "Modern Era",
-                        description: "DIC continues to evolve as a premier institution for intelligence training, incorporating cutting-edge technology and international best practices in its programs."
+                        description: "Partner with Talongeeks to achieve full digitalization of learning systems and international accreditation for all programs. The admin should be able to manage instructors on the Admin Dashboard. The system should also keep a record of activities using the admin dashboard."
                       }
                     ].map((milestone, index) => (
-                      <Card key={index} className="min-w-[320px] shrink-0 shadow-elevated">
-                        <CardContent className="p-6">
-                          <div className="space-y-4">
-                            <div className="flex items-center gap-4">
-                              <div className="text-4xl font-bold text-primary">{milestone.year}</div>
-                            </div>
-                            <div>
-                              <h3 className="font-semibold text-lg mb-2">{milestone.title}</h3>
-                              <p className="text-sm text-muted-foreground leading-relaxed">
-                                {milestone.description}
-                              </p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
+                      <div key={index} className="min-w-[320px] shrink-0 relative">
+                        <div className="flex flex-col items-center">
+                          {/* Timeline dot */}
+                          <div className="w-4 h-4 rounded-full bg-primary border-4 border-background shadow-lg mb-4"></div>
+                          
+                          {/* Content card */}
+                          <Card className="shadow-elevated w-full">
+                            <CardContent className="p-6">
+                              <div className="space-y-4">
+                                <div className="text-center">
+                                  <div className="text-4xl font-bold text-primary mb-2">{milestone.year}</div>
+                                  <h3 className="font-semibold text-lg mb-2">{milestone.title}</h3>
+                                </div>
+                                <p className="text-sm text-muted-foreground leading-relaxed">
+                                  {milestone.description}
+                                </p>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </div>
