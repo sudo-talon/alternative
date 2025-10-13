@@ -71,6 +71,21 @@ All colors MUST be HSL.
     animation-play-state: paused;
   }
 
+  @keyframes fly-in-left {
+    0% {
+      opacity: 0;
+      transform: translateX(-100px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  .animate-fly-in-left {
+    animation: fly-in-left 0.8s ease-out forwards;
+  }
+
   .gradient-subtle {
     background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--muted)) 100%);
   }

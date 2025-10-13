@@ -107,7 +107,7 @@ const Home = () => {
             {/* About Section */}
             <div>
               <h2 className="text-3xl font-bold mb-8">About Us</h2>
-              <div className="relative bg-gradient-subtle rounded-lg p-8">
+              <div className="relative bg-gradient-subtle rounded-lg p-8 overflow-hidden">
                 {/* Timeline line */}
                 <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-primary/30"></div>
                 
@@ -134,7 +134,11 @@ const Home = () => {
                       description: "Partner with Talongeeks to achieve full digitalization of learning systems and international accreditation for all programs."
                     }
                   ].map((milestone, index) => (
-                    <div key={index} className="relative pl-20 animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
+                    <div 
+                      key={index} 
+                      className="relative pl-20 opacity-0 animate-fly-in-left" 
+                      style={{ animationDelay: `${index * 0.2}s` }}
+                    >
                       {/* Timeline dot */}
                       <div className="absolute left-6 top-2 w-5 h-5 rounded-full bg-primary border-4 border-background shadow-lg z-10"></div>
                       
