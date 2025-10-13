@@ -105,13 +105,12 @@ const About = () => {
                       title: "Regional Excellence",
                       description: "Training personnel from Nigeria and allied nations including Niger, Chad, Benin Republic, and Ghana."
                     }
-                  ].map((milestone, index) => (
+                  ].map((milestone, index, array) => (
                     <div 
                       key={index} 
                       className="relative pl-20 opacity-0 animate-fly-in-left"
                       style={{ animationDelay: `${index * 0.15}s` }}
                     >
-                      <div className="absolute left-6 top-2 w-5 h-5 rounded-full bg-primary border-4 border-background shadow-lg z-10"></div>
                       <div className="absolute left-0 top-0 text-2xl font-bold text-primary">
                         {milestone.year}
                       </div>
@@ -121,6 +120,9 @@ const About = () => {
                           {milestone.description}
                         </p>
                       </div>
+                      {index < array.length - 1 && (
+                        <div className="absolute left-6 bottom-[-24px] w-5 h-5 rounded-full bg-primary border-4 border-background shadow-lg z-10"></div>
+                      )}
                     </div>
                   ))}
                 </div>
