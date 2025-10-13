@@ -106,79 +106,58 @@ const Home = () => {
 
             {/* About Section */}
             <div>
-              <h2 className="text-3xl font-bold mb-6">About Us</h2>
-              <div className="overflow-hidden gradient-subtle py-8 rounded-lg">
-                <div className="relative">
-                  <div className="flex animate-marquee-horizontal gap-6 px-4">
-                    {[
-                      {
-                        year: "2001",
-                        title: "Established as DIS",
-                        description: "The Defence Intelligence College (DIC) hitherto known as the Defence Intelligence School (DIS) was established in 2001. At inception it was located at a temporary site within the Headquarters of the Defence Intelligence Agency (DIA) in Bonny Camp Lagos."
-                      },
-                      {
-                        year: "2012",
-                        title: "Campus Relocation",
-                        description: "The college relocated to a permanent site in Victoria Island, expanding its facilities to accommodate more students and programs."
-                      },
-                      {
-                        year: "2015",
-                        title: "Curriculum Expansion",
-                        description: "Major curriculum overhaul introducing new specialized courses in cyber intelligence and digital forensics."
-                      },
-                      {
-                        year: "2023",
-                        title: "Modern Era",
-                        description: "Partner with Talongeeks to achieve full digitalization of learning systems and international accreditation for all programs. The admin should be able to manage instructors on the Admin Dashboard. The system should also keep a record of activities using the admin dashboard."
-                      },
-                      {
-                        year: "2001",
-                        title: "Established as DIS",
-                        description: "The Defence Intelligence College (DIC) hitherto known as the Defence Intelligence School (DIS) was established in 2001. At inception it was located at a temporary site within the Headquarters of the Defence Intelligence Agency (DIA) in Bonny Camp Lagos."
-                      },
-                      {
-                        year: "2012",
-                        title: "Campus Relocation",
-                        description: "The college relocated to a permanent site in Victoria Island, expanding its facilities to accommodate more students and programs."
-                      },
-                      {
-                        year: "2015",
-                        title: "Curriculum Expansion",
-                        description: "Major curriculum overhaul introducing new specialized courses in cyber intelligence and digital forensics."
-                      },
-                      {
-                        year: "2023",
-                        title: "Modern Era",
-                        description: "Partner with Talongeeks to achieve full digitalization of learning systems and international accreditation for all programs. The admin should be able to manage instructors on the Admin Dashboard. The system should also keep a record of activities using the admin dashboard."
-                      }
-                    ].map((milestone, index) => (
-                      <div key={index} className="min-w-[320px] shrink-0 relative">
-                        <div className="flex flex-col items-center">
-                          {/* Timeline dot */}
-                          <div className="w-4 h-4 rounded-full bg-primary border-4 border-background shadow-lg mb-4"></div>
-                          
-                          {/* Content card */}
-                          <Card className="shadow-elevated w-full">
-                            <CardContent className="p-6">
-                              <div className="space-y-4">
-                                <div className="text-center">
-                                  <div className="text-4xl font-bold text-primary mb-2">{milestone.year}</div>
-                                  <h3 className="font-semibold text-lg mb-2">{milestone.title}</h3>
-                                </div>
-                                <p className="text-sm text-muted-foreground leading-relaxed">
-                                  {milestone.description}
-                                </p>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        </div>
+              <h2 className="text-3xl font-bold mb-8">About Us</h2>
+              <div className="relative bg-gradient-subtle rounded-lg p-8">
+                {/* Timeline line */}
+                <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-primary/30"></div>
+                
+                <div className="space-y-12">
+                  {[
+                    {
+                      year: "2001",
+                      title: "Established as DIS",
+                      description: "The Defence Intelligence College (DIC) hitherto known as the Defence Intelligence School (DIS) was established in 2001. At inception it was located at a temporary site within the Headquarters of the Defence Intelligence Agency (DIA) in Bonny Camp Lagos."
+                    },
+                    {
+                      year: "2012",
+                      title: "Campus Relocation",
+                      description: "The college relocated to a permanent site in Victoria Island, expanding its facilities to accommodate more students and programs."
+                    },
+                    {
+                      year: "2015",
+                      title: "Curriculum Expansion",
+                      description: "Major curriculum overhaul introducing new specialized courses in cyber intelligence and digital forensics."
+                    },
+                    {
+                      year: "2023",
+                      title: "Modern Era",
+                      description: "Partner with Talongeeks to achieve full digitalization of learning systems and international accreditation for all programs."
+                    }
+                  ].map((milestone, index) => (
+                    <div key={index} className="relative pl-20 animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
+                      {/* Timeline dot */}
+                      <div className="absolute left-6 top-2 w-5 h-5 rounded-full bg-primary border-4 border-background shadow-lg z-10"></div>
+                      
+                      {/* Year badge */}
+                      <div className="absolute left-0 top-0 text-2xl font-bold text-primary">
+                        {milestone.year}
                       </div>
-                    ))}
-                  </div>
+                      
+                      {/* Content */}
+                      <div className="mt-8">
+                        <h3 className="text-xl font-semibold mb-3">{milestone.title}</h3>
+                        <p className="text-muted-foreground leading-relaxed">
+                          {milestone.description}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-              <div className="mt-4">
-                <Button onClick={() => navigate("/about")}>Read more about our history</Button>
+              <div className="mt-6">
+                <Button onClick={() => navigate("/about")} className="hover-scale">
+                  Read more about our history
+                </Button>
               </div>
             </div>
           </div>
