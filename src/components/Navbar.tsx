@@ -32,6 +32,11 @@ export const Navbar = () => {
     { name: "Contact Us", path: "/contact" },
   ];
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/");
+  };
+
   return (
     <nav className="bg-gradient-hero shadow-elevated sticky top-0 z-50">
       <div className="container mx-auto px-4">
@@ -55,12 +60,21 @@ export const Navbar = () => {
             ))}
             {user && <NotificationBell />}
             <LanguageSwitcher />
-            <Button 
-              onClick={() => navigate("/auth")}
-              className="ml-4 bg-accent hover:bg-accent/90"
-            >
-              Log In
-            </Button>
+            {user ? (
+              <Button 
+                onClick={handleLogout}
+                className="ml-4 bg-accent hover:bg-accent/90"
+              >
+                Log Out
+              </Button>
+            ) : (
+              <Button 
+                onClick={() => navigate("/auth")}
+                className="ml-4 bg-accent hover:bg-accent/90"
+              >
+                Log In
+              </Button>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -82,15 +96,27 @@ export const Navbar = () => {
                 </Button>
               </Link>
             ))}
-            <Button 
-              onClick={() => {
-                navigate("/auth");
-                setIsOpen(false);
-              }}
-              className="w-full bg-accent hover:bg-accent/90"
-            >
-              Log In
-            </Button>
+            {user ? (
+              <Button 
+                onClick={() => {
+                  handleLogout();
+                  setIsOpen(false);
+                }}
+                className="w-full bg-accent hover:bg-accent/90"
+              >
+                Log Out
+              </Button>
+            ) : (
+              <Button 
+                onClick={() => {
+                  navigate("/auth");
+                  setIsOpen(false);
+                }}
+                className="w-full bg-accent hover:bg-accent/90"
+              >
+                Log In
+              </Button>
+            )}
           </div>
         )}
       </div>
