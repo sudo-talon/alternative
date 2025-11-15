@@ -107,58 +107,79 @@ const Home = () => {
             {/* About Section */}
             <div>
               <h2 className="text-3xl font-bold mb-8">About Us</h2>
-              <div className="relative bg-gradient-subtle rounded-lg p-8 overflow-hidden">
-                {/* Timeline line */}
-                <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-primary/30"></div>
-                
-                <div className="space-y-12">
-                  {[
-                    {
-                      year: "2001",
-                      title: "Established as DIS",
-                      description: "The Defence Intelligence College (DIC) hitherto known as the Defence Intelligence School (DIS) was established in 2001. At inception it was located at a temporary site within the Headquarters of the Defence Intelligence Agency (DIA) in Bonny Camp Lagos."
-                    },
-                    {
-                      year: "2012",
-                      title: "Campus Relocation",
-                      description: "The college relocated to a permanent site in Victoria Island, expanding its facilities to accommodate more students and programs."
-                    },
-                    {
-                      year: "2015",
-                      title: "Curriculum Expansion",
-                      description: "Major curriculum overhaul introducing new specialized courses in cyber intelligence and digital forensics."
-                    },
-                    {
-                      year: "2023",
-                      title: "Modern Era",
-                      description: "Partner with Talongeeks to achieve full digitalization of learning systems and international accreditation for all programs."
-                    }
-                  ].map((milestone, index) => (
-                    <div 
-                      key={index} 
-                      className="relative pl-20 opacity-0 animate-fly-in-left" 
-                      style={{ animationDelay: `${index * 0.2}s` }}
-                    >
-                      {/* Year badge */}
-                      <div className="absolute left-0 top-0 text-2xl font-bold text-primary">
-                        {milestone.year}
-                      </div>
-                      
-                      {/* Content */}
-                      <div className="mt-8">
-                        <h3 className="text-xl font-semibold mb-3">{milestone.title}</h3>
-                        <p className="text-muted-foreground leading-relaxed">
-                          {milestone.description}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+              <div className="grid md:grid-cols-2 gap-8 items-center">
+                {/* Left: Image Grid */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="aspect-square rounded-lg overflow-hidden">
+                    <img 
+                      src={dicBg} 
+                      alt="DIC Campus" 
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                  <div className="aspect-square rounded-lg overflow-hidden">
+                    <img 
+                      src={dicBg} 
+                      alt="Training Session" 
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                  <div className="aspect-square rounded-lg overflow-hidden">
+                    <img 
+                      src={dicBg} 
+                      alt="Intelligence Operations" 
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                  <div className="aspect-square rounded-lg overflow-hidden">
+                    <img 
+                      src={dicBg} 
+                      alt="DIC Leadership" 
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
                 </div>
-              </div>
-              <div className="mt-6">
-                <Button onClick={() => navigate("/about")} className="hover-scale">
-                  Read more about our history
-                </Button>
+
+                {/* Right: Content */}
+                <div className="space-y-6">
+                  {/* Timeline Dots */}
+                  <div className="flex items-center gap-8">
+                    {[
+                      { year: "2001", active: true },
+                      { year: "2012", active: false },
+                      { year: "2015", active: false },
+                      { year: "2023", active: false }
+                    ].map((item, index) => (
+                      <div key={index} className="flex flex-col items-center gap-2">
+                        <div className={`w-4 h-4 rounded-full transition-colors ${
+                          item.active ? 'bg-primary' : 'bg-muted'
+                        }`}></div>
+                        <div className={`w-12 h-0.5 ${
+                          index < 3 ? 'bg-muted' : 'hidden'
+                        }`}></div>
+                        <span className={`text-sm font-semibold ${
+                          item.active ? 'text-primary' : 'text-muted-foreground'
+                        }`}>
+                          {item.year}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Content */}
+                  <div>
+                    <h3 className="text-2xl font-bold mb-4">Established as DIS</h3>
+                    <p className="text-muted-foreground leading-relaxed mb-6">
+                      The Defence Intelligence College (DIC) hitherto known as the Defence Intelligence School (DIS) was established in 2001. At inception it was located at a temporary site within the Headquarters of the Defence Intelligence Agency (DIA) in Bonny Camp Lagos.
+                    </p>
+                    <Button 
+                      onClick={() => navigate("/about")} 
+                      className="bg-primary hover:bg-primary-dark text-primary-foreground"
+                    >
+                      Read more
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
