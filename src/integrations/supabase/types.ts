@@ -382,10 +382,7 @@ export type Database = {
       }
     }
     Functions: {
-      has_role: {
-        Args: { _role: string; _user_id: string }
-        Returns: boolean
-      }
+      has_role: { Args: { _role: string; _user_id: string }; Returns: boolean }
       send_notification_to_users: {
         Args: {
           p_category_id?: string
