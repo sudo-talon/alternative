@@ -19,53 +19,32 @@ interface Commandant {
 
 const commandants: Commandant[] = [
   {
-    name: "Air Vice Marshal A.B. Abubakar",
-    rank: "Air Vice Marshal",
-    duration: "2001 - 2004",
-    bio: "Air Vice Marshal A.B. Abubakar served as the first Commandant of the Defence Intelligence School (DIS), establishing the foundation for intelligence training in Nigeria. His visionary leadership set the standards for excellence that continue to guide the institution today.",
+    name: "R Adm MG OAMEN",
+    rank: "Rear Admiral",
+    duration: "Apr 2020 - Feb 2022",
+    bio: "R Adm MG OAMEN DSS psc(+) nwc(+) MSc MIAD MNIM served as Commandant of the Defence Intelligence College, leading the institution with distinguished expertise in defence and strategic studies.",
     image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&h=150&fit=crop"
   },
   {
-    name: "Major General T.Y. Danjuma",
-    rank: "Major General",
-    duration: "2004 - 2007",
-    bio: "Major General T.Y. Danjuma expanded the curriculum and infrastructure of DIS, introducing advanced intelligence methodologies and strengthening partnerships with international intelligence academies.",
+    name: "R Adm EA ZIPELE",
+    rank: "Rear Admiral",
+    duration: "Feb 2022 - July 2022",
+    bio: "R Adm EA ZIPELE DSS psc(+) mni FIIPS brought extensive intelligence expertise to the Defence Intelligence College during his tenure as Commandant.",
     image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop"
   },
   {
-    name: "Rear Admiral S.O. Ibrahim",
+    name: "R Adm JA NWAGU",
     rank: "Rear Admiral",
-    duration: "2007 - 2010",
-    bio: "Rear Admiral S.O. Ibrahim modernized the training programs, incorporating cutting-edge technology and cyber intelligence into the curriculum, positioning DIS as a leader in regional intelligence education.",
+    duration: "July 2023 - July 2024",
+    bio: "R Adm JA NWAGU DSS psc fdc FOSHA MUSNI MSc served as Commandant, furthering the college's mission in intelligence education and training excellence.",
     image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop"
   },
   {
-    name: "Air Commodore M.K. Bello",
-    rank: "Air Commodore",
-    duration: "2010 - 2013",
-    bio: "Air Commodore M.K. Bello focused on inter-agency collaboration and developed specialized programs for counter-terrorism and regional security challenges.",
+    name: "R Adm P.E EFFAH",
+    rank: "Rear Admiral",
+    duration: "Present",
+    bio: "R Adm P.E EFFAH DSS psc(+) nwc(+) fdc MSc MLC MIAD FIIPS is the current Commandant of the Defence Intelligence College, leading the institution with distinguished credentials and commitment to excellence in intelligence education.",
     image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop"
-  },
-  {
-    name: "Brigadier General F.A. Okonkwo",
-    rank: "Brigadier General",
-    duration: "2013 - 2016",
-    bio: "Brigadier General F.A. Okonkwo led the transformation from Defence Intelligence School to Defence Intelligence College, elevating academic standards and introducing degree-level programs.",
-    image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop"
-  },
-  {
-    name: "Air Vice Marshal C.N. Eze",
-    rank: "Air Vice Marshal",
-    duration: "2016 - 2019",
-    bio: "Air Vice Marshal C.N. Eze strengthened international partnerships and introduced advanced research programs, establishing DIC as a center of excellence for intelligence studies in West Africa.",
-    image: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&h=150&fit=crop"
-  },
-  {
-    name: "Major General D.O. Mohammed",
-    rank: "Major General",
-    duration: "2019 - Present",
-    bio: "Major General D.O. Mohammed continues to advance the college's mission with a focus on digital intelligence, artificial intelligence applications in security, and fostering innovation in intelligence training methodologies.",
-    image: "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=150&h=150&fit=crop"
   }
 ];
 
