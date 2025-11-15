@@ -86,6 +86,23 @@ All colors MUST be HSL.
     animation: fly-in-left 0.8s ease-out forwards;
   }
 
+  @keyframes marquee-vertical {
+    0% {
+      transform: translateY(0);
+    }
+    100% {
+      transform: translateY(-50%);
+    }
+  }
+
+  .animate-marquee-vertical {
+    animation: marquee-vertical 20s linear infinite;
+  }
+
+  .animate-marquee-vertical:hover {
+    animation-play-state: paused;
+  }
+
   .gradient-subtle {
     background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--muted)) 100%);
   }
