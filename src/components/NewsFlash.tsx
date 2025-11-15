@@ -29,7 +29,8 @@ export const NewsFlash = () => {
           {isLoading ? (
             <div className="p-4 text-center text-muted-foreground">Loading news...</div>
           ) : news && news.length > 0 ? (
-            <div className="animate-marquee-vertical space-y-0">
+            <div className="animate-marquee-vertical">
+              <div className="space-y-0">
               <div className="p-4 space-y-4">
                 {news.map((item, index) => (
                   <div 
@@ -64,9 +65,9 @@ export const NewsFlash = () => {
                     {index < news.length - 1 && <Separator className="mt-4" />}
                   </div>
                 ))}
-              </div>
-              {/* Duplicate for seamless loop */}
-              <div className="p-4 space-y-4">
+                </div>
+                {/* Duplicate for seamless loop */}
+                <div className="p-4 space-y-4">
                 {news.map((item, index) => (
                   <div 
                     key={`duplicate-${item.id}`}
@@ -100,6 +101,7 @@ export const NewsFlash = () => {
                     {index < news.length - 1 && <Separator className="mt-4" />}
                   </div>
                 ))}
+                </div>
               </div>
             </div>
           ) : (
