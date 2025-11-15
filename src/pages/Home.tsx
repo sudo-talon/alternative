@@ -6,9 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { GraduationCap, Shield, Users, BookOpen } from "lucide-react";
 import dicBg from "@/assets/dic-bg.png";
+import { useState } from "react";
 
 const Home = () => {
   const navigate = useNavigate();
+  const [activeYear, setActiveYear] = useState("2001");
 
   const features = [
     {
@@ -143,35 +145,68 @@ const Home = () => {
                 {/* Right: Content */}
                 <div className="space-y-6">
                   {/* Timeline Dots */}
-                  <div className="flex items-center gap-8">
+                  <div className="flex items-center gap-2">
                     {[
-                      { year: "2001", active: true },
-                      { year: "2012", active: false },
-                      { year: "2015", active: false },
-                      { year: "2023", active: false }
+                      { year: "2001", title: "Established as DIS", description: "The Defence Intelligence College (DIC) hitherto known as the Defence Intelligence School (DIS) was established in 2001. At inception it was located at a temporary site within the Headquarters of the Defence Intelligence Agency (DIA) in Bonny Camp Lagos." },
+                      { year: "2012", title: "Campus Relocation", description: "The college relocated to a permanent site in Victoria Island, expanding its facilities to accommodate more students and programs." },
+                      { year: "2015", title: "Curriculum Expansion", description: "Major curriculum overhaul introducing new specialized courses in cyber intelligence and digital forensics." },
+                      { year: "2023", title: "Modern Era", description: "Partner with Talongeeks to achieve full digitalization of learning systems and international accreditation for all programs." }
                     ].map((item, index) => (
-                      <div key={index} className="flex flex-col items-center gap-2">
-                        <div className={`w-4 h-4 rounded-full transition-colors ${
-                          item.active ? 'bg-primary' : 'bg-muted'
-                        }`}></div>
-                        <div className={`w-12 h-0.5 ${
-                          index < 3 ? 'bg-muted' : 'hidden'
-                        }`}></div>
-                        <span className={`text-sm font-semibold ${
-                          item.active ? 'text-primary' : 'text-muted-foreground'
-                        }`}>
-                          {item.year}
-                        </span>
+                      <div key={index} className="flex items-center">
+                        <button
+                          onClick={() => setActiveYear(item.year)}
+                          className="flex flex-col items-center gap-2 transition-all hover:scale-110 focus:outline-none"
+                        >
+                          <div className={`w-4 h-4 rounded-full transition-all cursor-pointer ${
+                            activeYear === item.year ? 'bg-primary scale-125' : 'bg-muted hover:bg-muted-foreground/50'
+                          }`}></div>
+                          <span className={`text-sm font-semibold transition-colors ${
+                            activeYear === item.year ? 'text-primary' : 'text-muted-foreground'
+                          }`}>
+                            {item.year}
+                          </span>
+                        </button>
+                        {index < 3 && (
+                          <div className="w-12 h-0.5 bg-muted mx-2"></div>
+                        )}
                       </div>
                     ))}
                   </div>
 
                   {/* Content */}
-                  <div>
-                    <h3 className="text-2xl font-bold mb-4">Established as DIS</h3>
-                    <p className="text-muted-foreground leading-relaxed mb-6">
-                      The Defence Intelligence College (DIC) hitherto known as the Defence Intelligence School (DIS) was established in 2001. At inception it was located at a temporary site within the Headquarters of the Defence Intelligence Agency (DIA) in Bonny Camp Lagos.
-                    </p>
+                  <div className="min-h-[200px]">
+                    {activeYear === "2001" && (
+                      <div className="animate-fade-in">
+                        <h3 className="text-2xl font-bold mb-4">Established as DIS</h3>
+                        <p className="text-muted-foreground leading-relaxed mb-6">
+                          The Defence Intelligence College (DIC) hitherto known as the Defence Intelligence School (DIS) was established in 2001. At inception it was located at a temporary site within the Headquarters of the Defence Intelligence Agency (DIA) in Bonny Camp Lagos.
+                        </p>
+                      </div>
+                    )}
+                    {activeYear === "2012" && (
+                      <div className="animate-fade-in">
+                        <h3 className="text-2xl font-bold mb-4">Campus Relocation</h3>
+                        <p className="text-muted-foreground leading-relaxed mb-6">
+                          The college relocated to a permanent site in Victoria Island, expanding its facilities to accommodate more students and programs.
+                        </p>
+                      </div>
+                    )}
+                    {activeYear === "2015" && (
+                      <div className="animate-fade-in">
+                        <h3 className="text-2xl font-bold mb-4">Curriculum Expansion</h3>
+                        <p className="text-muted-foreground leading-relaxed mb-6">
+                          Major curriculum overhaul introducing new specialized courses in cyber intelligence and digital forensics.
+                        </p>
+                      </div>
+                    )}
+                    {activeYear === "2023" && (
+                      <div className="animate-fade-in">
+                        <h3 className="text-2xl font-bold mb-4">Modern Era</h3>
+                        <p className="text-muted-foreground leading-relaxed mb-6">
+                          Partner with Talongeeks to achieve full digitalization of learning systems and international accreditation for all programs.
+                        </p>
+                      </div>
+                    )}
                     <Button 
                       onClick={() => navigate("/about")} 
                       className="bg-primary hover:bg-primary-dark text-primary-foreground"
