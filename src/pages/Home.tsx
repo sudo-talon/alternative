@@ -139,9 +139,6 @@ const Home = () => {
                       className="relative pl-20 opacity-0 animate-fly-in-left" 
                       style={{ animationDelay: `${index * 0.2}s` }}
                     >
-                      {/* Timeline dot */}
-                      <div className="absolute left-6 top-2 w-5 h-5 rounded-full bg-primary border-4 border-background shadow-lg z-10"></div>
-                      
                       {/* Year badge */}
                       <div className="absolute left-0 top-0 text-2xl font-bold text-primary">
                         {milestone.year}
