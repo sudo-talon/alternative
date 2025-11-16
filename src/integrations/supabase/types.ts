@@ -98,6 +98,45 @@ export type Database = {
           },
         ]
       }
+      leadership: {
+        Row: {
+          bio: string | null
+          created_at: string
+          display_order: number | null
+          full_name: string
+          id: string
+          is_active: boolean | null
+          photo_url: string | null
+          position: string
+          rank: string | null
+          updated_at: string
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string
+          display_order?: number | null
+          full_name: string
+          id?: string
+          is_active?: boolean | null
+          photo_url?: string | null
+          position: string
+          rank?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string
+          display_order?: number | null
+          full_name?: string
+          id?: string
+          is_active?: boolean | null
+          photo_url?: string | null
+          position?: string
+          rank?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       news: {
         Row: {
           content: string
@@ -155,6 +194,51 @@ export type Database = {
           title?: string
           type?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      personnel: {
+        Row: {
+          bio: string | null
+          category: string
+          created_at: string
+          department: string | null
+          email: string
+          full_name: string
+          id: string
+          phone: string | null
+          photo_url: string | null
+          position: string
+          rank: string | null
+          updated_at: string
+        }
+        Insert: {
+          bio?: string | null
+          category: string
+          created_at?: string
+          department?: string | null
+          email: string
+          full_name: string
+          id?: string
+          phone?: string | null
+          photo_url?: string | null
+          position: string
+          rank?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bio?: string | null
+          category?: string
+          created_at?: string
+          department?: string | null
+          email?: string
+          full_name?: string
+          id?: string
+          phone?: string | null
+          photo_url?: string | null
+          position?: string
+          rank?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
