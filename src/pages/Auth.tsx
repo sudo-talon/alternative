@@ -70,7 +70,7 @@ const Auth = () => {
         .select("role")
         .eq("user_id", data.user?.id)
         .eq("role", "admin")
-        .single();
+        .maybeSingle();
 
       toast.success("Signed in successfully!");
       
