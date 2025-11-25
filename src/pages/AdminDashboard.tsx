@@ -56,32 +56,48 @@ const AdminDashboard = () => {
   }, []);
 
   const checkAdminStatus = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      navigate("/auth");
-      return;
-    }
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user) {
+        console.log("No user found, redirecting to auth");
+        navigate("/auth");
+        return;
+      }
 
-    const { data: roles } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .eq("role", "admin")
-      .maybeSingle();
+      console.log("Checking admin status for user:", user.id);
 
-    if (!roles) {
+      const { data: roles, error: roleError } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+
+      console.log("Role check result:", roles, roleError);
+
+      if (!roles) {
+        toast({
+          title: "Access Denied",
+          description: "You don't have admin privileges",
+          variant: "destructive",
+        });
+        navigate("/dashboard");
+        return;
+      }
+
+      setIsAdmin(true);
+    } catch (error) {
+      console.error("Error checking admin status:", error);
       toast({
-        title: "Access Denied",
-        description: "You don't have admin privileges",
+        title: "Error",
+        description: "Failed to verify admin status",
         variant: "destructive",
       });
       navigate("/dashboard");
-      return;
+    } finally {
+      setLoading(false);
     }
-
-    setIsAdmin(true);
-    setLoading(false);
   };
 
   // Queries and mutations
@@ -276,17 +292,6 @@ const AdminDashboard = () => {
     },
     enabled: isAdmin,
   });
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-subtle">
-        <Navbar />
-        <div className="container mx-auto px-4 py-8">
-          <p className="text-center">Loading...</p>
-        </div>
-      </div>
-    );
-  }
 
   const deleteCourseMutation = useMutation({
     mutationFn: async (id: string) => {
