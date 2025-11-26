@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { GraduationCap, Shield, Users, BookOpen } from "lucide-react";
 import dicBg from "@/assets/dic-bg.png";
+import aboutHero from "@/assets/about-hero.jpg";
 import { useState } from "react";
 
 const Home = () => {
@@ -110,36 +111,13 @@ const Home = () => {
             <div>
               <h2 className="text-3xl font-bold mb-8">About Us</h2>
               <div className="grid md:grid-cols-2 gap-8 items-center">
-                {/* Left: Image Grid */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="aspect-square rounded-lg overflow-hidden">
-                    <img 
-                      src={dicBg} 
-                      alt="DIC Campus" 
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <div className="aspect-square rounded-lg overflow-hidden">
-                    <img 
-                      src={dicBg} 
-                      alt="Training Session" 
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <div className="aspect-square rounded-lg overflow-hidden">
-                    <img 
-                      src={dicBg} 
-                      alt="Intelligence Operations" 
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <div className="aspect-square rounded-lg overflow-hidden">
-                    <img 
-                      src={dicBg} 
-                      alt="DIC Leadership" 
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
+                {/* Left: Image */}
+                <div className="rounded-lg overflow-hidden shadow-elevated">
+                  <img 
+                    src={aboutHero} 
+                    alt="DIC Students Learning" 
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                  />
                 </div>
 
                 {/* Right: Content */}
