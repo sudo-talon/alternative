@@ -56,7 +56,6 @@ const Departments = () => {
             alt="Defence Intelligence College Departments" 
             className="w-full h-full object-cover opacity-30"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-black/50" />
         </div>
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-3xl">
@@ -89,15 +88,26 @@ const Departments = () => {
               <TabsContent key={dept.id} value={dept.id} className="mt-8">
                 <Card className="border-2 shadow-elevated">
                   <CardContent className="p-8">
-                    <div className="flex items-center gap-4 mb-6">
-                      <div className="p-3 bg-primary/10 rounded-lg text-primary">
-                        {dept.icon}
+                    <div className="grid md:grid-cols-2 gap-8 items-start">
+                      <div className="w-full">
+                        <img 
+                          src={departmentsHero} 
+                          alt={`Department of ${dept.name}`}
+                          className="w-full h-auto rounded-lg object-cover"
+                        />
                       </div>
-                      <h2 className="text-3xl font-bold">Department of {dept.name}</h2>
+                      <div>
+                        <div className="flex items-center gap-4 mb-6">
+                          <div className="p-3 bg-primary/10 rounded-lg text-primary">
+                            {dept.icon}
+                          </div>
+                          <h2 className="text-3xl font-bold">Department of {dept.name}</h2>
+                        </div>
+                        <p className="text-lg text-muted-foreground leading-relaxed">
+                          {dept.description}
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-lg text-muted-foreground leading-relaxed">
-                      {dept.description}
-                    </p>
                   </CardContent>
                 </Card>
               </TabsContent>
