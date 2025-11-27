@@ -2,6 +2,7 @@ import { Navbar } from "@/components/Navbar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BookOpen, Shield, Laptop, GraduationCap, Users, Languages } from "lucide-react";
+import departmentsHero from "@/assets/departments-hero.webp";
 
 const Departments = () => {
   const departments = [
@@ -48,8 +49,16 @@ const Departments = () => {
       <Navbar />
       
       {/* Hero Section */}
-      <section className="relative bg-gradient-hero text-primary-foreground py-20">
-        <div className="container mx-auto px-4">
+      <section className="relative bg-gradient-hero text-primary-foreground py-20 overflow-hidden">
+        <div className="absolute inset-0">
+          <img 
+            src={departmentsHero} 
+            alt="Defence Intelligence College Departments" 
+            className="w-full h-full object-cover opacity-30"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-black/50" />
+        </div>
+        <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-3xl">
             <h1 className="text-4xl md:text-5xl font-bold mb-6">Our Departments</h1>
             <p className="text-xl opacity-90">
