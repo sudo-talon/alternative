@@ -27,6 +27,7 @@ export const Navbar = () => {
   const navLinks = [
     { name: "Home", path: "/" },
     { name: "About DIC", path: "/about" },
+    { name: "Departments", path: "/departments" },
     { name: "Courses", path: "/courses" },
     { name: "News & Blog", path: "/news" },
     { name: "Contact Us", path: "/contact" },
