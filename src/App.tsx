@@ -13,6 +13,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import About from "./pages/About";
 import Departments from "./pages/Departments";
 import News from "./pages/News";
+import PgProgram from "./pages/PgProgram";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/about" element={<About />} />
             <Route path="/departments" element={<Departments />} />
             <Route path="/news" element={<News />} />
+            <Route path="/pg-program" element={<PgProgram />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -242,6 +242,39 @@ export type Database = {
         }
         Relationships: []
       }
+      pg_programs: {
+        Row: {
+          created_at: string
+          degree_types: string
+          department: string
+          display_order: number | null
+          id: string
+          requirements: string
+          specializations: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          degree_types: string
+          department: string
+          display_order?: number | null
+          id?: string
+          requirements: string
+          specializations?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          degree_types?: string
+          department?: string
+          display_order?: number | null
+          id?: string
+          requirements?: string
+          specializations?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           category_id: string | null

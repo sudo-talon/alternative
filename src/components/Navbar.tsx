@@ -29,6 +29,7 @@ export const Navbar = () => {
     { name: "About DIC", path: "/about" },
     { name: "Departments", path: "/departments" },
     { name: "Courses", path: "/courses" },
+    { name: "PG Program", path: "/pg-program" },
     { name: "News & Blog", path: "/news" },
     { name: "Contact Us", path: "/contact" },
   ];
