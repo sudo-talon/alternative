@@ -51,6 +51,12 @@ const AdminDashboard = () => {
   });
   const [editingLeadershipId, setEditingLeadershipId] = useState<string | null>(null);
 
+  // PG Programs state
+  const [pgProgramForm, setPgProgramForm] = useState({
+    department: "", degree_types: "", specializations: "", requirements: "", display_order: 0
+  });
+  const [editingPgProgramId, setEditingPgProgramId] = useState<string | null>(null);
+
   useEffect(() => {
     checkAdminStatus();
   }, []);
@@ -293,6 +299,19 @@ const AdminDashboard = () => {
     enabled: isAdmin,
   });
 
+  const { data: pgPrograms } = useQuery({
+    queryKey: ["admin-pg-programs"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pg_programs")
+        .select("*")
+        .order("display_order", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+    enabled: isAdmin,
+  });
+
   const deleteCourseMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("courses").delete().eq("id", id);
@@ -381,13 +400,14 @@ const AdminDashboard = () => {
         </div>
 
         <Tabs defaultValue="courses" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7 gap-1">
+          <TabsList className="grid w-full grid-cols-8 gap-1">
             <TabsTrigger value="courses"><BookOpen className="mr-1 h-4 w-4" />Courses</TabsTrigger>
             <TabsTrigger value="personnel"><UserCog className="mr-1 h-4 w-4" />Personnel</TabsTrigger>
             <TabsTrigger value="leadership"><Crown className="mr-1 h-4 w-4" />Leadership</TabsTrigger>
+            <TabsTrigger value="pgprograms"><GraduationCap className="mr-1 h-4 w-4" />PG Programs</TabsTrigger>
             <TabsTrigger value="news"><Newspaper className="mr-1 h-4 w-4" />News</TabsTrigger>
             <TabsTrigger value="users"><Users className="mr-1 h-4 w-4" />Users</TabsTrigger>
-            <TabsTrigger value="categories"><GraduationCap className="mr-1 h-4 w-4" />Categories</TabsTrigger>
+            <TabsTrigger value="categories"><Shield className="mr-1 h-4 w-4" />Categories</TabsTrigger>
             <TabsTrigger value="analytics"><BarChart3 className="mr-1 h-4 w-4" />Analytics</TabsTrigger>
           </TabsList>
 
@@ -740,6 +760,193 @@ const AdminDashboard = () => {
                           <Button variant="destructive" size="sm" onClick={() => deleteCategoryMutation.mutate(category.id)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="pgprograms">
+            <Card>
+              <CardHeader>
+                <CardTitle>PG Programs Management</CardTitle>
+                <CardDescription>Manage postgraduate programme offerings</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button onClick={() => {
+                      setPgProgramForm({ department: "", degree_types: "", specializations: "", requirements: "", display_order: 0 });
+                      setEditingPgProgramId(null);
+                    }}>
+                      <Plus className="mr-2 h-4 w-4" />Add PG Program
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>{editingPgProgramId ? "Edit" : "Add New"} PG Program</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label>Department Name</Label>
+                        <Input
+                          value={pgProgramForm.department}
+                          onChange={(e) => setPgProgramForm({ ...pgProgramForm, department: e.target.value })}
+                          placeholder="e.g., Department of Political Science"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Degree Types</Label>
+                        <Input
+                          value={pgProgramForm.degree_types}
+                          onChange={(e) => setPgProgramForm({ ...pgProgramForm, degree_types: e.target.value })}
+                          placeholder="e.g., M.Sc. and PhD"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Specializations (comma-separated)</Label>
+                        <Textarea
+                          value={pgProgramForm.specializations}
+                          onChange={(e) => setPgProgramForm({ ...pgProgramForm, specializations: e.target.value })}
+                          placeholder="e.g., International Relations, Conflict Studies, Counter-Terrorism"
+                          rows={3}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Entry Requirements</Label>
+                        <Textarea
+                          value={pgProgramForm.requirements}
+                          onChange={(e) => setPgProgramForm({ ...pgProgramForm, requirements: e.target.value })}
+                          placeholder="Enter the entry requirements and qualifications"
+                          rows={6}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Display Order</Label>
+                        <Input
+                          type="number"
+                          value={pgProgramForm.display_order}
+                          onChange={(e) => setPgProgramForm({ ...pgProgramForm, display_order: parseInt(e.target.value) })}
+                        />
+                      </div>
+                      <Button onClick={async () => {
+                        const specializations = pgProgramForm.specializations
+                          .split(',')
+                          .map(s => s.trim())
+                          .filter(s => s.length > 0);
+                        
+                        if (editingPgProgramId) {
+                          const { error } = await supabase
+                            .from("pg_programs")
+                            .update({
+                              department: pgProgramForm.department,
+                              degree_types: pgProgramForm.degree_types,
+                              specializations,
+                              requirements: pgProgramForm.requirements,
+                              display_order: pgProgramForm.display_order,
+                            })
+                            .eq("id", editingPgProgramId);
+                          if (error) {
+                            toast({ title: "Error", description: error.message, variant: "destructive" });
+                          } else {
+                            toast({ title: "Success", description: "PG program updated" });
+                            queryClient.invalidateQueries({ queryKey: ["admin-pg-programs"] });
+                            setEditingPgProgramId(null);
+                          }
+                        } else {
+                          const { error } = await supabase
+                            .from("pg_programs")
+                            .insert([{
+                              department: pgProgramForm.department,
+                              degree_types: pgProgramForm.degree_types,
+                              specializations,
+                              requirements: pgProgramForm.requirements,
+                              display_order: pgProgramForm.display_order,
+                            }]);
+                          if (error) {
+                            toast({ title: "Error", description: error.message, variant: "destructive" });
+                          } else {
+                            toast({ title: "Success", description: "PG program added" });
+                            queryClient.invalidateQueries({ queryKey: ["admin-pg-programs"] });
+                          }
+                        }
+                      }}>
+                        {editingPgProgramId ? "Update" : "Add"} Program
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Order</TableHead>
+                      <TableHead>Department</TableHead>
+                      <TableHead>Degree Types</TableHead>
+                      <TableHead>Specializations</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pgPrograms?.map((program: any) => (
+                      <TableRow key={program.id}>
+                        <TableCell>{program.display_order}</TableCell>
+                        <TableCell className="font-medium">{program.department}</TableCell>
+                        <TableCell>{program.degree_types}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {program.specializations?.slice(0, 2).map((spec: string, i: number) => (
+                              <Badge key={i} variant="secondary" className="text-xs">{spec}</Badge>
+                            ))}
+                            {program.specializations?.length > 2 && (
+                              <Badge variant="outline" className="text-xs">+{program.specializations.length - 2}</Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setPgProgramForm({
+                                      department: program.department,
+                                      degree_types: program.degree_types,
+                                      specializations: program.specializations?.join(', ') || '',
+                                      requirements: program.requirements,
+                                      display_order: program.display_order,
+                                    });
+                                    setEditingPgProgramId(program.id);
+                                  }}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                              </DialogTrigger>
+                            </Dialog>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={async () => {
+                                const { error } = await supabase
+                                  .from("pg_programs")
+                                  .delete()
+                                  .eq("id", program.id);
+                                if (error) {
+                                  toast({ title: "Error", description: error.message, variant: "destructive" });
+                                } else {
+                                  toast({ title: "Success", description: "PG program deleted" });
+                                  queryClient.invalidateQueries({ queryKey: ["admin-pg-programs"] });
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
