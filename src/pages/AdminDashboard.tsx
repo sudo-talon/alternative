@@ -29,10 +29,14 @@ const AdminDashboard = () => {
   // News state
   const [newsTitle, setNewsTitle] = useState("");
   const [newsContent, setNewsContent] = useState("");
+  const [editingNewsId, setEditingNewsId] = useState<string | null>(null);
+  const [newsDialogOpen, setNewsDialogOpen] = useState(false);
   
   // Category state
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryDescription, setNewCategoryDescription] = useState("");
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   
   // User management state
   const [selectedUserId, setSelectedUserId] = useState("");
@@ -44,12 +48,14 @@ const AdminDashboard = () => {
     full_name: "", email: "", phone: "", category: "civilian", position: "", department: "", rank: "", bio: "", photo_url: ""
   });
   const [editingPersonnelId, setEditingPersonnelId] = useState<string | null>(null);
+  const [personnelDialogOpen, setPersonnelDialogOpen] = useState(false);
 
   // Leadership state
   const [leadershipForm, setLeadershipForm] = useState({
     full_name: "", position: "", rank: "", bio: "", photo_url: "", display_order: 0
   });
   const [editingLeadershipId, setEditingLeadershipId] = useState<string | null>(null);
+  const [leadershipDialogOpen, setLeadershipDialogOpen] = useState(false);
 
   // PG Programs state
   const [pgProgramForm, setPgProgramForm] = useState({
@@ -110,16 +116,26 @@ const AdminDashboard = () => {
   // Queries and mutations
   const createNewsMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase
-        .from("news")
-        .insert([{ title: newsTitle, content: newsContent }]);
-      if (error) throw error;
+      if (editingNewsId) {
+        const { error } = await supabase
+          .from("news")
+          .update({ title: newsTitle, content: newsContent })
+          .eq("id", editingNewsId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("news")
+          .insert([{ title: newsTitle, content: newsContent }]);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-news"] });
       setNewsTitle("");
       setNewsContent("");
-      toast({ title: "Success", description: "News created successfully" });
+      setEditingNewsId(null);
+      setNewsDialogOpen(false);
+      toast({ title: "Success", description: editingNewsId ? "News updated successfully" : "News created successfully" });
     },
     onError: (error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -139,16 +155,26 @@ const AdminDashboard = () => {
 
   const createCategoryMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase
-        .from("student_categories")
-        .insert([{ name: newCategoryName, description: newCategoryDescription }]);
-      if (error) throw error;
+      if (editingCategoryId) {
+        const { error } = await supabase
+          .from("student_categories")
+          .update({ name: newCategoryName, description: newCategoryDescription })
+          .eq("id", editingCategoryId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("student_categories")
+          .insert([{ name: newCategoryName, description: newCategoryDescription }]);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["student-categories"] });
       setNewCategoryName("");
       setNewCategoryDescription("");
-      toast({ title: "Success", description: "Category created successfully" });
+      setEditingCategoryId(null);
+      setCategoryDialogOpen(false);
+      toast({ title: "Success", description: editingCategoryId ? "Category updated successfully" : "Category created successfully" });
     },
     onError: (error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -326,13 +352,23 @@ const AdminDashboard = () => {
 
   const createPersonnelMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("personnel").insert([personnelForm]);
-      if (error) throw error;
+      if (editingPersonnelId) {
+        const { error } = await supabase
+          .from("personnel")
+          .update(personnelForm)
+          .eq("id", editingPersonnelId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("personnel").insert([personnelForm]);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-personnel"] });
       setPersonnelForm({ full_name: "", email: "", phone: "", category: "civilian", position: "", department: "", rank: "", bio: "", photo_url: "" });
-      toast({ title: "Success", description: "Personnel created" });
+      setEditingPersonnelId(null);
+      setPersonnelDialogOpen(false);
+      toast({ title: "Success", description: editingPersonnelId ? "Personnel updated" : "Personnel created" });
     },
   });
 
@@ -349,13 +385,23 @@ const AdminDashboard = () => {
 
   const createLeadershipMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("leadership").insert([leadershipForm]);
-      if (error) throw error;
+      if (editingLeadershipId) {
+        const { error } = await supabase
+          .from("leadership")
+          .update(leadershipForm)
+          .eq("id", editingLeadershipId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("leadership").insert([leadershipForm]);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-leadership"] });
       setLeadershipForm({ full_name: "", position: "", rank: "", bio: "", photo_url: "", display_order: 0 });
-      toast({ title: "Success", description: "Leadership created" });
+      setEditingLeadershipId(null);
+      setLeadershipDialogOpen(false);
+      toast({ title: "Success", description: editingLeadershipId ? "Leadership updated" : "Leadership created" });
     },
   });
 
@@ -459,13 +505,18 @@ const AdminDashboard = () => {
                 <CardDescription>Manage civilian and military personnel</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button><Plus className="mr-2 h-4 w-4" />Add Personnel</Button>
-                  </DialogTrigger>
+                <Button onClick={() => {
+                  setPersonnelForm({ full_name: "", email: "", phone: "", category: "civilian", position: "", department: "", rank: "", bio: "", photo_url: "" });
+                  setEditingPersonnelId(null);
+                  setPersonnelDialogOpen(true);
+                }}>
+                  <Plus className="mr-2 h-4 w-4" />Add Personnel
+                </Button>
+
+                <Dialog open={personnelDialogOpen} onOpenChange={setPersonnelDialogOpen}>
                   <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
-                      <DialogTitle>Add New Personnel</DialogTitle>
+                      <DialogTitle>{editingPersonnelId ? "Edit" : "Add New"} Personnel</DialogTitle>
                       <DialogDescription>Enter personnel details below</DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
@@ -511,7 +562,7 @@ const AdminDashboard = () => {
                         <Label htmlFor="p_photo">Photo URL</Label>
                         <Input id="p_photo" value={personnelForm.photo_url} onChange={(e) => setPersonnelForm({...personnelForm, photo_url: e.target.value})} />
                       </div>
-                      <Button onClick={() => createPersonnelMutation.mutate()}>Create Personnel</Button>
+                      <Button onClick={() => createPersonnelMutation.mutate()}>{editingPersonnelId ? "Update" : "Create"} Personnel</Button>
                     </div>
                   </DialogContent>
                 </Dialog>
@@ -533,9 +584,18 @@ const AdminDashboard = () => {
                         <TableCell>{person.position}</TableCell>
                         <TableCell>{person.department}</TableCell>
                         <TableCell>
-                          <Button variant="destructive" size="sm" onClick={() => deletePersonnelMutation.mutate(person.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm" onClick={() => {
+                              setPersonnelForm(person);
+                              setEditingPersonnelId(person.id);
+                              setPersonnelDialogOpen(true);
+                            }}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="destructive" size="sm" onClick={() => deletePersonnelMutation.mutate(person.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -552,13 +612,18 @@ const AdminDashboard = () => {
                 <CardDescription>Manage leadership profiles and hierarchy</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button><Plus className="mr-2 h-4 w-4" />Add Leader</Button>
-                  </DialogTrigger>
+                <Button onClick={() => {
+                  setLeadershipForm({ full_name: "", position: "", rank: "", bio: "", photo_url: "", display_order: 0 });
+                  setEditingLeadershipId(null);
+                  setLeadershipDialogOpen(true);
+                }}>
+                  <Plus className="mr-2 h-4 w-4" />Add Leader
+                </Button>
+
+                <Dialog open={leadershipDialogOpen} onOpenChange={setLeadershipDialogOpen}>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Add New Leader</DialogTitle>
+                      <DialogTitle>{editingLeadershipId ? "Edit" : "Add New"} Leader</DialogTitle>
                       <DialogDescription>Enter leadership details</DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
@@ -586,7 +651,7 @@ const AdminDashboard = () => {
                         <Label htmlFor="l_order">Display Order</Label>
                         <Input id="l_order" type="number" value={leadershipForm.display_order} onChange={(e) => setLeadershipForm({...leadershipForm, display_order: parseInt(e.target.value)})} />
                       </div>
-                      <Button onClick={() => createLeadershipMutation.mutate()}>Create Leader</Button>
+                      <Button onClick={() => createLeadershipMutation.mutate()}>{editingLeadershipId ? "Update" : "Create"} Leader</Button>
                     </div>
                   </DialogContent>
                 </Dialog>
@@ -608,9 +673,18 @@ const AdminDashboard = () => {
                         <TableCell>{leader.position}</TableCell>
                         <TableCell>{leader.rank}</TableCell>
                         <TableCell>
-                          <Button variant="destructive" size="sm" onClick={() => deleteLeadershipMutation.mutate(leader.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm" onClick={() => {
+                              setLeadershipForm(leader);
+                              setEditingLeadershipId(leader.id);
+                              setLeadershipDialogOpen(true);
+                            }}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="destructive" size="sm" onClick={() => deleteLeadershipMutation.mutate(leader.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -627,19 +701,36 @@ const AdminDashboard = () => {
                 <CardDescription>Create and manage news announcements</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="news_title">Title</Label>
-                    <Input id="news_title" placeholder="News title" value={newsTitle} onChange={(e) => setNewsTitle(e.target.value)} />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="news_content">Content</Label>
-                    <Textarea id="news_content" placeholder="News content" value={newsContent} onChange={(e) => setNewsContent(e.target.value)} rows={4} />
-                  </div>
-                  <Button onClick={() => createNewsMutation.mutate()} disabled={!newsTitle || !newsContent}>
-                    <Plus className="mr-2 h-4 w-4" />Create News
-                  </Button>
-                </div>
+                <Button onClick={() => {
+                  setNewsTitle("");
+                  setNewsContent("");
+                  setEditingNewsId(null);
+                  setNewsDialogOpen(true);
+                }}>
+                  <Plus className="mr-2 h-4 w-4" />Create News
+                </Button>
+
+                <Dialog open={newsDialogOpen} onOpenChange={setNewsDialogOpen}>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>{editingNewsId ? "Edit" : "Create"} News</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="news_title">Title</Label>
+                        <Input id="news_title" placeholder="News title" value={newsTitle} onChange={(e) => setNewsTitle(e.target.value)} />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="news_content">Content</Label>
+                        <Textarea id="news_content" placeholder="News content" value={newsContent} onChange={(e) => setNewsContent(e.target.value)} rows={4} />
+                      </div>
+                      <Button onClick={() => createNewsMutation.mutate()} disabled={!newsTitle || !newsContent}>
+                        {editingNewsId ? "Update" : "Create"} News
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -654,9 +745,19 @@ const AdminDashboard = () => {
                         <TableCell className="font-medium">{item.title}</TableCell>
                         <TableCell>{new Date(item.published_at).toLocaleDateString()}</TableCell>
                         <TableCell>
-                          <Button variant="destructive" size="sm" onClick={() => deleteNewsMutation.mutate(item.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm" onClick={() => {
+                              setNewsTitle(item.title);
+                              setNewsContent(item.content);
+                              setEditingNewsId(item.id);
+                              setNewsDialogOpen(true);
+                            }}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="destructive" size="sm" onClick={() => deleteNewsMutation.mutate(item.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -731,19 +832,36 @@ const AdminDashboard = () => {
                 <CardDescription>Manage student categories</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="cat_name">Category Name</Label>
-                    <Input id="cat_name" placeholder="e.g., Military Officers" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="cat_desc">Description</Label>
-                    <Textarea id="cat_desc" placeholder="Category description" value={newCategoryDescription} onChange={(e) => setNewCategoryDescription(e.target.value)} />
-                  </div>
-                  <Button onClick={() => createCategoryMutation.mutate()} disabled={!newCategoryName}>
-                    <Plus className="mr-2 h-4 w-4" />Create Category
-                  </Button>
-                </div>
+                <Button onClick={() => {
+                  setNewCategoryName("");
+                  setNewCategoryDescription("");
+                  setEditingCategoryId(null);
+                  setCategoryDialogOpen(true);
+                }}>
+                  <Plus className="mr-2 h-4 w-4" />Create Category
+                </Button>
+
+                <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>{editingCategoryId ? "Edit" : "Create"} Category</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="cat_name">Category Name</Label>
+                        <Input id="cat_name" placeholder="e.g., Military Officers" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="cat_desc">Description</Label>
+                        <Textarea id="cat_desc" placeholder="Category description" value={newCategoryDescription} onChange={(e) => setNewCategoryDescription(e.target.value)} />
+                      </div>
+                      <Button onClick={() => createCategoryMutation.mutate()} disabled={!newCategoryName}>
+                        {editingCategoryId ? "Update" : "Create"} Category
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -758,9 +876,19 @@ const AdminDashboard = () => {
                         <TableCell className="font-medium">{category.name}</TableCell>
                         <TableCell>{category.description}</TableCell>
                         <TableCell>
-                          <Button variant="destructive" size="sm" onClick={() => deleteCategoryMutation.mutate(category.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm" onClick={() => {
+                              setNewCategoryName(category.name);
+                              setNewCategoryDescription(category.description);
+                              setEditingCategoryId(category.id);
+                              setCategoryDialogOpen(true);
+                            }}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="destructive" size="sm" onClick={() => deleteCategoryMutation.mutate(category.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
