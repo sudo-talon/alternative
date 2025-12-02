@@ -56,6 +56,7 @@ const AdminDashboard = () => {
     department: "", degree_types: "", specializations: "", requirements: "", display_order: 0
   });
   const [editingPgProgramId, setEditingPgProgramId] = useState<string | null>(null);
+  const [pgProgramDialogOpen, setPgProgramDialogOpen] = useState(false);
 
   useEffect(() => {
     checkAdminStatus();
@@ -776,15 +777,15 @@ const AdminDashboard = () => {
                 <CardDescription>Manage postgraduate programme offerings</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button onClick={() => {
-                      setPgProgramForm({ department: "", degree_types: "", specializations: "", requirements: "", display_order: 0 });
-                      setEditingPgProgramId(null);
-                    }}>
-                      <Plus className="mr-2 h-4 w-4" />Add PG Program
-                    </Button>
-                  </DialogTrigger>
+                <Button onClick={() => {
+                  setPgProgramForm({ department: "", degree_types: "", specializations: "", requirements: "", display_order: 0 });
+                  setEditingPgProgramId(null);
+                  setPgProgramDialogOpen(true);
+                }}>
+                  <Plus className="mr-2 h-4 w-4" />Add PG Program
+                </Button>
+
+                <Dialog open={pgProgramDialogOpen} onOpenChange={setPgProgramDialogOpen}>
                   <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
                       <DialogTitle>{editingPgProgramId ? "Edit" : "Add New"} PG Program</DialogTitle>
@@ -855,6 +856,7 @@ const AdminDashboard = () => {
                             toast({ title: "Success", description: "PG program updated" });
                             queryClient.invalidateQueries({ queryKey: ["admin-pg-programs"] });
                             setEditingPgProgramId(null);
+                            setPgProgramDialogOpen(false);
                           }
                         } else {
                           const { error } = await supabase
@@ -871,6 +873,7 @@ const AdminDashboard = () => {
                           } else {
                             toast({ title: "Success", description: "PG program added" });
                             queryClient.invalidateQueries({ queryKey: ["admin-pg-programs"] });
+                            setPgProgramDialogOpen(false);
                           }
                         }
                       }}>
@@ -908,26 +911,23 @@ const AdminDashboard = () => {
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-2">
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    setPgProgramForm({
-                                      department: program.department,
-                                      degree_types: program.degree_types,
-                                      specializations: program.specializations?.join(', ') || '',
-                                      requirements: program.requirements,
-                                      display_order: program.display_order,
-                                    });
-                                    setEditingPgProgramId(program.id);
-                                  }}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                              </DialogTrigger>
-                            </Dialog>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setPgProgramForm({
+                                  department: program.department,
+                                  degree_types: program.degree_types,
+                                  specializations: program.specializations?.join(', ') || '',
+                                  requirements: program.requirements,
+                                  display_order: program.display_order,
+                                });
+                                setEditingPgProgramId(program.id);
+                                setPgProgramDialogOpen(true);
+                              }}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
                             <Button
                               variant="destructive"
                               size="sm"
