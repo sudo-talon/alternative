@@ -64,6 +64,46 @@ const AdminDashboard = () => {
   const [editingPgProgramId, setEditingPgProgramId] = useState<string | null>(null);
   const [pgProgramDialogOpen, setPgProgramDialogOpen] = useState(false);
 
+  // Courses state
+  const [courseForm, setCourseForm] = useState({
+    title: "", description: "", full_description: "", category: "Generic Courses"
+  });
+  const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
+  const [courseDialogOpen, setCourseDialogOpen] = useState(false);
+
+  const courseCategories = [
+    "Generic Courses",
+    "Specialized Courses", 
+    "Language Courses",
+    "Strategic Courses"
+  ];
+
+  const predefinedCourses = [
+    // Generic Courses
+    { title: "Basic Intelligence Officers' Course", description: "Foundation training for intelligence officers", category: "Generic Courses" },
+    { title: "Defence Intelligence Officers' Course", description: "Comprehensive defence intelligence training", category: "Generic Courses" },
+    { title: "Advanced Defence Intelligence Officers' Course", description: "Advanced training for senior officers", category: "Generic Courses" },
+    { title: "Junior Defence Intelligence Basic Course", description: "Entry-level training for junior personnel", category: "Generic Courses" },
+    { title: "Junior Defence Intelligence Intermediate Course", description: "Intermediate skills development", category: "Generic Courses" },
+    { title: "Junior Defence Intelligence Advanced Course", description: "Advanced training for junior officers", category: "Generic Courses" },
+    // Specialized Courses
+    { title: "Psychological Operations Course", description: "Strategic psychological operations training", category: "Specialized Courses" },
+    { title: "Intelligence Analysis Officers' Course", description: "Advanced intelligence analysis techniques", category: "Specialized Courses" },
+    { title: "Security Investigation and Interrogation Course", description: "Professional interrogation methods", category: "Specialized Courses" },
+    { title: "Document Security Course", description: "Document classification and protection", category: "Specialized Courses" },
+    { title: "Joint Military Attache / Advisers Course", description: "Diplomatic and advisory training", category: "Specialized Courses" },
+    { title: "Special Intelligence and Security Course", description: "Specialized intelligence operations", category: "Specialized Courses" },
+    // Language Courses
+    { title: "Basic French Course", description: "Foundation French language training", category: "Language Courses" },
+    { title: "Intermediate French Language Course", description: "Intermediate French proficiency", category: "Language Courses" },
+    { title: "Basic German Language Course", description: "Foundation German language training", category: "Language Courses" },
+    // Strategic Courses
+    { title: "The National Security Training Seminar", description: "National security strategy and policy", category: "Strategic Courses" },
+    { title: "Intelligence Analysis Course", description: "Strategic intelligence assessment", category: "Strategic Courses" },
+    { title: "Peace and Conflict Studies", description: "Peace operations and conflict resolution", category: "Strategic Courses" },
+    { title: "Strategic Security Course", description: "Strategic security planning and management", category: "Strategic Courses" },
+  ];
+
   useEffect(() => {
     checkAdminStatus();
   }, []);
@@ -339,6 +379,47 @@ const AdminDashboard = () => {
     enabled: isAdmin,
   });
 
+  const createCourseMutation = useMutation({
+    mutationFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+      
+      if (editingCourseId) {
+        const { error } = await supabase
+          .from("courses")
+          .update({
+            title: courseForm.title,
+            description: courseForm.description,
+            full_description: courseForm.full_description,
+            category: courseForm.category
+          })
+          .eq("id", editingCourseId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("courses")
+          .insert([{
+            title: courseForm.title,
+            description: courseForm.description,
+            full_description: courseForm.full_description,
+            category: courseForm.category,
+            instructor_id: user.id
+          }]);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-courses"] });
+      setCourseForm({ title: "", description: "", full_description: "", category: "Generic Courses" });
+      setEditingCourseId(null);
+      setCourseDialogOpen(false);
+      toast({ title: "Success", description: editingCourseId ? "Course updated successfully" : "Course created successfully" });
+    },
+    onError: (error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   const deleteCourseMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("courses").delete().eq("id", id);
@@ -462,9 +543,78 @@ const AdminDashboard = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Course Management</CardTitle>
-                <CardDescription>Manage all courses created by instructors</CardDescription>
+                <CardDescription>Create and manage all courses</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-6">
+                <div className="flex gap-2 flex-wrap">
+                  <Button onClick={() => {
+                    setCourseForm({ title: "", description: "", full_description: "", category: "Generic Courses" });
+                    setEditingCourseId(null);
+                    setCourseDialogOpen(true);
+                  }}>
+                    <Plus className="mr-2 h-4 w-4" />Add Course
+                  </Button>
+                  <Select onValueChange={(value) => {
+                    const preset = predefinedCourses.find(c => c.title === value);
+                    if (preset) {
+                      setCourseForm({ ...courseForm, title: preset.title, description: preset.description, category: preset.category });
+                      setEditingCourseId(null);
+                      setCourseDialogOpen(true);
+                    }
+                  }}>
+                    <SelectTrigger className="w-[300px]">
+                      <SelectValue placeholder="Quick add from predefined courses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {courseCategories.map(cat => (
+                        <div key={cat}>
+                          <div className="px-2 py-1 text-sm font-semibold text-muted-foreground">{cat}</div>
+                          {predefinedCourses.filter(c => c.category === cat).map(course => (
+                            <SelectItem key={course.title} value={course.title}>{course.title}</SelectItem>
+                          ))}
+                        </div>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Dialog open={courseDialogOpen} onOpenChange={setCourseDialogOpen}>
+                  <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>{editingCourseId ? "Edit" : "Add New"} Course</DialogTitle>
+                      <DialogDescription>Enter course details below</DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="c_title">Course Title</Label>
+                        <Input id="c_title" value={courseForm.title} onChange={(e) => setCourseForm({...courseForm, title: e.target.value})} />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="c_category">Category</Label>
+                        <Select value={courseForm.category} onValueChange={(value) => setCourseForm({...courseForm, category: value})}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {courseCategories.map(cat => (
+                              <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="c_description">Short Description</Label>
+                        <Textarea id="c_description" value={courseForm.description} onChange={(e) => setCourseForm({...courseForm, description: e.target.value})} rows={2} />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="c_full_description">Full Description</Label>
+                        <Textarea id="c_full_description" value={courseForm.full_description} onChange={(e) => setCourseForm({...courseForm, full_description: e.target.value})} rows={5} />
+                      </div>
+                      <Button onClick={() => createCourseMutation.mutate()} disabled={!courseForm.title}>
+                        {editingCourseId ? "Update" : "Create"} Course
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -480,15 +630,26 @@ const AdminDashboard = () => {
                       <TableRow key={course.id}>
                         <TableCell className="font-medium">{course.title}</TableCell>
                         <TableCell>{course.profiles?.full_name}</TableCell>
-                        <TableCell>{course.category}</TableCell>
+                        <TableCell><Badge variant="outline">{course.category}</Badge></TableCell>
                         <TableCell>{new Date(course.created_at).toLocaleDateString()}</TableCell>
                         <TableCell>
-                          <Button variant="outline" size="sm" className="mr-2" onClick={() => navigate(`/course/${course.title}`)}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="destructive" size="sm" onClick={() => deleteCourseMutation.mutate(course.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm" onClick={() => {
+                              setCourseForm({
+                                title: course.title,
+                                description: course.description || "",
+                                full_description: course.full_description || "",
+                                category: course.category || "Generic Courses"
+                              });
+                              setEditingCourseId(course.id);
+                              setCourseDialogOpen(true);
+                            }}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="destructive" size="sm" onClick={() => deleteCourseMutation.mutate(course.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
