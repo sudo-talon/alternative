@@ -52,8 +52,8 @@ const Home = () => {
           <div className="absolute inset-0 bg-gradient-hero opacity-70"></div>
         </div>
         <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
-          <h1 className="text-4xl md:text-6xl font-bold text-primary-foreground mb-6">
-            Welcome to<br />Defence Intelligence College Nigeria
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground mb-6">
+            Welcome to Defence Intelligence College Nigeria
           </h1>
           <p className="text-xl md:text-2xl text-primary-foreground mb-8 max-w-2xl mx-auto">
             Empowering security professionals with world-class intelligence training to safeguard Nigeria and beyond.
