@@ -24,12 +24,9 @@ export const Footer = () => {
             <p className="text-sm opacity-90">Email: info@dicnigeria.edu.ng</p>
           </div>
         </div>
-        <div className="mt-8 pt-8 border-t border-primary-foreground/20 text-center space-y-2">
+        <div className="mt-8 pt-8 border-t border-primary-foreground/20 text-center">
           <p className="text-sm opacity-75">
-            © {new Date().getFullYear()} Defence Intelligence College Nigeria. All rights reserved.
-          </p>
-          <p className="text-sm opacity-60">
-            Managed Service Provider by{" "}
+            © {new Date().getFullYear()} Defence Intelligence College Nigeria. All rights reserved. Designed & Managed by{" "}
             <a 
               href="https://talongeeks.com" 
               target="_blank" 
