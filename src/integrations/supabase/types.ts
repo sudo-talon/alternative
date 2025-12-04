@@ -499,6 +499,10 @@ export type Database = {
       }
     }
     Functions: {
+      get_user_role: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["user_role"]
+      }
       has_role: { Args: { _role: string; _user_id: string }; Returns: boolean }
       send_notification_to_users: {
         Args: {
