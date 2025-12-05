@@ -7,12 +7,15 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Navbar } from "@/components/Navbar";
+import dicLogo from "@/assets/dic-logo.png";
 
 const Auth = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [captchaVerified, setCaptchaVerified] = useState(false);
   const [signUpData, setSignUpData] = useState({
     email: "",
     password: "",
@@ -54,6 +57,12 @@ const Auth = () => {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!captchaVerified) {
+      toast.error("Please verify that you are not a robot");
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -91,9 +100,12 @@ const Auth = () => {
       <Navbar />
       <div className="container mx-auto px-4 py-12 flex items-center justify-center">
         <Card className="w-full max-w-md shadow-elevated">
-          <CardHeader>
-            <CardTitle className="text-2xl text-center">DIC Portal</CardTitle>
-            <CardDescription className="text-center">
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <img src={dicLogo} alt="DIC Logo" className="h-20 w-auto" />
+            </div>
+            <CardTitle className="text-2xl">DIC Portal</CardTitle>
+            <CardDescription>
               Access your learning management system
             </CardDescription>
           </CardHeader>
@@ -130,7 +142,17 @@ const Auth = () => {
                       }
                     />
                   </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
+                  <div className="flex items-center space-x-2 p-4 border rounded-lg bg-muted/50">
+                    <Checkbox
+                      id="captcha"
+                      checked={captchaVerified}
+                      onCheckedChange={(checked) => setCaptchaVerified(checked as boolean)}
+                    />
+                    <Label htmlFor="captcha" className="text-sm cursor-pointer">
+                      I am not a robot
+                    </Label>
+                  </div>
+                  <Button type="submit" className="w-full" disabled={loading || !captchaVerified}>
                     {loading ? "Signing in..." : "Sign In"}
                   </Button>
                 </form>

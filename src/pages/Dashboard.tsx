@@ -10,8 +10,10 @@ import { toast } from "sonner";
 import { User, Session } from "@supabase/supabase-js";
 import { BookOpen, Users, GraduationCap, LogOut } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
+import { useInactivityLogout } from "@/hooks/useInactivityLogout";
 
 const Dashboard = () => {
+  useInactivityLogout();
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);

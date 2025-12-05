@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { GraduationCap, Shield, Users, BookOpen } from "lucide-react";
 import dicBg from "@/assets/dic-bg.png";
-import aboutHero from "@/assets/about-hero.jpg";
+import departmentsHero from "@/assets/departments-hero.webp";
 import { useState } from "react";
 
 const Home = () => {
@@ -117,7 +117,7 @@ const Home = () => {
                 {/* Left: Image */}
                 <div className="rounded-lg overflow-hidden shadow-elevated">
                   <img 
-                    src={aboutHero} 
+                    src={departmentsHero} 
                     alt="DIC Students Learning" 
                     className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                   />
