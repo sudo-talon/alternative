@@ -1,0 +1,47 @@
+import { useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+const INACTIVITY_TIMEOUT = 2 * 60 * 1000; // 2 minutes in milliseconds
+
+export const useInactivityLogout = () => {
+  const navigate = useNavigate();
+
+  const handleLogout = useCallback(async () => {
+    await supabase.auth.signOut();
+    toast.info("You have been logged out due to inactivity");
+    navigate("/auth");
+  }, [navigate]);
+
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
+    const resetTimer = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(handleLogout, INACTIVITY_TIMEOUT);
+    };
+
+    const events = ["mousedown", "mousemove", "keypress", "scroll", "touchstart", "click"];
+
+    // Check if user is logged in
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        resetTimer();
+        events.forEach((event) => {
+          document.addEventListener(event, resetTimer);
+        });
+      }
+    };
+
+    checkAuth();
+
+    return () => {
+      clearTimeout(timeoutId);
+      events.forEach((event) => {
+        document.removeEventListener(event, resetTimer);
+      });
+    };
+  }, [handleLogout]);
+};
