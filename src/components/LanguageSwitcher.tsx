@@ -9,21 +9,23 @@ import {
 import { useLanguage } from "@/contexts/LanguageContext";
 
 const languages = [
-  { code: 'en', name: 'English' },
-  { code: 'fr', name: 'Français' },
-  { code: 'ha', name: 'Hausa' },
-  { code: 'ig', name: 'Igbo' },
-  { code: 'yo', name: 'Yorùbá' },
+  { code: 'en', name: 'English', flag: '🇬🇧' },
+  { code: 'fr', name: 'Français', flag: '🇫🇷' },
+  { code: 'ha', name: 'Hausa', flag: '🇳🇬' },
+  { code: 'ig', name: 'Igbo', flag: '🇳🇬' },
+  { code: 'yo', name: 'Yorùbá', flag: '🇳🇬' },
 ];
 
 export const LanguageSwitcher = () => {
   const { language, setLanguage } = useLanguage();
+  const currentLang = languages.find(l => l.code === language);
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="icon" className="border-primary/20">
-          <Globe className="h-5 w-5" />
+        <Button variant="outline" size="sm" className="border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/10 gap-1">
+          <Globe className="h-4 w-4" />
+          <span className="uppercase text-xs font-medium">{language}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="bg-card border-primary/20">
@@ -31,8 +33,9 @@ export const LanguageSwitcher = () => {
           <DropdownMenuItem
             key={lang.code}
             onClick={() => setLanguage(lang.code as any)}
-            className={language === lang.code ? 'bg-primary/10' : ''}
+            className={`${language === lang.code ? 'bg-primary/10 font-medium' : ''} cursor-pointer`}
           >
+            <span className="mr-2">{lang.flag}</span>
             {lang.name}
           </DropdownMenuItem>
         ))}
