@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import dicLogo from "@/assets/dic-logo.png";
 
 export const Footer = () => {
   const navigate = useNavigate();
@@ -8,7 +9,10 @@ export const Footer = () => {
       <div className="container mx-auto px-4">
         <div className="grid md:grid-cols-3 gap-8">
           <div>
-            <h3 className="font-bold text-lg mb-4">Defence Intelligence College</h3>
+            <div className="flex items-center space-x-3 mb-4">
+              <img src={dicLogo} alt="DIC Logo" className="h-12 w-12" />
+              <h3 className="font-bold text-lg">Defence Intelligence College</h3>
+            </div>
             <p className="text-sm opacity-90">Karu, Abuja, Nigeria</p>
           </div>
           <div>
@@ -18,12 +22,13 @@ export const Footer = () => {
               <li><a href="/courses" className="hover:text-accent transition-colors">Courses</a></li>
               <li><a href="/news" className="hover:text-accent transition-colors">News</a></li>
               <li><a href="/contact" className="hover:text-accent transition-colors">Contact Us</a></li>
-              <li><a href="https://elibrary.dicnigeria.edu.ng" target="_blank" rel="noopener noreferrer" className="hover:text-accent transition-colors">DADEL e-Library</a></li>
+              <li><a href="https://elibrary.dicnigeria.edu.ng" target="_blank" rel="noopener noreferrer" className="hover:text-accent transition-colors">e-Library</a></li>
+              <li><a href="/auth" className="hover:text-accent transition-colors">College Portal</a></li>
             </ul>
           </div>
           <div>
             <h3 className="font-bold text-lg mb-4">Contact</h3>
-            <p className="text-sm opacity-90">Email: info@dicnigeria.edu.ng</p>
+            <p className="text-sm opacity-90">Email: info@dic.gov.ng</p>
           </div>
         </div>
         <div className="mt-8 pt-8 border-t border-primary-foreground/20 text-center">
