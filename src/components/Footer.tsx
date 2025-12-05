@@ -25,7 +25,9 @@ export const Footer = () => {
             </ul>
           </div>
           <div>
-            <h3 className="font-bold text-lg mb-4">Contact</h3>
+            <h3 className="font-bold text-lg mb-4">Contact</h3
+            <p className="text-sm opacity-90">Karu,Federal Capital Territory, Nigeria</p>
+            <p className="text-sm opacity-90">Phone: +234 (0) 123 456 7890</p>
             <p className="text-sm opacity-90">Email: info@dic.gov.ng</p>
           </div>
         </div>
