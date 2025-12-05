@@ -1,7 +1,7 @@
 import { Navbar } from "@/components/Navbar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Shield, Target, BookOpen } from "lucide-react";
-import dicCrest from "@/assets/dic-crest.jpeg";
+import dicGroupPhoto from "@/assets/dic-group-photo.webp";
 
 const About = () => {
   return (
@@ -25,13 +25,16 @@ const About = () => {
       {/* Main Content */}
       <section className="container mx-auto px-4 py-12">
         <div className="max-w-5xl mx-auto space-y-12">
-          {/* College Crest */}
+          {/* College Image */}
           <div className="flex justify-center">
-            <img 
-              src={dicCrest} 
-              alt="DIC Crest" 
-              className="w-48 h-48 object-contain"
-            />
+            <div className="relative w-full max-w-2xl rounded-lg overflow-hidden shadow-elevated">
+              <img 
+                src={dicGroupPhoto} 
+                alt="DIC Group Photo" 
+                className="w-full h-64 object-cover"
+              />
+              <div className="absolute inset-0 bg-primary/40"></div>
+            </div>
           </div>
 
           {/* About Us */}
