@@ -22,8 +22,6 @@ export const Footer = () => {
               <li><a href="/courses" className="hover:text-accent transition-colors">Courses</a></li>
               <li><a href="/news" className="hover:text-accent transition-colors">News</a></li>
               <li><a href="/contact" className="hover:text-accent transition-colors">Contact Us</a></li>
-              <li><a href="https://elibrary.dicnigeria.edu.ng" target="_blank" rel="noopener noreferrer" className="hover:text-accent transition-colors">e-Library</a></li>
-              <li><a href="/auth" className="hover:text-accent transition-colors">College Portal</a></li>
             </ul>
           </div>
           <div>
