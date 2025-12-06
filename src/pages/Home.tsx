@@ -220,9 +220,9 @@ const Home = () => {
                   <Button 
                     variant="outline" 
                     className="w-full justify-start"
-                    onClick={() => navigate("/contact")}
+                    onClick={() => navigate("/auth")}
                   >
-                    Contact Us
+                    College Portal
                   </Button>
                   <Button 
                     variant="outline" 
@@ -234,9 +234,9 @@ const Home = () => {
                   <Button 
                     variant="outline" 
                     className="w-full justify-start"
-                    onClick={() => navigate("/auth")}
+                    onClick={() => navigate("/contact")}
                   >
-                    College Portal
+                    Contact Us
                   </Button>
                 </CardContent>
               </Card>
