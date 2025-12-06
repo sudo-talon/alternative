@@ -220,16 +220,23 @@ const Home = () => {
                   <Button 
                     variant="outline" 
                     className="w-full justify-start"
-                    onClick={() => navigate("/auth")}
+                    onClick={() => navigate("/contact")}
                   >
-                    Student Portal
+                    Contact Us
                   </Button>
                   <Button 
                     variant="outline" 
                     className="w-full justify-start"
-                    onClick={() => navigate("/contact")}
+                    onClick={() => window.open("https://elibrary.dic.gov.ng", "_blank")}
                   >
-                    Contact Us
+                    e-Library
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    onClick={() => navigate("/auth")}
+                  >
+                    College Portal
                   </Button>
                 </CardContent>
               </Card>
