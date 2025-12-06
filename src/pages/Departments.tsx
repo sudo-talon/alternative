@@ -1,4 +1,5 @@
 import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BookOpen, Shield, Laptop, GraduationCap, Users, Languages } from "lucide-react";
@@ -115,6 +116,7 @@ const Departments = () => {
           </Tabs>
         </div>
       </section>
+      <Footer />
     </div>
   );
 };
