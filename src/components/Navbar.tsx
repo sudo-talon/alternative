@@ -6,11 +6,13 @@ import dicLogo from "@/assets/dic-logo.png";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { NotificationBell } from "./NotificationBell";
 import { supabase } from "@/integrations/supabase/client";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -25,13 +27,13 @@ export const Navbar = () => {
   }, []);
 
   const navLinks = [
-    { name: "Home", path: "/" },
-    { name: "About DIC", path: "/about" },
-    { name: "Departments", path: "/departments" },
-    { name: "Courses", path: "/courses" },
-    { name: "PG Program", path: "/pg-program" },
-    { name: "News & Blog", path: "/news" },
-    { name: "Contact Us", path: "/contact" },
+    { name: t('home'), path: "/" },
+    { name: t('about'), path: "/about" },
+    { name: t('departments'), path: "/departments" },
+    { name: t('courses'), path: "/courses" },
+    { name: t('pgProgram'), path: "/pg-program" },
+    { name: t('news'), path: "/news" },
+    { name: t('contact'), path: "/contact" },
   ];
 
   const handleLogout = async () => {
@@ -67,14 +69,14 @@ export const Navbar = () => {
                 onClick={handleLogout}
                 className="ml-4 bg-accent hover:bg-accent/90"
               >
-                Log Out
+                {t('logout')}
               </Button>
             ) : (
               <Button 
                 onClick={() => navigate("/auth")}
                 className="ml-4 bg-accent hover:bg-accent/90"
               >
-                Log In
+                {t('login')}
               </Button>
             )}
           </div>
@@ -106,7 +108,7 @@ export const Navbar = () => {
                 }}
                 className="w-full bg-accent hover:bg-accent/90"
               >
-                Log Out
+                {t('logout')}
               </Button>
             ) : (
               <Button 
@@ -116,7 +118,7 @@ export const Navbar = () => {
                 }}
                 className="w-full bg-accent hover:bg-accent/90"
               >
-                Log In
+                {t('login')}
               </Button>
             )}
           </div>

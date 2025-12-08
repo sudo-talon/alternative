@@ -3,8 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { formatDistanceToNow } from "date-fns";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export const NewsFlash = () => {
+  const { t } = useLanguage();
+  
   const { data: news, isLoading } = useQuery({
     queryKey: ["news"],
     queryFn: async () => {
@@ -22,7 +25,7 @@ export const NewsFlash = () => {
   return (
     <Card className="shadow-elevated overflow-hidden">
       <CardHeader className="bg-gradient-accent">
-        <CardTitle className="text-primary-foreground">News Flash</CardTitle>
+        <CardTitle className="text-primary-foreground">{t('newsFlash')}</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
         <div className="h-[400px] overflow-hidden relative">
