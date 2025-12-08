@@ -95,7 +95,7 @@ export const CommandantsMarquee = () => {
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-semibold text-accent">
-                        {currentCommandant.is_active ? "Present" : currentCommandant.position}
+                        {currentCommandant.is_active ? "Commandant DIC" : currentCommandant.position}
                       </span>
                       <Button
                         size="sm"
@@ -141,7 +141,7 @@ export const CommandantsMarquee = () => {
           <DialogHeader>
             <DialogTitle>{selectedCommandant?.full_name}</DialogTitle>
             <DialogDescription>
-              {selectedCommandant?.rank} • {selectedCommandant?.is_active ? "Present" : selectedCommandant?.position}
+              {selectedCommandant?.rank} • {selectedCommandant?.is_active ? "Commandant DIC" : selectedCommandant?.position}
             </DialogDescription>
           </DialogHeader>
           <div className="mt-4">
