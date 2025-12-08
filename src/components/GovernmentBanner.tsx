@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { ChevronDown, ChevronUp, Building2, Lock } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export const GovernmentBanner = () => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const { t } = useLanguage();
 
   return (
     <div className="bg-muted border-b border-border">
@@ -11,7 +13,7 @@ export const GovernmentBanner = () => {
           onClick={() => setIsExpanded(!isExpanded)}
           className="w-full py-2 flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
-          <span>An official website of the Defence Intelligence Agency of the Federal Republic of Nigeria</span>
+          <span>{t('govBannerText')}</span>
           <span className="flex items-center gap-1 text-primary font-medium">
             Here's how you know
             {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}

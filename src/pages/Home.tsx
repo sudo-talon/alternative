@@ -10,33 +10,44 @@ import { GraduationCap, Shield, Users, BookOpen } from "lucide-react";
 import dicBg from "@/assets/dic-bg.png";
 import dicGroupPhoto from "@/assets/dic-group-photo.webp";
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Home = () => {
   const navigate = useNavigate();
   const [activeYear, setActiveYear] = useState("2001");
+  const { t } = useLanguage();
 
   const features = [
     {
       icon: <Shield className="h-8 w-8" />,
-      title: "Elite Training",
-      description: "World-class intelligence and security training programs",
+      title: t('eliteTraining'),
+      description: t('eliteTrainingDesc'),
     },
     {
       icon: <GraduationCap className="h-8 w-8" />,
-      title: "Professional Development",
-      description: "Continuous learning for defense professionals",
+      title: t('professionalDevelopment'),
+      description: t('professionalDevelopmentDesc'),
     },
     {
       icon: <Users className="h-8 w-8" />,
-      title: "Expert Instructors",
-      description: "Learn from experienced intelligence professionals",
+      title: t('expertInstructors'),
+      description: t('expertInstructorsDesc'),
     },
     {
       icon: <BookOpen className="h-8 w-8" />,
-      title: "Comprehensive Curriculum",
-      description: "Cutting-edge courses in intelligence and security",
+      title: t('comprehensiveCurriculum'),
+      description: t('comprehensiveCurriculumDesc'),
     },
   ];
+
+  const timelineData = [
+    { year: "2001", title: t('established2001'), description: t('established2001Desc') },
+    { year: "2012", title: t('campusRelocation'), description: t('campusRelocationDesc') },
+    { year: "2015", title: t('curriculumExpansion'), description: t('curriculumExpansionDesc') },
+    { year: "2023", title: t('modernEra'), description: t('modernEraDesc') }
+  ];
+
+  const activeTimeline = timelineData.find(item => item.year === activeYear);
 
   return (
     <div className="min-h-screen bg-background">
@@ -53,10 +64,10 @@ const Home = () => {
         </div>
         <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground mb-6">
-            Welcome to Defence Intelligence College Nigeria
+            {t('welcomeTitle')}
           </h1>
           <p className="text-xl md:text-2xl text-primary-foreground mb-8 max-w-2xl mx-auto">
-            Empowering security professionals with world-class intelligence training to safeguard Nigeria and beyond.
+            {t('welcomeSubtitle')}
           </p>
           <div className="flex gap-4 justify-center flex-wrap">
             <Button 
@@ -64,7 +75,7 @@ const Home = () => {
               className="bg-accent hover:bg-accent/90 text-accent-foreground"
               onClick={() => navigate("/courses")}
             >
-              Explore our programmes
+              {t('explorePrograms')}
             </Button>
             <Button 
               size="lg"
@@ -72,7 +83,7 @@ const Home = () => {
               className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary"
               onClick={() => navigate("/about")}
             >
-              Learn More
+              {t('learnMore')}
             </Button>
           </div>
         </div>
@@ -85,7 +96,7 @@ const Home = () => {
           <div className="lg:col-span-2 space-y-12">
             {/* Features Grid */}
             <div>
-              <h2 className="text-3xl font-bold mb-8">Why Choose DIC?</h2>
+              <h2 className="text-3xl font-bold mb-8">{t('whyChooseDIC')}</h2>
               <div className="grid md:grid-cols-2 gap-6">
                 {features.map((feature, index) => (
                   <Card key={index} className="shadow-elevated hover:shadow-xl transition-shadow">
@@ -112,7 +123,7 @@ const Home = () => {
 
             {/* About Section */}
             <div>
-              <h2 className="text-3xl font-bold mb-8">About Us</h2>
+              <h2 className="text-3xl font-bold mb-8">{t('aboutUs')}</h2>
               <div className="grid md:grid-cols-2 gap-8 items-center">
                 {/* Left: Image */}
                 <div className="rounded-lg overflow-hidden shadow-elevated">
@@ -127,12 +138,7 @@ const Home = () => {
                 <div className="space-y-6">
                   {/* Timeline Dots */}
                   <div className="flex items-center gap-2">
-                    {[
-                      { year: "2001", title: "Established as DIS", description: "The Defence Intelligence College (DIC) hitherto known as the Defence Intelligence School (DIS) was established in 2001. At inception it was located at a temporary site within the Headquarters of the Defence Intelligence Agency (DIA) in Bonny Camp Lagos." },
-                      { year: "2012", title: "Campus Relocation", description: "The college relocated to a permanent site in Victoria Island, expanding its facilities to accommodate more students and programs." },
-                      { year: "2015", title: "Curriculum Expansion", description: "Major curriculum overhaul introducing new specialized courses in cyber intelligence and digital forensics." },
-                      { year: "2023", title: "Modern Era", description: "Partner with Talongeeks to achieve full digitalization of learning systems and international accreditation for all programs." }
-                    ].map((item, index) => (
+                    {timelineData.map((item, index) => (
                       <div key={index} className="flex items-center">
                         <button
                           onClick={() => setActiveYear(item.year)}
@@ -156,35 +162,11 @@ const Home = () => {
 
                   {/* Content */}
                   <div className="min-h-[200px]">
-                    {activeYear === "2001" && (
+                    {activeTimeline && (
                       <div className="animate-fade-in">
-                        <h3 className="text-2xl font-bold mb-4">Established as DIS</h3>
+                        <h3 className="text-2xl font-bold mb-4">{activeTimeline.title}</h3>
                         <p className="text-muted-foreground leading-relaxed mb-6">
-                          The Defence Intelligence College (DIC) hitherto known as the Defence Intelligence School (DIS) was established in 2001. At inception it was located at a temporary site within the Headquarters of the Defence Intelligence Agency (DIA) in Bonny Camp Lagos.
-                        </p>
-                      </div>
-                    )}
-                    {activeYear === "2012" && (
-                      <div className="animate-fade-in">
-                        <h3 className="text-2xl font-bold mb-4">Campus Relocation</h3>
-                        <p className="text-muted-foreground leading-relaxed mb-6">
-                          The college relocated to a permanent site in Victoria Island, expanding its facilities to accommodate more students and programs.
-                        </p>
-                      </div>
-                    )}
-                    {activeYear === "2015" && (
-                      <div className="animate-fade-in">
-                        <h3 className="text-2xl font-bold mb-4">Curriculum Expansion</h3>
-                        <p className="text-muted-foreground leading-relaxed mb-6">
-                          Major curriculum overhaul introducing new specialized courses in cyber intelligence and digital forensics.
-                        </p>
-                      </div>
-                    )}
-                    {activeYear === "2023" && (
-                      <div className="animate-fade-in">
-                        <h3 className="text-2xl font-bold mb-4">Modern Era</h3>
-                        <p className="text-muted-foreground leading-relaxed mb-6">
-                          Partner with Talongeeks to achieve full digitalization of learning systems and international accreditation for all programs.
+                          {activeTimeline.description}
                         </p>
                       </div>
                     )}
@@ -192,7 +174,7 @@ const Home = () => {
                       onClick={() => navigate("/about")} 
                       className="bg-primary hover:bg-primary-dark text-primary-foreground"
                     >
-                      Read more
+                      {t('readMore')}
                     </Button>
                   </div>
                 </div>
@@ -207,7 +189,7 @@ const Home = () => {
               
               <Card className="mt-6 shadow-elevated">
                 <CardHeader className="bg-primary text-primary-foreground">
-                  <CardTitle>Quick Links</CardTitle>
+                  <CardTitle>{t('quickLinks')}</CardTitle>
                 </CardHeader>
                 <CardContent className="pt-6 space-y-2">
                   <Button 
@@ -215,28 +197,28 @@ const Home = () => {
                     className="w-full justify-start"
                     onClick={() => navigate("/courses")}
                   >
-                    Browse Courses
+                    {t('browseCourses')}
                   </Button>
                   <Button 
                     variant="outline" 
                     className="w-full justify-start"
                     onClick={() => navigate("/auth")}
                   >
-                    College Portal
+                    {t('collegePortal')}
                   </Button>
                   <Button 
                     variant="outline" 
                     className="w-full justify-start"
                     onClick={() => window.open("https://elibrary.dic.gov.ng", "_blank")}
                   >
-                    e-Library
+                    {t('eLibrary')}
                   </Button>
                   <Button 
                     variant="outline" 
                     className="w-full justify-start"
                     onClick={() => navigate("/contact")}
                   >
-                    Contact Us
+                    {t('contact')}
                   </Button>
                 </CardContent>
               </Card>
