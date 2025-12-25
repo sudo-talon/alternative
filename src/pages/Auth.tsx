@@ -16,6 +16,7 @@ const Auth = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [captchaVerified, setCaptchaVerified] = useState(false);
+  const [activeTab, setActiveTab] = useState<"signin" | "signup">("signin");
   const [signUpData, setSignUpData] = useState({
     email: "",
     password: "",
@@ -46,10 +47,11 @@ const Auth = () => {
 
       if (error) throw error;
 
-      toast.success("Account created successfully! Please check your email to confirm.");
-      navigate("/dashboard");
-    } catch (error: any) {
-      toast.error(error.message || "An error occurred during sign up");
+      toast.success("Account created. Please check your email to confirm.");
+      setActiveTab("signin");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "An error occurred during sign up";
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -73,23 +75,30 @@ const Auth = () => {
 
       if (error) throw error;
 
-      // Check if user is admin
-      const { data: roleData } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", data.user?.id)
-        .eq("role", "admin")
-        .maybeSingle();
+      // Ensure session exists (email may be unconfirmed)
+      const { data: me } = await supabase.auth.getUser();
+      if (!me.user) {
+        toast.error("Please confirm your email before signing in.");
+        setActiveTab("signin");
+        return;
+      }
+
+      let isAdmin = false;
+      if (me.user.id) {
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", me.user.id)
+          .eq("role", "admin")
+          .maybeSingle();
+        isAdmin = !!roleData;
+      }
 
       toast.success("Signed in successfully!");
-      
-      if (roleData) {
-        navigate("/admin");
-      } else {
-        navigate("/dashboard");
-      }
-    } catch (error: any) {
-      toast.error(error.message || "An error occurred during sign in");
+      navigate(isAdmin ? "/admin" : "/dashboard");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "An error occurred during sign in";
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -110,7 +119,7 @@ const Auth = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="signin">
+            <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as "signin" | "signup")}>
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="signin">Sign In</TabsTrigger>
                 <TabsTrigger value="signup">Sign Up</TabsTrigger>

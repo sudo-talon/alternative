@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useLanguage } from "@/contexts/LanguageContext";
+import dicLogo from "@/assets/dic-logo.png";
 
 interface Commandant {
   id: string;
@@ -28,17 +29,31 @@ export const CommandantsMarquee = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const { t } = useLanguage();
 
+  const overrides: Record<string, string> = {
+    "cdre um bugaje": "/images/cdre-um-bugaje.jpeg",
+  };
+
   const { data: commandants = [], isLoading } = useQuery({
     queryKey: ["leadership"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("leadership")
-        .select("*")
-        .order("display_order", { ascending: true });
-
-      if (error) throw error;
-      return data as Commandant[];
+      try {
+        const { data, error } = await supabase
+          .from("leadership")
+          .select("*")
+          .order("display_order", { ascending: true });
+        if (error) throw error;
+        return (data as Commandant[]) || [];
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message.toLowerCase() : "";
+        if (msg.includes("abort") || msg.includes("err_aborted") || msg.includes("failed to fetch")) {
+          return [];
+        }
+        throw e;
+      }
     },
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 300000,
   });
 
   const handlePrevious = () => {
@@ -85,9 +100,17 @@ export const CommandantsMarquee = () => {
                 <div className="flex flex-col sm:flex-row gap-6 items-center">
                   <div className="shrink-0">
                     <img
-                      src={currentCommandant.photo_url || "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&h=150&fit=crop"}
+                      src={
+                        currentCommandant.photo_url ||
+                        overrides[currentCommandant.full_name.trim().toLowerCase()] ||
+                        dicLogo
+                      }
                       alt={currentCommandant.full_name}
                       className="w-36 h-36 rounded-full object-cover border-4 border-primary shadow-lg"
+                      onError={(e) => {
+                        const img = e.currentTarget as HTMLImageElement;
+                        if (img.src !== dicLogo) img.src = dicLogo;
+                      }}
                     />
                   </div>
                   <div className="flex-1 space-y-3 text-center sm:text-left">

@@ -13,6 +13,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import About from "./pages/About";
 import Departments from "./pages/Departments";
 import News from "./pages/News";
+import DicChronicaleOfCommand from "./pages/DicChronicaleOfCommand";
 import PgProgram from "./pages/PgProgram";
 import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/about" element={<About />} />
             <Route path="/departments" element={<Departments />} />
             <Route path="/news" element={<News />} />
+            <Route path="/dic-chronicale-of-command" element={<DicChronicaleOfCommand />} />
             <Route path="/pg-program" element={<PgProgram />} />
             <Route path="/contact" element={<Contact />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

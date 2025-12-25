@@ -1,23 +1,67 @@
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Newspaper, Video, Image as ImageIcon } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { Link } from "react-router-dom";
+import dicLogo from "@/assets/dic-logo.png";
+import cdreBugaje from "@/assets/cdre-bugaje.jpeg";
+import type { Database } from "@/integrations/supabase/types";
 
 const News = () => {
   const { data: newsItems, isLoading } = useQuery({
-    queryKey: ["news"],
+    queryKey: ["news-list"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("news")
-        .select("*")
-        .order("published_at", { ascending: false });
-      
-      if (error) throw error;
-      return data;
+      try {
+        const { data, error } = await supabase
+          .from("news")
+          .select("*")
+          .order("published_at", { ascending: false });
+        if (error) throw error;
+        return data || [];
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message.toLowerCase() : "";
+        if (msg.includes("abort") || msg.includes("err_aborted") || msg.includes("failed to fetch")) {
+          return [];
+        }
+        throw e;
+      }
     },
+    retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    staleTime: 600000,
+    gcTime: 900000,
+  });
+
+  type LeadershipRow = Database["public"]["Tables"]["leadership"]["Row"];
+  const { data: commandantPortrait } = useQuery<LeadershipRow | null>({
+    queryKey: ["commandant-portrait"],
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase
+          .from("leadership")
+          .select("*")
+          .order("display_order", { ascending: true });
+        if (error) throw error;
+        const rows = (data as LeadershipRow[]) || [];
+        return rows.find((d) => d.is_active) ?? rows[0] ?? null;
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message.toLowerCase() : "";
+        if (msg.includes("abort") || msg.includes("err_aborted") || msg.includes("failed to fetch")) {
+          return null;
+        }
+        throw e;
+      }
+    },
+    retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    staleTime: 600000,
+    gcTime: 900000,
   });
 
   return (
@@ -117,6 +161,36 @@ const News = () => {
           {/* Gallery Sidebar */}
           <div className="lg:col-span-1">
             <div className="sticky top-24 space-y-6">
+              <Card className="shadow-elevated">
+                <CardHeader className="bg-primary text-primary-foreground">
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Commandant Portrait</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-6 space-y-4">
+                  <div className="aspect-square rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+                    <img
+                      src={commandantPortrait?.photo_url || cdreBugaje || dicLogo}
+                      alt={commandantPortrait?.full_name || "Commandant Portrait"}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="text-center">
+                    <div className="font-semibold">
+                      {commandantPortrait?.full_name || "Defence Intelligence College"}
+                    </div>
+                    {commandantPortrait?.position && (
+                      <div className="text-sm text-muted-foreground">{commandantPortrait.position}</div>
+                    )}
+                  </div>
+                  <Link to="/dic-chronicale-of-command">
+                    <Button className="w-full bg-accent hover:bg-accent/90">
+                      View Chronicale of Command
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+
               {/* Video Gallery */}
               <Card className="shadow-elevated">
                 <CardHeader className="bg-primary text-primary-foreground">
