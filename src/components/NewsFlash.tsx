@@ -11,25 +11,15 @@ export const NewsFlash = () => {
   const { data: news, isLoading } = useQuery({
     queryKey: ["news"],
     queryFn: async () => {
-      try {
-        const { data, error } = await supabase
-          .from("news")
-          .select("*")
-          .order("published_at", { ascending: false })
-          .limit(5);
-        if (error) throw error;
-        return data || [];
-      } catch (e: unknown) {
-        const msg = e instanceof Error ? e.message.toLowerCase() : "";
-        if (msg.includes("abort") || msg.includes("err_aborted") || msg.includes("failed to fetch")) {
-          return [];
-        }
-        throw e;
-      }
+      const { data, error } = await supabase
+        .from("news")
+        .select("*")
+        .order("published_at", { ascending: false })
+        .limit(5);
+      
+      if (error) throw error;
+      return data;
     },
-    retry: false,
-    refetchOnWindowFocus: false,
-    staleTime: 300000,
   });
 
   return (

@@ -6,11 +6,14 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Crown } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
+import cdreBugaje from "@/assets/cdre-bugaje.jpeg";
+import effahImg from "@/assets/images.jpeg";
 
 const DicChronicaleOfCommand = () => {
   type LeadershipRow = Database["public"]["Tables"]["leadership"]["Row"];
   const overrides: Record<string, string> = {
-    "Rear Admiral P. E. Effah": "/assets/cdre-effah.jpeg",
+    "Cdre UM BUGAJE": cdreBugaje,
+    "Rear Admiral P. E. Effah": effahImg,
   };
   const { data: leadership } = useQuery<LeadershipRow[]>({
     queryKey: ["chronicale-leadership"],
@@ -32,9 +35,6 @@ const DicChronicaleOfCommand = () => {
     },
     retry: false,
     refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    staleTime: 600000,
-    gcTime: 900000,
   });
 
   return (
@@ -67,7 +67,7 @@ const DicChronicaleOfCommand = () => {
                 <div key={leader.id} className="rounded-lg border bg-card text-card-foreground overflow-hidden">
                   <div className="aspect-square bg-muted">
                     <img
-                      src={leader.photo_url || overrides[leader.full_name]}
+                      src={overrides[leader.full_name] || leader.photo_url}
                       alt={leader.full_name}
                       className="w-full h-full object-cover"
                     />

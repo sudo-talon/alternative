@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,8 +15,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import type { Database } from "@/integrations/supabase/types";
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 const COLORS = ['hsl(85, 25%, 35%)', 'hsl(85, 25%, 45%)', 'hsl(85, 25%, 55%)', 'hsl(85, 25%, 65%)'];
@@ -54,9 +52,8 @@ const AdminDashboard = () => {
 
   // Leadership state
   const [leadershipForm, setLeadershipForm] = useState({
-    full_name: "", position: "", rank: "", bio: "", photo_url: "", display_order: 0, is_active: false
+    full_name: "", position: "", rank: "", bio: "", photo_url: "", display_order: 0
   });
-  const [uploadingPortrait, setUploadingPortrait] = useState(false);
   const [editingLeadershipId, setEditingLeadershipId] = useState<string | null>(null);
   const [leadershipDialogOpen, setLeadershipDialogOpen] = useState(false);
 
@@ -107,7 +104,11 @@ const AdminDashboard = () => {
     { title: "Strategic Security Course", description: "Strategic security planning and management", category: "Strategic Courses" },
   ];
 
-  const checkAdminStatus = useCallback(async () => {
+  useEffect(() => {
+    checkAdminStatus();
+  }, []);
+
+  const checkAdminStatus = async () => {
     try {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       
@@ -119,20 +120,16 @@ const AdminDashboard = () => {
 
       console.log("Checking admin status for user:", user.id);
 
-      // Prefer RPC has_role; fall back to profiles.role
-      const { data: hasAdmin } = await supabase.rpc("has_role", { _role: "admin", _user_id: user.id });
-      let isAdminRole = !!hasAdmin;
+      const { data: roles, error: roleError } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .maybeSingle();
 
-      if (!isAdminRole) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .maybeSingle();
-        isAdminRole = profile?.role === "admin";
-      }
+      console.log("Role check result:", roles, roleError);
 
-      if (!isAdminRole) {
+      if (!roles) {
         toast({
           title: "Access Denied",
           description: "You don't have admin privileges",
@@ -154,18 +151,7 @@ const AdminDashboard = () => {
     } finally {
       setLoading(false);
     }
-  }, [navigate, toast]);
-
-  // Redirect guard when not admin after check
-  useEffect(() => {
-    if (!loading && !isAdmin) {
-      navigate("/dashboard");
-    }
-  }, [loading, isAdmin, navigate]);
-
-  useEffect(() => {
-    checkAdminStatus();
-  }, [checkAdminStatus]);
+  };
 
   // Queries and mutations
   const createNewsMutation = useMutation({
@@ -246,9 +232,8 @@ const AdminDashboard = () => {
     },
   });
 
-  type UserRole = Database["public"]["Enums"]["user_role"];
   const updateUserRoleMutation = useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: UserRole }) => {
+    mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
       // First delete existing role
       await supabase.from("user_roles").delete().eq("user_id", userId);
       
@@ -261,7 +246,7 @@ const AdminDashboard = () => {
       // Update profile role
       await supabase
         .from("profiles")
-        .update({ role })
+        .update({ role: role as any })
         .eq("id", userId);
     },
     onSuccess: () => {
@@ -303,9 +288,7 @@ const AdminDashboard = () => {
     enabled: isAdmin,
   });
 
-  type CourseRow = Database["public"]["Tables"]["courses"]["Row"];
-  type CourseWithInstructor = CourseRow & { profiles?: { full_name?: string } };
-  const { data: courses } = useQuery<CourseWithInstructor[]>({
+  const { data: courses } = useQuery({
     queryKey: ["admin-courses"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -313,7 +296,7 @@ const AdminDashboard = () => {
         .select("*, profiles(full_name)")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data as CourseWithInstructor[]) || [];
+      return data;
     },
     enabled: isAdmin,
   });
@@ -331,8 +314,7 @@ const AdminDashboard = () => {
     enabled: isAdmin,
   });
 
-  type LeadershipRow = Database["public"]["Tables"]["leadership"]["Row"];
-  const { data: leadership } = useQuery<LeadershipRow[]>({
+  const { data: leadership } = useQuery({
     queryKey: ["admin-leadership"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -340,7 +322,7 @@ const AdminDashboard = () => {
         .select("*")
         .order("display_order", { ascending: true });
       if (error) throw error;
-      return (data as LeadershipRow[]) || [];
+      return data;
     },
     enabled: isAdmin,
   });
@@ -497,50 +479,12 @@ const AdminDashboard = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-leadership"] });
-      setLeadershipForm({ full_name: "", position: "", rank: "", bio: "", photo_url: "", display_order: 0, is_active: false });
+      setLeadershipForm({ full_name: "", position: "", rank: "", bio: "", photo_url: "", display_order: 0 });
       setEditingLeadershipId(null);
       setLeadershipDialogOpen(false);
       toast({ title: "Success", description: editingLeadershipId ? "Leadership updated" : "Leadership created" });
     },
   });
-
-  const setPortraitMutation = useMutation<string>({
-    mutationFn: async (id: string) => {
-      const { error: clearError } = await supabase
-        .from("leadership")
-        .update({ is_active: false })
-        .neq("id", id);
-      if (clearError) throw clearError;
-      const { error: setError } = await supabase
-        .from("leadership")
-        .update({ is_active: true })
-        .eq("id", id);
-      if (setError) throw setError;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-leadership"] });
-      toast({ title: "Success", description: "Commandant portrait updated" });
-    },
-    onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    },
-  });
-
-  const handlePortraitUpload = async (file: File) => {
-    try {
-      setUploadingPortrait(true);
-      const path = `portraits/${Date.now()}_${file.name}`;
-      const { error: uploadError } = await supabase.storage.from("leadership").upload(path, file, { upsert: true });
-      if (uploadError) throw uploadError;
-      const { data } = await supabase.storage.from("leadership").getPublicUrl(path);
-      setLeadershipForm({ ...leadershipForm, photo_url: data.publicUrl });
-    } catch (e) {
-      const message = e instanceof Error ? e.message : "Unknown error";
-      toast({ title: "Upload failed", description: message, variant: "destructive" });
-    } finally {
-      setUploadingPortrait(false);
-    }
-  };
 
   const deleteLeadershipMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -682,7 +626,7 @@ const AdminDashboard = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {courses?.map((course: CourseWithInstructor) => (
+                    {courses?.map((course: any) => (
                       <TableRow key={course.id}>
                         <TableCell className="font-medium">{course.title}</TableCell>
                         <TableCell>{course.profiles?.full_name}</TableCell>
@@ -794,7 +738,7 @@ const AdminDashboard = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {personnel?.map((person: Database["public"]["Tables"]["personnel"]["Row"]) => (
+                    {personnel?.map((person: any) => (
                       <TableRow key={person.id}>
                         <TableCell className="font-medium">{person.full_name}</TableCell>
                         <TableCell><Badge>{person.category}</Badge></TableCell>
@@ -803,17 +747,7 @@ const AdminDashboard = () => {
                         <TableCell>
                           <div className="flex gap-2">
                             <Button variant="outline" size="sm" onClick={() => {
-                              setPersonnelForm({
-                                full_name: person.full_name,
-                                email: person.email,
-                                phone: person.phone ?? "",
-                                category: person.category,
-                                position: person.position,
-                                department: person.department ?? "",
-                                rank: person.rank ?? "",
-                                bio: person.bio ?? "",
-                                photo_url: person.photo_url ?? "",
-                              });
+                              setPersonnelForm(person);
                               setEditingPersonnelId(person.id);
                               setPersonnelDialogOpen(true);
                             }}>
@@ -870,24 +804,10 @@ const AdminDashboard = () => {
                         <Label htmlFor="l_bio">Bio</Label>
                         <Textarea id="l_bio" value={leadershipForm.bio} onChange={(e) => setLeadershipForm({...leadershipForm, bio: e.target.value})} />
                       </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="l_photo">Photo URL</Label>
-                      <Input id="l_photo" value={leadershipForm.photo_url} onChange={(e) => setLeadershipForm({...leadershipForm, photo_url: e.target.value})} />
-                      <div className="flex items-center gap-3">
-                        <Input type="file" accept="image/*" onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) handlePortraitUpload(file);
-                        }} />
-                        {uploadingPortrait && <Badge>Uploading...</Badge>}
+                      <div className="grid gap-2">
+                        <Label htmlFor="l_photo">Photo URL</Label>
+                        <Input id="l_photo" value={leadershipForm.photo_url} onChange={(e) => setLeadershipForm({...leadershipForm, photo_url: e.target.value})} />
                       </div>
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="l_active">Active Portrait</Label>
-                      <div className="flex items-center gap-3">
-                        <Switch id="l_active" checked={leadershipForm.is_active} onCheckedChange={(val) => setLeadershipForm({ ...leadershipForm, is_active: val })} />
-                        <span className="text-sm text-muted-foreground">Show as Commandant portrait</span>
-                      </div>
-                    </div>
                       <div className="grid gap-2">
                         <Label htmlFor="l_order">Display Order</Label>
                         <Input id="l_order" type="number" value={leadershipForm.display_order} onChange={(e) => setLeadershipForm({...leadershipForm, display_order: parseInt(e.target.value)})} />
@@ -907,7 +827,7 @@ const AdminDashboard = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {leadership?.map((leader: LeadershipRow) => (
+                    {leadership?.map((leader: any) => (
                       <TableRow key={leader.id}>
                         <TableCell>{leader.display_order}</TableCell>
                         <TableCell className="font-medium">{leader.full_name}</TableCell>
@@ -916,24 +836,12 @@ const AdminDashboard = () => {
                         <TableCell>
                           <div className="flex gap-2">
                             <Button variant="outline" size="sm" onClick={() => {
-                              setLeadershipForm({
-                                full_name: leader.full_name,
-                                position: leader.position,
-                                rank: leader.rank ?? "",
-                                bio: leader.bio ?? "",
-                                photo_url: leader.photo_url ?? "",
-                                display_order: leader.display_order ?? 0,
-                                is_active: leader.is_active ?? false,
-                              });
+                              setLeadershipForm(leader);
                               setEditingLeadershipId(leader.id);
                               setLeadershipDialogOpen(true);
                             }}>
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button variant="outline" size="sm" onClick={() => setPortraitMutation.mutate(leader.id)}>
-                              Set as Portrait
-                            </Button>
-                            {leader.is_active && <Badge variant="default">Active</Badge>}
                             <Button variant="destructive" size="sm" onClick={() => deleteLeadershipMutation.mutate(leader.id)}>
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -993,7 +901,7 @@ const AdminDashboard = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {news?.map((item: Database["public"]["Tables"]["news"]["Row"]) => (
+                    {news?.map((item: any) => (
                       <TableRow key={item.id}>
                         <TableCell className="font-medium">{item.title}</TableCell>
                         <TableCell>{new Date(item.published_at).toLocaleDateString()}</TableCell>

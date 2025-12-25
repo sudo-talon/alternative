@@ -12,7 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useLanguage } from "@/contexts/LanguageContext";
-import dicLogo from "@/assets/dic-logo.png";
+import cdreBugaje from "@/assets/cdre-bugaje.jpeg";
 
 interface Commandant {
   id: string;
@@ -28,9 +28,8 @@ export const CommandantsMarquee = () => {
   const [selectedCommandant, setSelectedCommandant] = useState<Commandant | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const { t } = useLanguage();
-
   const overrides: Record<string, string> = {
-    "cdre um bugaje": "/images/cdre-um-bugaje.jpeg",
+    "Cdre UM BUGAJE": cdreBugaje,
   };
 
   const { data: commandants = [], isLoading } = useQuery({
@@ -100,17 +99,9 @@ export const CommandantsMarquee = () => {
                 <div className="flex flex-col sm:flex-row gap-6 items-center">
                   <div className="shrink-0">
                     <img
-                      src={
-                        currentCommandant.photo_url ||
-                        overrides[currentCommandant.full_name.trim().toLowerCase()] ||
-                        dicLogo
-                      }
+                      src={overrides[currentCommandant.full_name] || currentCommandant.photo_url || "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&h=150&fit=crop"}
                       alt={currentCommandant.full_name}
                       className="w-36 h-36 rounded-full object-cover border-4 border-primary shadow-lg"
-                      onError={(e) => {
-                        const img = e.currentTarget as HTMLImageElement;
-                        if (img.src !== dicLogo) img.src = dicLogo;
-                      }}
                     />
                   </div>
                   <div className="flex-1 space-y-3 text-center sm:text-left">
@@ -170,13 +161,16 @@ export const CommandantsMarquee = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="mt-4">
-            {selectedCommandant?.photo_url && (
+            {(() => {
+              const selectedPhoto = selectedCommandant && (overrides[selectedCommandant.full_name] || selectedCommandant.photo_url);
+              return selectedPhoto ? (
               <img
-                src={selectedCommandant.photo_url}
+                src={selectedPhoto}
                 alt={selectedCommandant.full_name}
                 className="w-40 h-40 rounded-full object-cover border-4 border-primary mx-auto mb-4 shadow-lg"
               />
-            )}
+              ) : null;
+            })()}
             <p className="text-sm text-foreground leading-relaxed">{selectedCommandant?.bio}</p>
           </div>
         </DialogContent>
