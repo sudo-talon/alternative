@@ -113,12 +113,9 @@ const AdminDashboard = () => {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       
       if (userError || !user) {
-        console.log("No user found, redirecting to auth");
         navigate("/auth");
         return;
       }
-
-      console.log("Checking admin status for user:", user.id);
 
       const { data: roles, error: roleError } = await supabase
         .from("user_roles")
@@ -127,7 +124,6 @@ const AdminDashboard = () => {
         .eq("role", "admin")
         .maybeSingle();
 
-      console.log("Role check result:", roles, roleError);
 
       if (!roles) {
         toast({
