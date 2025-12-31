@@ -73,21 +73,42 @@ const Auth = () => {
 
       if (error) throw error;
 
-      // Check if user is admin
-      const { data: roleData } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", data.user?.id)
-        .eq("role", "admin")
-        .maybeSingle();
+      const userId = data.user?.id;
+      let isAdmin = false;
+      if (userId) {
+        const { data: existingProfile } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("id", userId)
+          .maybeSingle();
+        if (!existingProfile) {
+          const email = data.user?.email || "";
+          const fullNameMeta = (data.user as any)?.user_metadata?.full_name;
+          const full_name = fullNameMeta || email.split("@")[0] || "User";
+          await supabase
+            .from("profiles")
+            .insert([{ id: userId, email, full_name, role: "student" }]);
+        }
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", userId)
+          .maybeSingle();
+        if (profile?.role === "admin") {
+          isAdmin = true;
+        } else {
+          const { data: roleData } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", userId)
+            .eq("role", "admin")
+            .maybeSingle();
+          isAdmin = !!roleData;
+        }
+      }
 
       toast.success("Signed in successfully!");
-      
-      if (roleData) {
-        navigate("/admin");
-      } else {
-        navigate("/dashboard");
-      }
+      navigate(isAdmin ? "/admin" : "/dashboard");
     } catch (error: any) {
       toast.error(error.message || "An error occurred during sign in");
     } finally {

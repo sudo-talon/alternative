@@ -98,11 +98,17 @@ export const CommandantsMarquee = () => {
               <CardContent className="p-6">
                 <div className="flex flex-col sm:flex-row gap-6 items-center">
                   <div className="shrink-0">
-                    <img
-                      src={overrides[currentCommandant.full_name] || currentCommandant.photo_url || "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&h=150&fit=crop"}
-                      alt={currentCommandant.full_name}
-                      className="w-36 h-36 rounded-full object-cover border-4 border-primary shadow-lg"
-                    />
+                    {(() => {
+                      const overrideSrc = overrides[currentCommandant.full_name];
+                      const src = overrideSrc || currentCommandant.photo_url || "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&h=150&fit=crop";
+                      return (
+                        <img
+                          src={src}
+                          alt={currentCommandant.full_name}
+                          className="w-36 h-36 rounded-full object-cover border-4 border-primary shadow-lg"
+                        />
+                      );
+                    })()}
                   </div>
                   <div className="flex-1 space-y-3 text-center sm:text-left">
                     <div>
@@ -162,13 +168,14 @@ export const CommandantsMarquee = () => {
           </DialogHeader>
           <div className="mt-4">
             {(() => {
-              const selectedPhoto = selectedCommandant && (overrides[selectedCommandant.full_name] || selectedCommandant.photo_url);
+              const overrideSrc = selectedCommandant ? overrides[selectedCommandant.full_name] : undefined;
+              const selectedPhoto = selectedCommandant && (overrideSrc || selectedCommandant.photo_url);
               return selectedPhoto ? (
-              <img
-                src={selectedPhoto}
-                alt={selectedCommandant.full_name}
-                className="w-40 h-40 rounded-full object-cover border-4 border-primary mx-auto mb-4 shadow-lg"
-              />
+                <img
+                  src={selectedPhoto}
+                  alt={selectedCommandant.full_name}
+                  className="w-40 h-40 rounded-full object-cover border-4 border-primary mx-auto mb-4 shadow-lg"
+                />
               ) : null;
             })()}
             <p className="text-sm text-foreground leading-relaxed">{selectedCommandant?.bio}</p>

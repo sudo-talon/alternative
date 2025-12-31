@@ -29,6 +29,7 @@ const AdminDashboard = () => {
   // News state
   const [newsTitle, setNewsTitle] = useState("");
   const [newsContent, setNewsContent] = useState("");
+  const [newsFeaturedImage, setNewsFeaturedImage] = useState("");
   const [editingNewsId, setEditingNewsId] = useState<string | null>(null);
   const [newsDialogOpen, setNewsDialogOpen] = useState(false);
   
@@ -117,15 +118,26 @@ const AdminDashboard = () => {
         return;
       }
 
-      const { data: roles, error: roleError } = await supabase
-        .from("user_roles")
+      const { data: profile } = await supabase
+        .from("profiles")
         .select("role")
-        .eq("user_id", user.id)
-        .eq("role", "admin")
+        .eq("id", user.id)
         .maybeSingle();
 
+      const isAdminByProfile = profile?.role === "admin";
 
-      if (!roles) {
+      let roles: any = null;
+      if (!isAdminByProfile) {
+        const { data: rolesData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .eq("role", "admin")
+          .maybeSingle();
+        roles = rolesData;
+      }
+
+      if (!isAdminByProfile && !roles) {
         toast({
           title: "Access Denied",
           description: "You don't have admin privileges",
@@ -152,17 +164,37 @@ const AdminDashboard = () => {
   // Queries and mutations
   const createNewsMutation = useMutation({
     mutationFn: async () => {
+      const payloadWithImage: { title: string; content: string; featured_image_url?: string | null } = {
+        title: newsTitle,
+        content: newsContent,
+      };
+      if (newsFeaturedImage) payloadWithImage.featured_image_url = newsFeaturedImage;
       if (editingNewsId) {
-        const { error } = await supabase
-          .from("news")
-          .update({ title: newsTitle, content: newsContent })
-          .eq("id", editingNewsId);
-        if (error) throw error;
+        try {
+          const { error } = await supabase
+            .from("news")
+            .update(payloadWithImage)
+            .eq("id", editingNewsId);
+          if (error) throw error;
+        } catch {
+          const { error } = await supabase
+            .from("news")
+            .update({ title: newsTitle, content: newsContent })
+            .eq("id", editingNewsId);
+          if (error) throw error;
+        }
       } else {
-        const { error } = await supabase
-          .from("news")
-          .insert([{ title: newsTitle, content: newsContent }]);
-        if (error) throw error;
+        try {
+          const { error } = await supabase
+            .from("news")
+            .insert([payloadWithImage]);
+          if (error) throw error;
+        } catch {
+          const { error } = await supabase
+            .from("news")
+            .insert([{ title: newsTitle, content: newsContent }]);
+          if (error) throw error;
+        }
       }
     },
     onSuccess: () => {
@@ -170,6 +202,7 @@ const AdminDashboard = () => {
       setNewsTitle("");
       setNewsContent("");
       setEditingNewsId(null);
+      setNewsFeaturedImage("");
       setNewsDialogOpen(false);
       toast({ title: "Success", description: editingNewsId ? "News updated successfully" : "News created successfully" });
     },
@@ -861,6 +894,7 @@ const AdminDashboard = () => {
                 <Button onClick={() => {
                   setNewsTitle("");
                   setNewsContent("");
+                  setNewsFeaturedImage("");
                   setEditingNewsId(null);
                   setNewsDialogOpen(true);
                 }}>
@@ -880,6 +914,10 @@ const AdminDashboard = () => {
                       <div className="grid gap-2">
                         <Label htmlFor="news_content">Content</Label>
                         <Textarea id="news_content" placeholder="News content" value={newsContent} onChange={(e) => setNewsContent(e.target.value)} rows={4} />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="news_image">Featured Image URL</Label>
+                        <Input id="news_image" placeholder="https://..." value={newsFeaturedImage} onChange={(e) => setNewsFeaturedImage(e.target.value)} />
                       </div>
                       <Button onClick={() => createNewsMutation.mutate()} disabled={!newsTitle || !newsContent}>
                         {editingNewsId ? "Update" : "Create"} News
@@ -906,6 +944,7 @@ const AdminDashboard = () => {
                             <Button variant="outline" size="sm" onClick={() => {
                               setNewsTitle(item.title);
                               setNewsContent(item.content);
+                              setNewsFeaturedImage(item.featured_image_url || "");
                               setEditingNewsId(item.id);
                               setNewsDialogOpen(true);
                             }}>

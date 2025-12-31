@@ -55,10 +55,30 @@ const Dashboard = () => {
         .from("profiles")
         .select("*, student_categories(name)")
         .eq("id", userId)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
-      setProfile(data);
+      if (data) {
+        setProfile(data);
+        return;
+      }
+
+      const { data: userData } = await supabase.auth.getUser();
+      const u = userData?.user;
+      const email = u?.email || "";
+      const fullNameMeta = (u as any)?.user_metadata?.full_name;
+      const full_name = fullNameMeta || email.split("@")[0] || "User";
+      const { error: insertError } = await supabase
+        .from("profiles")
+        .insert([{ id: userId, email, full_name, role: "student" }]);
+      if (insertError) throw insertError;
+
+      const { data: created } = await supabase
+        .from("profiles")
+        .select("*, student_categories(name)")
+        .eq("id", userId)
+        .maybeSingle();
+      if (created) setProfile(created);
     } catch (error: any) {
       console.error("Error loading profile:", error);
     }
