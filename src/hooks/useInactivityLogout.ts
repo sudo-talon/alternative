@@ -9,9 +9,15 @@ export const useInactivityLogout = () => {
   const navigate = useNavigate();
 
   const handleLogout = useCallback(async () => {
-    await supabase.auth.signOut();
-    toast.info("You have been logged out due to inactivity");
-    navigate("/auth");
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    } catch (_err) {
+      // swallow aborted sign-out network errors quietly
+    } finally {
+      toast.info("You have been logged out due to inactivity");
+      navigate("/auth");
+    }
   }, [navigate]);
 
   useEffect(() => {

@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { MapPin, Phone, Mail, Clock } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import dicBg from "@/assets/dic-bg.png";
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -36,8 +37,11 @@ const Contact = () => {
       <Navbar />
 
       {/* Hero Section */}
-      <section className="relative bg-gradient-hero text-primary-foreground py-20">
-        <div className="container mx-auto px-4">
+      <section className="relative text-primary-foreground py-20 overflow-hidden">
+        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${dicBg})` }}>
+          <div className="absolute inset-0 bg-gradient-hero opacity-70"></div>
+        </div>
+        <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-3xl">
             <h1 className="text-4xl md:text-5xl font-bold mb-6">Get in Touch</h1>
             <p className="text-xl opacity-90">
@@ -173,7 +177,7 @@ const Contact = () => {
                     </div>
                     <div>
                       <h3 className="font-semibold mb-1">Email</h3>
-                      <p className="text-muted-foreground">info@dicnigeria.edu.ng</p>
+                      <p className="text-muted-foreground">info@dic.gov.ng</p>
                     </div>
                   </div>
 

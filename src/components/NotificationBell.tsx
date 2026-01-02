@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Bell } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -26,12 +26,7 @@ export const NotificationBell = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchNotifications();
-    subscribeToNotifications();
-  }, []);
-
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
@@ -49,9 +44,9 @@ export const NotificationBell = () => {
 
     setNotifications(data || []);
     setUnreadCount(data?.filter(n => !n.read).length || 0);
-  };
+  }, []);
 
-  const subscribeToNotifications = () => {
+  const subscribeToNotifications = useCallback(() => {
     const channel = supabase
       .channel("notifications")
       .on(
@@ -77,7 +72,13 @@ export const NotificationBell = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
+
+  useEffect(subscribeToNotifications, [subscribeToNotifications]);
 
   const markAsRead = async (id: string) => {
     const { error } = await supabase

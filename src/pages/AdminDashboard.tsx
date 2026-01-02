@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,15 +9,26 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Newspaper, Trash2, Plus, Users, GraduationCap, Edit, BarChart3, Shield, BookOpen, UserCog, Crown } from "lucide-react";
+import { Newspaper, Trash2, Plus, Users, GraduationCap, Edit, BarChart3, Shield, BookOpen, UserCog, Crown, FileText, Database as DatabaseIcon, Image as ImageIcon, Video } from "lucide-react";
+import type { Database } from "@/integrations/supabase/types";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, LineChart, Line, XAxis, YAxis, BarChart, Bar } from "recharts";
 
 const COLORS = ['hsl(85, 25%, 35%)', 'hsl(85, 25%, 45%)', 'hsl(85, 25%, 55%)', 'hsl(85, 25%, 65%)'];
+
+const categoryClasses = (name?: string) => {
+  const n = String(name || "").toLowerCase();
+  if (/military/.test(n)) return "bg-green-600 text-white";
+  if (/civilian/.test(n)) return "bg-blue-600 text-white";
+  if (/post|graduate|pg/.test(n)) return "bg-purple-600 text-white";
+  if (/diploma|certificate|short/.test(n)) return "bg-amber-500 text-black";
+  return "bg-slate-600 text-white";
+};
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -43,6 +54,47 @@ const AdminDashboard = () => {
   const [selectedUserId, setSelectedUserId] = useState("");
   const [selectedRole, setSelectedRole] = useState("");
   const [selectedUserCategory, setSelectedUserCategory] = useState("");
+  const [videoForm, setVideoForm] = useState({ title: "", url: "" });
+  const [pictureForm, setPictureForm] = useState({ title: "", image_url: "" });
+  type GalleryVideo = { id: string; title: string; url: string };
+  type GalleryPicture = { id: string; title: string; image_url: string };
+  const [galleryVideos, setGalleryVideos] = useState<GalleryVideo[]>(() => {
+    try { return JSON.parse(localStorage.getItem("dic_gallery_videos") || "[]"); } catch { return []; }
+  });
+  const [galleryPictures, setGalleryPictures] = useState<GalleryPicture[]>(() => {
+    try { return JSON.parse(localStorage.getItem("dic_gallery_pictures") || "[]"); } catch { return []; }
+  });
+  const persistVideos = (list: GalleryVideo[]) => {
+    setGalleryVideos(list);
+    localStorage.setItem("dic_gallery_videos", JSON.stringify(list));
+  };
+  const persistPictures = (list: GalleryPicture[]) => {
+    setGalleryPictures(list);
+    localStorage.setItem("dic_gallery_pictures", JSON.stringify(list));
+  };
+  const addVideo = () => {
+    const v: GalleryVideo = { id: crypto.randomUUID(), title: videoForm.title || "Untitled", url: videoForm.url };
+    const list = [v, ...galleryVideos];
+    persistVideos(list);
+    setVideoForm({ title: "", url: "" });
+    toast({ title: "Saved", description: "Video added to gallery" });
+  };
+  const deleteVideo = (id: string) => {
+    const list = galleryVideos.filter(v => v.id !== id);
+    persistVideos(list);
+  };
+  const addPicture = () => {
+    const p: GalleryPicture = { id: crypto.randomUUID(), title: pictureForm.title || "Untitled", image_url: pictureForm.image_url };
+    const list = [p, ...galleryPictures];
+    persistPictures(list);
+    setPictureForm({ title: "", image_url: "" });
+    toast({ title: "Saved", description: "Picture added to gallery" });
+  };
+  const deletePicture = (id: string) => {
+    const list = galleryPictures.filter(p => p.id !== id);
+    persistPictures(list);
+  };
+  
 
   // Personnel state
   const [personnelForm, setPersonnelForm] = useState({
@@ -71,6 +123,29 @@ const AdminDashboard = () => {
   });
   const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
   const [courseDialogOpen, setCourseDialogOpen] = useState(false);
+  const [documentsDialogOpen, setDocumentsDialogOpen] = useState(false);
+  type PersonnelRow = Database["public"]["Tables"]["personnel"]["Row"];
+  type LeadershipRow = Database["public"]["Tables"]["leadership"]["Row"];
+  const [documentsOwner, setDocumentsOwner] = useState<PersonnelRow | null>(null);
+  const [documentsList, setDocumentsList] = useState<Array<{ name: string }>>([]);
+  const [docVolumeByDept, setDocVolumeByDept] = useState<Array<{ department: string; count: number }>>([]);
+  const [populatingAll, setPopulatingAll] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [bucketName, setBucketName] = useState<string>(import.meta.env.VITE_SUPABASE_STORAGE_BUCKET ?? "documents");
+  const mapStorageError = (msg: string) => (/bucket\s*not\s*found/i.test(msg) ? `Storage bucket '${bucketName}' not found. Create it in Supabase Storage or set VITE_SUPABASE_STORAGE_BUCKET.` : msg);
+
+  useEffect(() => {
+    const detectBucket = async () => {
+      const candidates = [bucketName, "documents", "public", "files", "uploads", "avatars"];
+      for (const name of candidates) {
+        try {
+          const { error } = await supabase.storage.from(name).list("personnel", { limit: 1 });
+          if (!error) { setBucketName(name); return; }
+        } catch (_) { void 0; }
+      }
+    };
+    detectBucket();
+  }, [bucketName]);
 
   const courseCategories = [
     "Generic Courses",
@@ -105,11 +180,7 @@ const AdminDashboard = () => {
     { title: "Strategic Security Course", description: "Strategic security planning and management", category: "Strategic Courses" },
   ];
 
-  useEffect(() => {
-    checkAdminStatus();
-  }, []);
-
-  const checkAdminStatus = async () => {
+  const checkAdminStatus = useCallback(async () => {
     try {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       
@@ -117,6 +188,7 @@ const AdminDashboard = () => {
         navigate("/auth");
         return;
       }
+      setCurrentUserId(user.id);
 
       const { data: profile } = await supabase
         .from("profiles")
@@ -125,8 +197,7 @@ const AdminDashboard = () => {
         .maybeSingle();
 
       const isAdminByProfile = profile?.role === "admin";
-
-      let roles: any = null;
+      let hasAdminRole = false;
       if (!isAdminByProfile) {
         const { data: rolesData } = await supabase
           .from("user_roles")
@@ -134,10 +205,10 @@ const AdminDashboard = () => {
           .eq("user_id", user.id)
           .eq("role", "admin")
           .maybeSingle();
-        roles = rolesData;
+        hasAdminRole = !!rolesData;
       }
 
-      if (!isAdminByProfile && !roles) {
+      if (!isAdminByProfile && !hasAdminRole) {
         toast({
           title: "Access Denied",
           description: "You don't have admin privileges",
@@ -159,7 +230,11 @@ const AdminDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate, toast]);
+
+  useEffect(() => {
+    checkAdminStatus();
+  }, [checkAdminStatus]);
 
   // Queries and mutations
   const createNewsMutation = useMutation({
@@ -261,8 +336,70 @@ const AdminDashboard = () => {
     },
   });
 
+  const refreshDocumentsList = async (ownerId?: string) => {
+    try {
+      const id = ownerId || documentsOwner?.id;
+      if (!id) return;
+      const folder = `personnel/${id}`;
+      const { data, error } = await supabase.storage.from(bucketName).list(folder, { limit: 100 });
+      if (error) throw error;
+      setDocumentsList(((data || []) as unknown as Array<{ name: string }>).map((d) => ({ name: d.name })));
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      toast({ title: "Error", description: mapStorageError(message), variant: "destructive" });
+    }
+  };
+
+  const handleDocumentsUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      const files = Array.from(e.target.files || []);
+      if (!documentsOwner?.id || files.length === 0) return;
+      const folder = `personnel/${documentsOwner.id}`;
+      for (const file of files) {
+        const path = `${folder}/${Date.now()}-${file.name}`;
+        const { error } = await supabase.storage.from(bucketName).upload(path, file, { upsert: false });
+        if (error) throw error;
+      }
+      await refreshDocumentsList(documentsOwner.id);
+      toast({ title: "Success", description: "Documents uploaded" });
+      e.currentTarget.value = "";
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      toast({ title: "Error", description: mapStorageError(message), variant: "destructive" });
+    }
+  };
+
+  const previewDocument = async (ownerId?: string, name?: string) => {
+    try {
+      const id = ownerId || documentsOwner?.id;
+      if (!id || !name) return;
+      const path = `personnel/${id}/${name}`;
+      const { data, error } = await supabase.storage.from(bucketName).createSignedUrl(path, 60);
+      if (error) throw error;
+      if (data?.signedUrl) window.open(data.signedUrl, "_blank");
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      toast({ title: "Error", description: mapStorageError(message), variant: "destructive" });
+    }
+  };
+
+  const deleteDocument = async (ownerId?: string, name?: string) => {
+    try {
+      const id = ownerId || documentsOwner?.id;
+      if (!id || !name) return;
+      const path = `personnel/${id}/${name}`;
+      const { error } = await supabase.storage.from(bucketName).remove([path]);
+      if (error) throw error;
+      await refreshDocumentsList(id);
+      toast({ title: "Success", description: "Document deleted" });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      toast({ title: "Error", description: mapStorageError(message), variant: "destructive" });
+    }
+  };
+
   const updateUserRoleMutation = useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
+    mutationFn: async ({ userId, role }: { userId: string; role: "student" | "instructor" | "admin" }) => {
       // First delete existing role
       await supabase.from("user_roles").delete().eq("user_id", userId);
       
@@ -271,19 +408,14 @@ const AdminDashboard = () => {
         .from("user_roles")
         .insert([{ user_id: userId, role }]);
       if (error) throw error;
-
-      // Update profile role
-      await supabase
-        .from("profiles")
-        .update({ role: role as any })
-        .eq("id", userId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
       toast({ title: "Success", description: "User role updated successfully" });
     },
     onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      const message = (error as unknown) instanceof Error ? (error as Error).message : String(error);
+      toast({ title: "Error", description: message, variant: "destructive" });
     },
   });
 
@@ -300,7 +432,8 @@ const AdminDashboard = () => {
       toast({ title: "Success", description: "User category updated successfully" });
     },
     onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      const message = (error as unknown) instanceof Error ? (error as Error).message : String(error);
+      toast({ title: "Error", description: message, variant: "destructive" });
     },
   });
 
@@ -355,6 +488,7 @@ const AdminDashboard = () => {
     },
     enabled: isAdmin,
   });
+  
 
   const { data: news } = useQuery({
     queryKey: ["admin-news"],
@@ -368,6 +502,8 @@ const AdminDashboard = () => {
     },
     enabled: isAdmin,
   });
+
+  
 
   const { data: categories } = useQuery({
     queryKey: ["student-categories"],
@@ -394,6 +530,77 @@ const AdminDashboard = () => {
     },
     enabled: isAdmin,
   });
+
+  const { data: enrollments } = useQuery({
+    queryKey: ["admin-enrollments"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("enrollments")
+        .select("*");
+      if (error) throw error;
+      return data;
+    },
+    enabled: isAdmin,
+  });
+
+  const monthKey = (d: string) => {
+    const dt = new Date(d);
+    const m = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
+    return m;
+  };
+
+  const last12 = (() => {
+    const now = new Date();
+    const out: string[] = [];
+    for (let i = 11; i >= 0; i--) {
+      const dt = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      out.push(`${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`);
+    }
+    return out;
+  })();
+
+  const enrollmentTrend = last12.map(m => ({
+    month: m,
+    count: (enrollments || []).filter((e) => monthKey(String(e.enrolled_at)) === m).length,
+  }));
+
+  type EnrollmentLike = { completed_at?: string | null; status?: string | null; enrolled_at: string } & Record<string, unknown>;
+  const completionRateTrend = last12.map(m => {
+    const enrollList = ((enrollments || []) as unknown as EnrollmentLike[]);
+    const monthEnrolls = enrollList.filter((e) => monthKey(String(e.enrolled_at)) === m);
+    const completed = monthEnrolls.filter((e) => !!e.completed_at || (e.status && String(e.status).toLowerCase() === "completed"));
+    const rate = monthEnrolls.length ? Math.round((completed.length / monthEnrolls.length) * 100) : 0;
+    return { month: m, rate };
+  });
+
+  useEffect(() => {
+    const computeDocVolume = async () => {
+      try {
+        if (!isAdmin || !personnel || personnel.length === 0) return;
+        const counts = new Map<string, number>();
+        for (const p of (personnel || [])) {
+          const dept = p.department || "Unknown";
+          const folder = `personnel/${p.id}`;
+          const { data, error } = await supabase.storage.from(bucketName).list(folder, { limit: 100 });
+          if (error) continue;
+          counts.set(dept, (counts.get(dept) || 0) + (data?.length || 0));
+        }
+        setDocVolumeByDept(Array.from(counts.entries()).map(([department, count]) => ({ department, count })));
+      } catch (e) {
+        // silent fail for analytics
+      }
+    };
+    computeDocVolume();
+  }, [isAdmin, personnel, bucketName]);
+
+  const personnelCategoryCounts = (() => {
+    const civ = (personnel || []).filter((p) => (p.category || "").toLowerCase() === "civilian").length;
+    const mil = (personnel || []).filter((p) => (p.category || "").toLowerCase() === "military").length;
+    return [
+      { name: "Civilian", value: civ },
+      { name: "Military", value: mil },
+    ];
+  })();
 
   const { data: pgPrograms } = useQuery({
     queryKey: ["admin-pg-programs"],
@@ -526,6 +733,24 @@ const AdminDashboard = () => {
     },
   });
 
+  const updateLeadershipStatusMutation = useMutation({
+    mutationFn: async ({ id, is_active, position }: { id: string; is_active: boolean; position: string }) => {
+      const { error } = await supabase
+        .from("leadership")
+        .update({ is_active, position })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-leadership"] });
+      toast({ title: "Success", description: "Leadership status updated" });
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : String(error);
+      toast({ title: "Error", description: message, variant: "destructive" });
+    },
+  });
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -557,7 +782,7 @@ const AdminDashboard = () => {
         </div>
 
         <Tabs defaultValue="courses" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-8 gap-1">
+          <TabsList className="grid w-full grid-cols-11 gap-1">
             <TabsTrigger value="courses"><BookOpen className="mr-1 h-4 w-4" />Courses</TabsTrigger>
             <TabsTrigger value="personnel"><UserCog className="mr-1 h-4 w-4" />Personnel</TabsTrigger>
             <TabsTrigger value="leadership"><Crown className="mr-1 h-4 w-4" />Leadership</TabsTrigger>
@@ -566,6 +791,9 @@ const AdminDashboard = () => {
             <TabsTrigger value="users"><Users className="mr-1 h-4 w-4" />Users</TabsTrigger>
             <TabsTrigger value="categories"><Shield className="mr-1 h-4 w-4" />Categories</TabsTrigger>
             <TabsTrigger value="analytics"><BarChart3 className="mr-1 h-4 w-4" />Analytics</TabsTrigger>
+            <TabsTrigger value="documents"><FileText className="mr-1 h-4 w-4" />Documents</TabsTrigger>
+            <TabsTrigger value="about-management"><Crown className="mr-1 h-4 w-4" />About Management</TabsTrigger>
+            <TabsTrigger value="gallery"><ImageIcon className="mr-1 h-4 w-4" />Gallery</TabsTrigger>
           </TabsList>
 
           <TabsContent value="courses">
@@ -655,7 +883,7 @@ const AdminDashboard = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {courses?.map((course: any) => (
+                    {courses?.map((course) => (
                       <TableRow key={course.id}>
                         <TableCell className="font-medium">{course.title}</TableCell>
                         <TableCell>{course.profiles?.full_name}</TableCell>
@@ -767,10 +995,10 @@ const AdminDashboard = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {personnel?.map((person: any) => (
+                    {personnel?.map((person) => (
                       <TableRow key={person.id}>
                         <TableCell className="font-medium">{person.full_name}</TableCell>
-                        <TableCell><Badge>{person.category}</Badge></TableCell>
+                        <TableCell><Badge className={categoryClasses(person.category)}>{person.category}</Badge></TableCell>
                         <TableCell>{person.position}</TableCell>
                         <TableCell>{person.department}</TableCell>
                         <TableCell>
@@ -852,16 +1080,44 @@ const AdminDashboard = () => {
                       <TableHead>Name</TableHead>
                       <TableHead>Position</TableHead>
                       <TableHead>Rank</TableHead>
+                      <TableHead>Active</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {leadership?.map((leader: any) => (
+                    {leadership?.map((leader) => (
                       <TableRow key={leader.id}>
                         <TableCell>{leader.display_order}</TableCell>
                         <TableCell className="font-medium">{leader.full_name}</TableCell>
-                        <TableCell>{leader.position}</TableCell>
+                        <TableCell>
+                          <Select
+                            value={leader.position || ""}
+                            onValueChange={(value) =>
+                              updateLeadershipStatusMutation.mutate({ id: leader.id, is_active: !!leader.is_active, position: value })
+                            }
+                          >
+                            <SelectTrigger className="w-48">
+                              <SelectValue placeholder="Select position" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Commandant DIC">Commandant DIC</SelectItem>
+                              <SelectItem value="Former Commandant DIC">Former Commandant DIC</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
                         <TableCell>{leader.rank}</TableCell>
+                        <TableCell>
+                          <Switch
+                            checked={!!leader.is_active}
+                            onCheckedChange={(value) =>
+                              updateLeadershipStatusMutation.mutate({
+                                id: leader.id,
+                                is_active: !!value,
+                                position: value ? "Commandant DIC" : "Former Commandant DIC",
+                              })
+                            }
+                          />
+                        </TableCell>
                         <TableCell>
                           <div className="flex gap-2">
                             <Button variant="outline" size="sm" onClick={() => {
@@ -935,7 +1191,7 @@ const AdminDashboard = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {news?.map((item: any) => (
+                    {news?.map((item) => (
                       <TableRow key={item.id}>
                         <TableCell className="font-medium">{item.title}</TableCell>
                         <TableCell>{new Date(item.published_at).toLocaleDateString()}</TableCell>
@@ -981,12 +1237,12 @@ const AdminDashboard = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {users?.map((user: any) => (
+                    {users?.map((user) => (
                       <TableRow key={user.id}>
                         <TableCell className="font-medium">{user.full_name}</TableCell>
                         <TableCell>{user.email}</TableCell>
                         <TableCell>
-                          <Select value={user.role} onValueChange={(value) => updateUserRoleMutation.mutate({ userId: user.id, role: value })}>
+                          <Select value={user.role} onValueChange={(value) => updateUserRoleMutation.mutate({ userId: user.id, role: value as "student" | "instructor" | "admin" })}>
                             <SelectTrigger className="w-32">
                               <SelectValue />
                             </SelectTrigger>
@@ -998,13 +1254,13 @@ const AdminDashboard = () => {
                           </Select>
                         </TableCell>
                         <TableCell>
-                          <Select value={user.category_id || ""} onValueChange={(value) => updateUserCategoryMutation.mutate({ userId: user.id, categoryId: value || null })}>
+                          <Select value={user.category_id ?? "none"} onValueChange={(value) => updateUserCategoryMutation.mutate({ userId: user.id, categoryId: value === "none" ? null : value })}>
                             <SelectTrigger className="w-40">
                               <SelectValue placeholder="Select category" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">None</SelectItem>
-                              {categories?.map((cat: any) => (
+                              <SelectItem value="none">None</SelectItem>
+                              {categories?.map((cat) => (
                                 <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
                               ))}
                             </SelectContent>
@@ -1067,7 +1323,7 @@ const AdminDashboard = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {categories?.map((category: any) => (
+                    {categories?.map((category) => (
                       <TableRow key={category.id}>
                         <TableCell className="font-medium">{category.name}</TableCell>
                         <TableCell>{category.description}</TableCell>
@@ -1218,7 +1474,7 @@ const AdminDashboard = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {pgPrograms?.map((program: any) => (
+                    {pgPrograms?.map((program) => (
                       <TableRow key={program.id}>
                         <TableCell>{program.display_order}</TableCell>
                         <TableCell className="font-medium">{program.department}</TableCell>
@@ -1284,7 +1540,7 @@ const AdminDashboard = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Analytics Dashboard</CardTitle>
-                <CardDescription>Student distribution by category</CardDescription>
+                <CardDescription>Key platform metrics and trends</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
@@ -1321,17 +1577,341 @@ const AdminDashboard = () => {
                     </CardContent>
                   </Card>
                 </div>
-                <ResponsiveContainer width="100%" height={400}>
-                  <PieChart>
-                    <Pie data={analyticsData?.map(d => ({ name: d.category_name, value: d.student_count }))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={120} label>
-                      {analyticsData?.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
+                <div className="grid gap-8 lg:grid-cols-2">
+                  <div className="border rounded-md p-4">
+                    <div className="font-semibold mb-2">Student Enrollment Trend (12 months)</div>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={enrollmentTrend}>
+                        <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Line type="monotone" dataKey="count" name="Enrollments" stroke="#3b82f6" strokeWidth={2} dot={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="border rounded-md p-4">
+                    <div className="font-semibold mb-2">Course Completion Rate (12 months)</div>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={completionRateTrend}>
+                        <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                        <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
+                        <Tooltip formatter={(val) => `${val}%`} />
+                        <Legend />
+                        <Line type="monotone" dataKey="rate" name="Completion %" stroke="#10b981" strokeWidth={2} dot={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="border rounded-md p-4 lg:col-span-2">
+                    <div className="font-semibold mb-2">Student Categories</div>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie data={analyticsData?.map(d => ({ name: d.category_name, value: d.student_count }))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={110} label>
+                          {analyticsData?.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                        </Pie>
+                        <Tooltip />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="border rounded-md p-4">
+                    <div className="font-semibold mb-2">Personnel Category Distribution</div>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={personnelCategoryCounts}>
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="value" name="Count" fill="#6366f1" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="border rounded-md p-4 lg:col-span-2">
+                    <div className="font-semibold mb-2">Document Upload Volume by Department</div>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={docVolumeByDept}>
+                        <XAxis dataKey="department" tick={{ fontSize: 12 }} />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="count" name="Uploads" fill="#3b82f6" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="documents">
+            <Card>
+              <CardHeader>
+                <CardTitle>Document Management</CardTitle>
+                <CardDescription>Support paperless policy among registered personnel</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Department</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {personnel?.map((p) => (
+                      <TableRow key={p.id}>
+                        <TableCell className="font-medium">{p.full_name}</TableCell>
+                        <TableCell>{p.department}</TableCell>
+                        <TableCell><Badge variant="outline">{p.category}</Badge></TableCell>
+                        <TableCell>
+                          <Button variant="outline" size="sm" onClick={() => {
+                            setDocumentsOwner(p);
+                            setDocumentsDialogOpen(true);
+                            refreshDocumentsList(p.id);
+                          }}>Manage Docs</Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+
+                <Dialog open={documentsDialogOpen} onOpenChange={setDocumentsDialogOpen}>
+                  <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>{documentsOwner?.full_name || "Documents"}</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <Input type="file" multiple onChange={(e) => handleDocumentsUpload(e)} />
+                        <Button onClick={() => refreshDocumentsList(documentsOwner?.id)} disabled={!documentsOwner}>Refresh</Button>
+                      </div>
+                      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {documentsList.map((doc) => (
+                          <div key={doc.name} className="border rounded-md p-3 space-y-2">
+                            <div className="text-sm font-semibold break-all">{doc.name}</div>
+                            <div className="flex gap-2">
+                              <Button variant="outline" size="sm" onClick={() => previewDocument(documentsOwner?.id, doc.name)}>Preview</Button>
+                              <Button variant="destructive" size="sm" onClick={() => deleteDocument(documentsOwner?.id, doc.name)}>Delete</Button>
+                            </div>
+                          </div>
+                        ))}
+                        {documentsList.length === 0 && (
+                          <div className="text-muted-foreground">No documents found.</div>
+                        )}
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="about-management">
+            <Card>
+              <CardHeader>
+                <CardTitle>About Page Management Section</CardTitle>
+                <CardDescription>Select and order management profiles shown on the About page</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <div className="font-semibold mb-2">Personnel Candidates</div>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Department</TableHead>
+                          <TableHead>Position</TableHead>
+                          <TableHead>Action</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {(personnel || []).map((p) => {
+                          const exists = (leadership || []).some((l: LeadershipRow) => l.full_name === p.full_name);
+                          return (
+                            <TableRow key={p.id}>
+                              <TableCell className="font-medium">{p.full_name}</TableCell>
+                              <TableCell>{p.department}</TableCell>
+                              <TableCell>{p.position}</TableCell>
+                              <TableCell>
+                                {!exists ? (
+                                  <Button size="sm" onClick={async () => {
+                                    const { error } = await supabase.from("leadership").insert([{ 
+                                      full_name: p.full_name,
+                                      position: p.position || "",
+                                      rank: p.rank || "",
+                                      bio: p.bio || "",
+                                      photo_url: p.photo_url || "",
+                                      display_order: 0,
+                                    }]);
+                                    if (error) {
+                                      toast({ title: "Error", description: error.message, variant: "destructive" });
+                                    } else {
+                                      queryClient.invalidateQueries({ queryKey: ["admin-leadership"] });
+                                      toast({ title: "Added", description: "Profile added to About Management" });
+                                    }
+                                  }}>Add</Button>
+                                ) : (
+                                  <Button variant="destructive" size="sm" onClick={async () => {
+                                    const { error } = await supabase.from("leadership").delete().eq("full_name", p.full_name);
+                                    if (error) {
+                                      toast({ title: "Error", description: error.message, variant: "destructive" });
+                                    } else {
+                                      queryClient.invalidateQueries({ queryKey: ["admin-leadership"] });
+                                      toast({ title: "Removed", description: "Profile removed from About Management" });
+                                    }
+                                  }}>Remove</Button>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  <div>
+                    <div className="font-semibold mb-2">Current Management (About)</div>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Position</TableHead>
+                          <TableHead>Order</TableHead>
+                          <TableHead>Update</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {(leadership || []).map((l: LeadershipRow) => (
+                          <TableRow key={l.id}>
+                            <TableCell className="font-medium">{l.full_name}</TableCell>
+                            <TableCell>{l.position}</TableCell>
+                            <TableCell>
+                              <Input className="w-20" type="number" value={l.display_order ?? 0} onChange={async (e) => {
+                                const val = Number(e.target.value || 0);
+                                const { error } = await supabase.from("leadership").update({ display_order: val }).eq("id", l.id);
+                                if (error) {
+                                  toast({ title: "Error", description: error.message, variant: "destructive" });
+                                } else {
+                                  queryClient.invalidateQueries({ queryKey: ["admin-leadership"] });
+                                }
+                              }} />
+                            </TableCell>
+                            <TableCell>
+                              <Button variant="outline" size="sm" onClick={async () => {
+                                const { error } = await supabase.from("leadership").update({ position: l.position, rank: l.rank, bio: l.bio, photo_url: l.photo_url }).eq("id", l.id);
+                                if (error) {
+                                  toast({ title: "Error", description: error.message, variant: "destructive" });
+                                } else {
+                                  queryClient.invalidateQueries({ queryKey: ["admin-leadership"] });
+                                  toast({ title: "Updated", description: "Leadership profile saved" });
+                                }
+                              }}>Save</Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="gallery">
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><Video className="h-4 w-4" />Video Gallery</CardTitle>
+                  <CardDescription>Add YouTube links</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="v_title">Title</Label>
+                    <Input id="v_title" value={videoForm.title} onChange={(e) => setVideoForm({ ...videoForm, title: e.target.value })} />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="v_url">YouTube URL</Label>
+                    <Input id="v_url" value={videoForm.url} onChange={(e) => setVideoForm({ ...videoForm, url: e.target.value })} />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button onClick={addVideo} disabled={!videoForm.url}><Plus className="mr-2 h-4 w-4" />Add Video</Button>
+                    <Button variant="outline" onClick={() => { persistVideos([]); toast({ title: "Cleared", description: "All videos removed" }); }}>Clear Videos</Button>
+                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Preview</TableHead>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(galleryVideos || []).map((v: GalleryVideo) => {
+                        const idMatch = String(v.url || "").match(/[?&]v=([^&]+)/) || String(v.url || "").match(/youtu\.be\/([^?]+)/);
+                        const id = idMatch ? idMatch[1] : "";
+                        return (
+                          <TableRow key={v.id}>
+                            <TableCell>
+                              {id ? (
+                                <img src={`https://img.youtube.com/vi/${id}/hqdefault.jpg`} alt={v.title || "Video"} className="w-24 h-16 object-cover rounded" />
+                              ) : (
+                                <span className="text-muted-foreground">Invalid URL</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="font-medium">{v.title || "Untitled"}</TableCell>
+                            <TableCell>
+                              <Button variant="destructive" size="sm" onClick={() => deleteVideo(v.id)}><Trash2 className="h-4 w-4" /></Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><ImageIcon className="h-4 w-4" />Picture Gallery</CardTitle>
+                  <CardDescription>Add image URLs</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="p_title">Caption</Label>
+                    <Input id="p_title" value={pictureForm.title} onChange={(e) => setPictureForm({ ...pictureForm, title: e.target.value })} />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="p_url">Image URL</Label>
+                    <Input id="p_url" value={pictureForm.image_url} onChange={(e) => setPictureForm({ ...pictureForm, image_url: e.target.value })} />
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    <Button onClick={addPicture} disabled={!pictureForm.image_url}><Plus className="mr-2 h-4 w-4" />Add Picture</Button>
+                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Preview</TableHead>
+                        <TableHead>Caption</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(galleryPictures || []).map((p: GalleryPicture) => (
+                        <TableRow key={p.id}>
+                          <TableCell>
+                            <img src={p.image_url} alt={p.title || "Picture"} className="w-24 h-16 object-cover rounded" />
+                          </TableCell>
+                          <TableCell className="font-medium">{p.title || "Untitled"}</TableCell>
+                          <TableCell>
+                            <Button variant="destructive" size="sm" onClick={() => deletePicture(p.id)}><Trash2 className="h-4 w-4" /></Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>

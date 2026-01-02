@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BookOpen, Shield, Laptop, GraduationCap, Users, Languages } from "lucide-react";
 import departmentsHero from "@/assets/departments-hero.webp";
+import dicBg from "@/assets/dic-bg.png";
 
 const Departments = () => {
   const departments = [
@@ -50,13 +51,9 @@ const Departments = () => {
       <Navbar />
       
       {/* Hero Section */}
-      <section className="relative bg-gradient-hero text-primary-foreground py-20 overflow-hidden">
-        <div className="absolute inset-0">
-          <img 
-            src={departmentsHero} 
-            alt="Defence Intelligence College Departments" 
-            className="w-full h-full object-cover opacity-30"
-          />
+      <section className="relative text-primary-foreground py-20 overflow-hidden">
+        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${dicBg})` }}>
+          <div className="absolute inset-0 bg-gradient-hero opacity-70"></div>
         </div>
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-3xl">

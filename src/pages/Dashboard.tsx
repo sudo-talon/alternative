@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { User, Session } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 import { BookOpen, Users, GraduationCap, LogOut } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { useInactivityLogout } from "@/hooks/useInactivityLogout";
@@ -17,8 +18,45 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<any>(null);
+  type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
+  type ProfileWithCategory = ProfileRow & { student_categories?: { name: string } | null };
+  const [profile, setProfile] = useState<ProfileWithCategory | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const loadProfile = useCallback(async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*, student_categories(name)")
+        .eq("id", userId)
+        .maybeSingle();
+
+      if (error) throw error;
+      if (data) {
+        setProfile(data as ProfileWithCategory);
+        return;
+      }
+
+      const { data: userData } = await supabase.auth.getUser();
+      const u = userData?.user;
+      const email = u?.email || "";
+      const fullNameMeta = u?.user_metadata?.full_name as string | undefined;
+      const full_name = fullNameMeta || email.split("@")[0] || "User";
+      const { error: insertError } = await supabase
+        .from("profiles")
+        .insert([{ id: userId, email, full_name, role: "student" }]);
+      if (insertError) throw insertError;
+
+      const { data: created } = await supabase
+        .from("profiles")
+        .select("*, student_categories(name)")
+        .eq("id", userId)
+        .maybeSingle();
+      if (created) setProfile(created as ProfileWithCategory);
+    } catch (error: unknown) {
+      console.error("Error loading profile:", error);
+    }
+  }, []);
 
   useEffect(() => {
     const {
@@ -47,42 +85,7 @@ const Dashboard = () => {
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
-
-  const loadProfile = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*, student_categories(name)")
-        .eq("id", userId)
-        .maybeSingle();
-
-      if (error) throw error;
-      if (data) {
-        setProfile(data);
-        return;
-      }
-
-      const { data: userData } = await supabase.auth.getUser();
-      const u = userData?.user;
-      const email = u?.email || "";
-      const fullNameMeta = (u as any)?.user_metadata?.full_name;
-      const full_name = fullNameMeta || email.split("@")[0] || "User";
-      const { error: insertError } = await supabase
-        .from("profiles")
-        .insert([{ id: userId, email, full_name, role: "student" }]);
-      if (insertError) throw insertError;
-
-      const { data: created } = await supabase
-        .from("profiles")
-        .select("*, student_categories(name)")
-        .eq("id", userId)
-        .maybeSingle();
-      if (created) setProfile(created);
-    } catch (error: any) {
-      console.error("Error loading profile:", error);
-    }
-  };
+  }, [navigate, loadProfile]);
 
   // Fetch enrolled courses with instructor info
   const { data: enrolledCourses } = useQuery({
@@ -107,9 +110,18 @@ const Dashboard = () => {
   });
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    toast.success("Signed out successfully");
-    navigate("/");
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      toast.success("Signed out successfully");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!/ABORTED/i.test(msg)) {
+        toast.error("Sign out failed");
+      }
+    } finally {
+      navigate("/");
+    }
   };
 
   if (loading) {
@@ -173,7 +185,7 @@ const Dashboard = () => {
               <CardContent>
                 {enrolledCourses && enrolledCourses.length > 0 ? (
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {enrolledCourses.map((enrollment: any) => (
+                    {enrolledCourses.map((enrollment) => (
                       <Card key={enrollment.id} className="hover-scale">
                         <CardHeader>
                           <CardTitle className="text-lg">

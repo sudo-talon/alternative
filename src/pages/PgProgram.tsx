@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { GraduationCap, BookOpen } from "lucide-react";
 import pgHeroImage from "@/assets/pg-program-hero.jpeg";
+import dicBg from "@/assets/dic-bg.png";
 
 const PgProgram = () => {
   const { data: programs, isLoading } = useQuery({
@@ -26,13 +27,9 @@ const PgProgram = () => {
       <Navbar />
       
       {/* Hero Section */}
-      <section className="relative py-20 bg-gradient-hero text-primary-foreground overflow-hidden">
-        <div className="absolute inset-0 opacity-20">
-          <img 
-            src={pgHeroImage} 
-            alt="Postgraduate Programs" 
-            className="w-full h-full object-cover"
-          />
+      <section className="relative py-20 text-primary-foreground overflow-hidden">
+        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${dicBg})` }}>
+          <div className="absolute inset-0 bg-gradient-hero opacity-70"></div>
         </div>
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-4xl mx-auto text-center">

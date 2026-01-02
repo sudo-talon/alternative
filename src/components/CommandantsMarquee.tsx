@@ -28,8 +28,11 @@ export const CommandantsMarquee = () => {
   const [selectedCommandant, setSelectedCommandant] = useState<Commandant | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const { t } = useLanguage();
+  const normalize = (s: string) => s.toLowerCase().replace(/[^a-z]/g, "");
   const overrides: Record<string, string> = {
-    "Cdre UM BUGAJE": cdreBugaje,
+    [normalize("UM Bugaje")]: cdreBugaje,
+    [normalize("Cdre UM BUGAJE")]: cdreBugaje,
+    [normalize("U.M. Bugaje")]: cdreBugaje,
   };
 
   const { data: commandants = [], isLoading } = useQuery({
@@ -77,6 +80,11 @@ export const CommandantsMarquee = () => {
   }
 
   const currentCommandant = commandants[currentIndex];
+  const formatPosition = (p?: string) => {
+    const s = (p || "").toLowerCase();
+    if (s.includes("former commandant")) return "Former Commandant DIC";
+    return p || "";
+  };
 
   return (
     <>
@@ -99,7 +107,7 @@ export const CommandantsMarquee = () => {
                 <div className="flex flex-col sm:flex-row gap-6 items-center">
                   <div className="shrink-0">
                     {(() => {
-                      const overrideSrc = overrides[currentCommandant.full_name];
+                      const overrideSrc = overrides[normalize(currentCommandant.full_name)];
                       const src = overrideSrc || currentCommandant.photo_url || "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&h=150&fit=crop";
                       return (
                         <img
@@ -112,12 +120,11 @@ export const CommandantsMarquee = () => {
                   </div>
                   <div className="flex-1 space-y-3 text-center sm:text-left">
                     <div>
-                      <h3 className="font-bold text-xl text-primary">{currentCommandant.full_name}</h3>
-                      <p className="text-base text-muted-foreground">{currentCommandant.rank}</p>
+                      <h3 className="font-bold text-xl text-primary">{`${currentCommandant.rank} ${currentCommandant.full_name}`}</h3>
                     </div>
                     <div className="flex flex-col sm:flex-row items-center gap-3 sm:justify-between">
                       <span className="text-sm font-semibold text-accent">
-                        {currentCommandant.is_active ? t('commandantDIC') : currentCommandant.position}
+                        {currentCommandant.is_active ? t('commandantDIC') : formatPosition(currentCommandant.position)}
                       </span>
                       <Button
                         size="sm"
@@ -161,14 +168,14 @@ export const CommandantsMarquee = () => {
       <Dialog open={!!selectedCommandant} onOpenChange={() => setSelectedCommandant(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{selectedCommandant?.full_name}</DialogTitle>
+            <DialogTitle>{selectedCommandant ? `${selectedCommandant.rank} ${selectedCommandant.full_name}` : ""}</DialogTitle>
             <DialogDescription>
-              {selectedCommandant?.rank} • {selectedCommandant?.is_active ? t('commandantDIC') : selectedCommandant?.position}
+              {selectedCommandant?.rank} • {selectedCommandant?.is_active ? t('commandantDIC') : formatPosition(selectedCommandant?.position)}
             </DialogDescription>
           </DialogHeader>
           <div className="mt-4">
             {(() => {
-              const overrideSrc = selectedCommandant ? overrides[selectedCommandant.full_name] : undefined;
+              const overrideSrc = selectedCommandant ? overrides[normalize(selectedCommandant.full_name)] : undefined;
               const selectedPhoto = selectedCommandant && (overrideSrc || selectedCommandant.photo_url);
               return selectedPhoto ? (
                 <img

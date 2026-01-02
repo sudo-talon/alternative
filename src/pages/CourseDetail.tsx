@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import type { User } from "@supabase/supabase-js";
 import { Navbar } from "@/components/Navbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,17 +14,19 @@ const CourseDetail = () => {
   const { toast } = useToast();
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
 
-  useEffect(() => {
-    checkEnrollment();
-  }, []);
-
-  const checkEnrollment = async () => {
+  const checkEnrollment = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     setUser(user);
     setLoading(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    checkEnrollment();
+  }, [checkEnrollment]);
+
+  
 
   const handleEnroll = async () => {
     if (!user) {

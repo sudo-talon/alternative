@@ -1,18 +1,64 @@
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Newspaper, Video, Image as ImageIcon } from "lucide-react";
+import { Newspaper, Video, Image as ImageIcon, Users } from "lucide-react";
+import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import cdreBugaje from "@/assets/cdre-bugaje.jpeg";
+import dicBg from "@/assets/dic-bg.png";
+import type { Database } from "@/integrations/supabase/types";
 
 const News = () => {
   const navigate = useNavigate();
+  type LeadershipRow = Database["public"]["Tables"]["leadership"]["Row"];
   const overrides: Record<string, string> = {
     "Cdre UM BUGAJE": cdreBugaje,
   };
+  const [selectedVideo, setSelectedVideo] = useState(0);
+  const [resumeOpen, setResumeOpen] = useState(false);
+  const assetImages = Object.values(import.meta.glob('../assets/**/*.{png,jpg,jpeg,webp}', { as: 'url', eager: true })) as string[];
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const imagesPerPage = 6;
+  const totalPages = Math.max(1, Math.ceil(assetImages.length / imagesPerPage));
+  const currentImages = assetImages.slice((currentPage - 1) * imagesPerPage, currentPage * imagesPerPage);
+  const imageCaptions = assetImages.map((url, i) => `Campus Photo ${i + 1}`);
+  const aiPictures: string[] = [
+    "https://image.pollinations.ai/prompt/Defence%20Intelligence%20College%20Nigeria%20campus%20aerial%20view",
+    "https://image.pollinations.ai/prompt/Defence%20Intelligence%20College%20Nigeria%20training%20classroom",
+    "https://image.pollinations.ai/prompt/Defence%20Intelligence%20College%20Nigeria%20military%20intelligence%20crest",
+    "https://image.pollinations.ai/prompt/Defence%20Intelligence%20College%20Nigeria%20auditorium",
+    "https://image.pollinations.ai/prompt/Defence%20Intelligence%20College%20Nigeria%20students%20in%20uniform",
+    "https://image.pollinations.ai/prompt/Defence%20Intelligence%20College%20Nigeria%20training%20lab",
+  ];
+  const youtubeLinks = [
+    "https://www.youtube.com/watch?v=U-HZvLTXAEQ",
+    "https://www.youtube.com/watch?v=abGY1dEix1g",
+    "https://www.youtube.com/watch?v=mmfNQK9wi94",
+  ];
+  const extractYouTubeId = (url: string) => {
+    try {
+      const m = url.match(/[?&]v=([^&]+)/) || url.match(/youtu\.be\/([^?]+)/);
+      return m ? m[1] : "";
+    } catch {
+      return "";
+    }
+  };
+  const youtubeVideos = youtubeLinks.map((url) => {
+    const id = extractYouTubeId(url);
+    return {
+      title: "DIC Video",
+      id,
+      poster: id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : "",
+      embed: id ? `https://www.youtube.com/embed/${id}` : url,
+    };
+  });
 
   const { data: newsItems, isLoading } = useQuery({
     queryKey: ["news"],
@@ -47,13 +93,35 @@ const News = () => {
     staleTime: 300000,
   });
 
+  const { data: commandants } = useQuery<LeadershipRow[]>({
+    queryKey: ["commandants-list"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("leadership")
+        .select("*")
+        .order("display_order", { ascending: true });
+      if (error) throw error;
+      return (data as LeadershipRow[]).filter((l) => /commandant/i.test(String(l.position || "")));
+    },
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 300000,
+  });
+  const [showAllPictures, setShowAllPictures] = useState(false);
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
       
       {/* Hero Section */}
-      <section className="relative bg-gradient-hero py-20">
-        <div className="container mx-auto px-4">
+      <section className="relative py-20 overflow-hidden">
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url(${dicBg})` }}
+        >
+          <div className="absolute inset-0 bg-gradient-hero opacity-70"></div>
+        </div>
+        <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl font-bold text-primary-foreground mb-6">
               News & Blog
@@ -105,6 +173,7 @@ const News = () => {
                           <button class="absolute top-4 right-4 text-muted-foreground hover:text-foreground" onclick="this.parentElement.parentElement.remove()">
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                           </button>
+                          ${item.featured_image_url ? `<img src="${item.featured_image_url}" alt="${item.title}" class="w-full h-auto rounded mb-4" />` : ''}
                           <h2 class="text-3xl font-bold mb-4">${item.title}</h2>
                           <p class="text-sm text-muted-foreground mb-6">${formatDistanceToNow(new Date(item.published_at), { addSuffix: true })}</p>
                           <p class="text-muted-foreground leading-relaxed whitespace-pre-wrap">${item.content}</p>
@@ -116,6 +185,11 @@ const News = () => {
                       document.body.appendChild(modal);
                     }}
                   >
+                    {index === 0 && item.featured_image_url && (
+                      <div className="aspect-video w-full overflow-hidden">
+                        <img src={item.featured_image_url} alt={item.title} className="w-full h-full object-cover" />
+                      </div>
+                    )}
                     <CardHeader>
                       <CardTitle className="text-2xl">{item.title}</CardTitle>
                       <p className="text-sm text-muted-foreground">
@@ -148,16 +222,21 @@ const News = () => {
                 <Card className="shadow-elevated">
                   <CardHeader className="bg-primary text-primary-foreground">
                     <CardTitle className="flex items-center gap-2">
-                      Commandant Portrait
+                      Commandants Portrait
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-6">
                     <div className="flex flex-col items-center gap-4">
-                      <img
-                        src={overrides[activeCommandant.full_name] || activeCommandant.photo_url || cdreBugaje}
-                        alt={activeCommandant.full_name}
-                        className="w-full h-auto object-contain shadow-elevated"
-                      />
+                      <div className="relative w-full group">
+                        <img
+                          src={overrides[activeCommandant.full_name] || activeCommandant.photo_url || cdreBugaje}
+                          alt={activeCommandant.full_name}
+                          className="w-full h-auto object-contain shadow-elevated"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button variant="secondary" size="sm" onClick={() => setResumeOpen(true)}>Preview Résumé</Button>
+                        </div>
+                      </div>
                       <div className="text-center">
                         <div className="font-bold text-lg">{activeCommandant.full_name}</div>
                         <div className="text-sm text-muted-foreground">{activeCommandant.rank}</div>
@@ -172,6 +251,20 @@ const News = () => {
                   </CardContent>
                 </Card>
               )}
+              <Dialog open={resumeOpen} onOpenChange={setResumeOpen}>
+                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>{activeCommandant?.full_name}</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    {activeCommandant?.photo_url && (
+                      <img src={activeCommandant.photo_url} alt={activeCommandant.full_name || ""} className="w-full h-64 object-cover rounded" />
+                    )}
+                    <div className="text-sm text-muted-foreground">{activeCommandant?.rank} • {activeCommandant?.position}</div>
+                    <div className="text-foreground leading-relaxed whitespace-pre-wrap text-sm">{activeCommandant?.bio}</div>
+                  </div>
+                </DialogContent>
+              </Dialog>
               {/* Video Gallery */}
               <Card className="shadow-elevated">
                 <CardHeader className="bg-primary text-primary-foreground">
@@ -182,12 +275,27 @@ const News = () => {
                 </CardHeader>
                 <CardContent className="pt-6">
                   <div className="space-y-4">
-                    <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
-                      <Video className="h-12 w-12 text-muted-foreground" />
+                    <div className="aspect-video bg-muted rounded-lg overflow-hidden">
+                      <iframe
+                        src={youtubeVideos[selectedVideo].embed}
+                        title={youtubeVideos[selectedVideo].title}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="w-full h-full"
+                      />
                     </div>
-                    <p className="text-sm text-muted-foreground text-center">
-                      Video content coming soon
-                    </p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {youtubeVideos.map((v, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setSelectedVideo(i)}
+                          className={`rounded overflow-hidden border ${selectedVideo === i ? "border-primary" : "border-transparent"}`}
+                          title={v.title}
+                        >
+                          <img src={v.poster} alt={v.title} className="aspect-video w-full object-cover" />
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -202,18 +310,82 @@ const News = () => {
                 </CardHeader>
                 <CardContent className="pt-6">
                   <div className="grid grid-cols-2 gap-4">
-                    {[1, 2, 3, 4].map((i) => (
-                      <div 
-                        key={i} 
-                        className="aspect-square bg-muted rounded-lg flex items-center justify-center hover:bg-muted/80 transition-colors cursor-pointer"
+                    {assetImages.slice(0, Math.min(3, assetImages.length)).map((url, idx) => (
+                      <button
+                        key={idx}
+                        className="aspect-square rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                        onClick={() => {
+                          setGalleryOpen(true);
+                          setCurrentPage(Math.floor(idx / imagesPerPage) + 1);
+                        }}
+                        title={imageCaptions[idx]}
                       >
-                        <ImageIcon className="h-8 w-8 text-muted-foreground" />
-                      </div>
+                        <img src={url} alt={imageCaptions[idx]} className="w-full h-full object-cover" />
+                      </button>
                     ))}
+                    {assetImages.length >= 4 && (
+                      assetImages.length > 4 ? (
+                        <button
+                          key="plus"
+                          className="aspect-square rounded-lg border border-dashed flex flex-col items-center justify-center gap-2 hover:bg-muted/60 transition-colors"
+                          onClick={() => setGalleryOpen(true)}
+                          title={`Show ${assetImages.length - 4} more images`}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                          <span className="text-sm font-semibold">+{assetImages.length - 4}</span>
+                        </button>
+                      ) : (
+                        <button
+                          key={3}
+                          className="aspect-square rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                          onClick={() => {
+                            setGalleryOpen(true);
+                            setCurrentPage(Math.floor(3 / imagesPerPage) + 1);
+                          }}
+                          title={imageCaptions[3]}
+                        >
+                          <img src={assetImages[3]} alt={imageCaptions[3]} className="w-full h-full object-cover" />
+                        </button>
+                      )
+                    )}
                   </div>
-                  <p className="text-sm text-muted-foreground text-center mt-4">
-                    Gallery coming soon
-                  </p>
+                  <Dialog open={galleryOpen} onOpenChange={setGalleryOpen}>
+                    <DialogContent className="max-w-3xl">
+                      <DialogHeader>
+                        <DialogTitle>Picture Gallery</DialogTitle>
+                      </DialogHeader>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {currentImages.map((url, i) => {
+                          const globalIndex = (currentPage - 1) * imagesPerPage + i;
+                          return (
+                            <div key={i} className="space-y-2">
+                              <div className="aspect-square rounded-lg overflow-hidden">
+                                <img src={url} alt={imageCaptions[globalIndex]} className="w-full h-full object-cover" />
+                              </div>
+                              <div className="text-xs text-muted-foreground">{imageCaptions[globalIndex]}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <Pagination className="mt-4">
+                        <PaginationContent>
+                          <PaginationItem>
+                            <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); setCurrentPage((p) => Math.max(1, p - 1)); }} />
+                          </PaginationItem>
+                          {Array.from({ length: totalPages }).map((_, pageIdx) => (
+                            <PaginationItem key={pageIdx}>
+                              <PaginationLink href="#" isActive={currentPage === pageIdx + 1} onClick={(e) => { e.preventDefault(); setCurrentPage(pageIdx + 1); }}>
+                                {pageIdx + 1}
+                              </PaginationLink>
+                            </PaginationItem>
+                          ))}
+                          <PaginationItem>
+                            <PaginationNext href="#" onClick={(e) => { e.preventDefault(); setCurrentPage((p) => Math.min(totalPages, p + 1)); }} />
+                          </PaginationItem>
+                        </PaginationContent>
+                      </Pagination>
+                    </DialogContent>
+                  </Dialog>
                 </CardContent>
               </Card>
             </div>

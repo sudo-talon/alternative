@@ -48,8 +48,9 @@ const Auth = () => {
 
       toast.success("Account created successfully! Please check your email to confirm.");
       navigate("/dashboard");
-    } catch (error: any) {
-      toast.error(error.message || "An error occurred during sign up");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(message || "An error occurred during sign up");
     } finally {
       setLoading(false);
     }
@@ -83,7 +84,7 @@ const Auth = () => {
           .maybeSingle();
         if (!existingProfile) {
           const email = data.user?.email || "";
-          const fullNameMeta = (data.user as any)?.user_metadata?.full_name;
+          const fullNameMeta = data.user?.user_metadata?.full_name as string | undefined;
           const full_name = fullNameMeta || email.split("@")[0] || "User";
           await supabase
             .from("profiles")
@@ -109,8 +110,9 @@ const Auth = () => {
 
       toast.success("Signed in successfully!");
       navigate(isAdmin ? "/admin" : "/dashboard");
-    } catch (error: any) {
-      toast.error(error.message || "An error occurred during sign in");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(message || "An error occurred during sign in");
     } finally {
       setLoading(false);
     }

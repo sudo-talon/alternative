@@ -8,13 +8,21 @@ import { Crown } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 import cdreBugaje from "@/assets/cdre-bugaje.jpeg";
 import effahImg from "@/assets/images.jpeg";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import dicBg from "@/assets/dic-bg.png";
 
 const DicChronicaleOfCommand = () => {
   type LeadershipRow = Database["public"]["Tables"]["leadership"]["Row"];
+  const normalize = (s: string) => s.toLowerCase().replace(/[^a-z]/g, "");
   const overrides: Record<string, string> = {
-    "Cdre UM BUGAJE": cdreBugaje,
-    "Rear Admiral P. E. Effah": effahImg,
+    [normalize("UM Bugaje")]: cdreBugaje,
+    [normalize("Cdre UM BUGAJE")]: cdreBugaje,
+    [normalize("Rear Admiral P. E. Effah")]: effahImg,
+    [normalize("Patrick Effah")]: effahImg,
   };
+  const [selectedLeader, setSelectedLeader] = useState<LeadershipRow | null>(null);
   const { data: leadership } = useQuery<LeadershipRow[]>({
     queryKey: ["chronicale-leadership"],
     queryFn: async () => {
@@ -40,8 +48,11 @@ const DicChronicaleOfCommand = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <section className="relative bg-gradient-hero py-20">
-        <div className="container mx-auto px-4">
+      <section className="relative py-20 overflow-hidden">
+        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${dicBg})` }}>
+          <div className="absolute inset-0 bg-gradient-hero opacity-70"></div>
+        </div>
+        <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl font-bold text-primary-foreground mb-6">
               DIC – Chronicale of Command
@@ -63,31 +74,57 @@ const DicChronicaleOfCommand = () => {
           </CardHeader>
           <CardContent>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {leadership?.map((leader) => (
-                <div key={leader.id} className="rounded-lg border bg-card text-card-foreground overflow-hidden">
-                  <div className="aspect-square bg-muted">
-                    <img
-                      src={overrides[leader.full_name] || leader.photo_url}
-                      alt={leader.full_name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="p-4 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <div className="font-semibold">{leader.full_name}</div>
-                      {leader.is_active && <Badge className="bg-accent text-accent-foreground">Current</Badge>}
+              {leadership?.map((leader) => {
+                const photo = overrides[normalize(leader.full_name)] || leader.photo_url || "";
+                return (
+                  <div key={leader.id} className="rounded-lg border bg-card text-card-foreground overflow-hidden">
+                    <div className="relative aspect-square bg-muted group">
+                      <img
+                        src={photo}
+                        alt={leader.full_name}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="secondary" size="sm" onClick={() => setSelectedLeader(leader)}>Preview Résumé</Button>
+                      </div>
                     </div>
-                    <div className="text-sm text-muted-foreground">{leader.rank}</div>
-                    <div className="text-sm text-muted-foreground">{leader.position}</div>
+                    <div className="p-4 space-y-3">
+                      <div className="text-center font-semibold">{leader.rank} {leader.full_name}</div>
+                      <div className="flex justify-center">
+                        {leader.is_active ? (
+                          <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90">Current</Button>
+                        ) : (
+                          <Button size="sm" className="bg-blue-600 text-white hover:bg-blue-700">Former</Button>
+                        )}
+                      </div>
+                      <div className="text-sm text-muted-foreground text-center">Commandant DIC</div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>
       </section>
 
       <Footer />
+
+      <Dialog open={!!selectedLeader} onOpenChange={() => setSelectedLeader(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{selectedLeader?.full_name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {selectedLeader?.photo_url && (
+              <img src={selectedLeader.photo_url} alt={selectedLeader.full_name || ""} className="w-full h-64 object-cover rounded" />
+            )}
+            <div className="text-sm text-muted-foreground">{selectedLeader?.rank} • {selectedLeader?.position}</div>
+            <div className="text-foreground leading-relaxed whitespace-pre-wrap text-sm">{selectedLeader?.bio}</div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      
     </div>
   );
 };

@@ -7,8 +7,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useLanguage } from "@/contexts/LanguageContext";
+import type { Language } from "@/contexts/LanguageContext";
 
-const languages = [
+const languages: { code: Language; name: string; flag: string }[] = [
   { code: 'en', name: 'English', flag: '🇬🇧' },
   { code: 'fr', name: 'Français', flag: '🇫🇷' },
   { code: 'ha', name: 'Hausa', flag: '🇳🇬' },
@@ -32,7 +33,7 @@ export const LanguageSwitcher = () => {
         {languages.map((lang) => (
           <DropdownMenuItem
             key={lang.code}
-            onClick={() => setLanguage(lang.code as any)}
+            onClick={() => setLanguage(lang.code)}
             className={`${language === lang.code ? 'bg-primary/10 font-medium' : ''} cursor-pointer`}
           >
             <span className="mr-2">{lang.flag}</span>

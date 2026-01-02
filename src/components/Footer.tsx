@@ -41,7 +41,7 @@ export const Footer = () => {
               rel="noopener noreferrer"
               className="text-accent hover:underline font-medium"
             >
-              Talongeeks
+              Designed & Managed by Talongeeks
             </a>
           </p>
         </div>

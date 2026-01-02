@@ -2,8 +2,6 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { BookOpen, GraduationCap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import classroomHero from "@/assets/classroom-hero.jpg";
