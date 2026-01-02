@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { BookOpen, GraduationCap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import classroomHero from "@/assets/classroom-hero.jpg";
+import departmentsHero from "@/assets/departments-hero.webp";
 
 const Courses = () => {
   const navigate = useNavigate();
@@ -58,8 +58,8 @@ const Courses = () => {
       {/* Hero Section */}
       <div className="relative h-[400px] overflow-hidden">
         <img 
-          src={classroomHero} 
-          alt="Students in classroom" 
+          src={departmentsHero} 
+          alt="Departments hero" 
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-primary/90 to-primary/70 flex items-center">
