@@ -53,31 +53,31 @@ const About = () => {
   const sourceList = heads;
   const firstPreferred = sourceList.find(p => /bugaje/i.test(String(p.full_name || "")));
   const secondPreferred = sourceList.find(p => /borgu/i.test(String(p.full_name || "")));
-  const orderedTopTwo: PersonnelRow[] = [];
-  if (firstPreferred) orderedTopTwo.push(firstPreferred);
-  if (secondPreferred && secondPreferred !== firstPreferred) orderedTopTwo.push(secondPreferred);
-  if (orderedTopTwo.length < 2) {
+  const orderedTopThree: PersonnelRow[] = [];
+  if (firstPreferred) orderedTopThree.push(firstPreferred);
+  if (secondPreferred && secondPreferred !== firstPreferred) orderedTopThree.push(secondPreferred);
+  if (orderedTopThree.length < 3) {
     for (const p of sourceList) {
-      if (!orderedTopTwo.includes(p)) {
-        orderedTopTwo.push(p);
-        if (orderedTopTwo.length >= 2) break;
+      if (!orderedTopThree.includes(p)) {
+        orderedTopThree.push(p);
+        if (orderedTopThree.length >= 3) break;
       }
     }
   }
-  const topTwo = orderedTopTwo;
-  const restHeads = sourceList.filter(p => !orderedTopTwo.includes(p));
+  const topThree = orderedTopThree;
+  const restHeads = sourceList.filter(p => !orderedTopThree.includes(p));
   const secondRowList = [...restHeads];
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
       
       {/* Hero Section */}
-      <section className="relative py-20 overflow-hidden">
+      <section className="relative text-primary-foreground py-20 overflow-hidden">
         <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${dicBg})` }}>
           <div className="absolute inset-0 bg-gradient-hero opacity-70"></div>
         </div>
         <div className="container mx-auto px-4 relative z-10">
-          <div className="max-w-4xl mx-auto text-center">
+          <div className="mx-auto text-center">
             <h1 className="text-4xl md:text-5xl font-bold text-primary-foreground mb-6">
               About Defence Intelligence College
             </h1>
@@ -89,8 +89,8 @@ const About = () => {
       </section>
 
       {/* Main Content */}
-      <section className="container mx-auto px-4 py-12">
-        <div className="max-w-5xl mx-auto space-y-12">
+      <section className="container mx-auto px-4 py-16">
+        <div className="space-y-12">
           <div className="space-y-8">
             <Card className="shadow-elevated">
               <CardContent className="p-8">
@@ -106,14 +106,14 @@ const About = () => {
                     <Carousel opts={{ align: "start", loop: true }}>
                       <CarouselContent>
                         {[
-                          { src: "/gallery-pics/SY AUDU.jpg", caption: "SY Audu" },
-                          { src: "/gallery-pics/library.jpg", caption: "Library" },
-                          { src: "/gallery-pics/gym.jpg", caption: "Gym" },
-                          { src: "/gallery-pics/court.jpg", caption: "Court" },
-                          { src: "/gallery-pics/bar.jpg", caption: "Bar" },
+                          { src: "/gallery-pics/SY AUDU.jpg", caption: "SY Audu Hall" },
+                          { src: "/gallery-pics/library.jpg", caption: "College Library" },
+                          { src: "/gallery-pics/gym.jpg", caption: "College Gym" },
+                          { src: "/gallery-pics/court.jpg", caption: "Basketball Court" },
+                          { src: "/gallery-pics/bar.jpg", caption: "ROTUNDA Bar" },
                           { src: "/gallery-pics/AUDITORIUM.jpg", caption: "Auditorium" },
-                          { src: "/gallery-pics/admin-block4.jpg", caption: "Admin Block 4" },
-                          { src: "/gallery-pics/admin-bloc.jpg", caption: "Admin Bloc" },
+                          { src: "/gallery-pics/admin-block4.jpg", caption: "College Administrative Block" },
+                          { src: "/gallery-pics/admin-bloc.jpg", caption: "College Administrative Block" },
                         ].map((item, idx) => (
                           <CarouselItem key={idx} className="basis-full">
                             <div className="rounded-lg border overflow-hidden">
@@ -135,87 +135,84 @@ const About = () => {
                 </div>
               </CardContent>
             </Card>
-          <Card className="shadow-elevated">
-            <CardContent className="p-8">
-              <div className="mb-6 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Shield className="h-7 w-7 text-primary" />
-                  <h2 className="text-3xl font-bold">College Leadership</h2>
+          <div className="grid md:grid-cols-2 gap-8">
+            <Card className="shadow-elevated">
+              <CardContent className="p-8">
+                <div className="mb-6 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Shield className="h-7 w-7 text-primary" />
+                    <h2 className="text-3xl font-bold">College Leadership</h2>
+                  </div>
                 </div>
-                  
-              </div>
-              <div className="grid md:grid-cols-2 gap-6">
-                {topTwo.map((p, idx) => (
-                  <div key={p.id} className="rounded-lg border bg-card text-card-foreground overflow-hidden animate-in fade-in-50 slide-in-from-bottom-6" style={{ animationDelay: `${idx * 120}ms` }}>
-                    <div className="relative aspect-square bg-muted group">
-                      <img src={p.photo_url || ""} alt={p.full_name} className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="secondary" size="sm" onClick={() => setSelectedPerson(p)}>Preview Résumé</Button>
+                <div className="grid md:grid-cols-3 gap-6">
+                  {topThree.map((p, idx) => (
+                    <div key={p.id} className="rounded-lg border bg-card text-card-foreground overflow-hidden animate-in fade-in-50 slide-in-from-bottom-6" style={{ animationDelay: `${idx * 120}ms` }}>
+                      <div className="relative aspect-square bg-muted group">
+                        <img src={p.photo_url || ""} alt={p.full_name} className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button variant="secondary" size="sm" onClick={() => setSelectedPerson(p)}>Preview Résumé</Button>
+                        </div>
+                      </div>
+                      <div className="p-4 space-y-2">
+                        <div className="text-center font-semibold">{p.rank ? `${p.rank} ${p.full_name}` : p.full_name}</div>
+                        <div className="text-sm text-muted-foreground text-center">{p.position}</div>
                       </div>
                     </div>
-                    <div className="p-4 space-y-2">
-                      <div className="text-center font-semibold">{p.rank ? `${p.rank} ${p.full_name}` : p.full_name}</div>
-                      <div className="text-sm text-muted-foreground text-center">{p.position}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-6 relative">
-                <Carousel opts={{ align: "start", loop: false }}>
-                  <CarouselContent>
-                    {secondRowList.map((p, index) => (
-                      <CarouselItem key={p.id} className="basis-[25%]">
-                        <div className="rounded-lg border bg-card text-card-foreground overflow-hidden animate-in fade-in-50 slide-in-from-bottom-6" style={{ animationDelay: `${index * 80}ms` }}>
-                          <div className="relative aspect-square bg-muted group">
-                            <img src={p.photo_url || ""} alt={p.full_name} className="w-full h-full object-cover" />
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Button variant="secondary" size="sm" onClick={() => setSelectedPerson(p)}>Preview Résumé</Button>
+                  ))}
+                </div>
+                <div className="mt-6 relative">
+                  <Carousel opts={{ align: "start", loop: false }}>
+                    <CarouselContent>
+                      {secondRowList.map((p, index) => (
+                        <CarouselItem key={p.id} className="basis-[25%]">
+                          <div className="rounded-lg border bg-card text-card-foreground overflow-hidden animate-in fade-in-50 slide-in-from-bottom-6" style={{ animationDelay: `${index * 80}ms` }}>
+                            <div className="relative aspect-square bg-muted group">
+                              <img src={p.photo_url || ""} alt={p.full_name} className="w-full h-full object-cover" />
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button variant="secondary" size="sm" onClick={() => setSelectedPerson(p)}>Preview Résumé</Button>
+                              </div>
+                            </div>
+                            <div className="p-4 space-y-2">
+                              <div className="text-center font-semibold">{p.rank ? `${p.rank} ${p.full_name}` : p.full_name}</div>
+                              <div className="text-sm text-muted-foreground text-center">{p.position}</div>
                             </div>
                           </div>
-                          <div className="p-4 space-y-2">
-                            <div className="text-center font-semibold">{p.rank ? `${p.rank} ${p.full_name}` : p.full_name}</div>
-                            <div className="text-sm text-muted-foreground text-center">{p.position}</div>
-                          </div>
-                        </div>
-                      </CarouselItem>
-                    ))}
-                  </CarouselContent>
-                  <CarouselPrevious className="-left-6" />
-                  <CarouselNext className="-right-6" />
-                </Carousel>
-              </div>
-            </CardContent>
-          </Card>
+                        </CarouselItem>
+                      ))}
+                    </CarouselContent>
+                    <CarouselPrevious className="-left-6" />
+                    <CarouselNext className="-right-6" />
+                  </Carousel>
+                </div>
+              </CardContent>
+            </Card>
 
+            <div className="space-y-8">
+              <Card className="shadow-elevated">
+                <CardContent className="p-8">
+                  <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
+                    <Target className="h-7 w-7 text-primary" />
+                    Vision Statement
+                  </h2>
+                  <p className="text-muted-foreground leading-relaxed">
+                    To produce well trained, patriotic and highly motivated manpower working with cutting edge technology under an effective leadership in collaboration with friendly forces that will provide comprehensive and timely defence intelligence in support of national security strategy.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="shadow-elevated">
+                <CardContent className="p-8">
+                  <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
+                    <Shield className="h-7 w-7 text-primary" />
+                    Mission Statement
+                  </h2>
+                  <p className="text-muted-foreground leading-relaxed">
+                    To provide security and intelligence training for all categories of DIA staff, personnel of the Nigerian Armed Forces and other security agencies, in order to enable them perform optimally wherever they may be deployed.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
           </div>
-
-          {/* Vision and Mission */}
-          <div className="grid md:grid-cols-2 gap-8">
-            {/* Vision Statement */}
-            <Card className="shadow-elevated">
-              <CardContent className="p-8">
-                <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-                  <Target className="h-7 w-7 text-primary" />
-                  Vision Statement
-                </h2>
-                <p className="text-muted-foreground leading-relaxed">
-                  To produce well trained, patriotic and highly motivated manpower working with cutting edge technology under an effective leadership in collaboration with friendly forces that will provide comprehensive and timely defence intelligence in support of national security strategy.
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* Mission Statement */}
-            <Card className="shadow-elevated">
-              <CardContent className="p-8">
-                <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-                  <Shield className="h-7 w-7 text-primary" />
-                  Mission Statement
-                </h2>
-                <p className="text-muted-foreground leading-relaxed">
-                  To provide security and intelligence training for all categories of DIA staff, personnel of the Nigerian Armed Forces and other security agencies, in order to enable them perform optimally wherever they may be deployed.
-                </p>
-              </CardContent>
-            </Card>
           </div>
 
           <Card className="shadow-elevated">
@@ -260,7 +257,9 @@ const About = () => {
           </DialogHeader>
           <div className="space-y-4">
             {selectedPerson?.photo_url && (
-              <img src={selectedPerson.photo_url} alt={selectedPerson.full_name || ""} className="w-full h-64 object-cover rounded" />
+              <div className="w-full h-64 bg-muted rounded flex items-center justify-center overflow-hidden">
+                <img src={selectedPerson.photo_url} alt={selectedPerson.full_name || ""} className="max-h-full max-w-full object-contain" />
+              </div>
             )}
             <div className="text-sm text-muted-foreground">{selectedPerson?.position} • {selectedPerson?.department}</div>
             <div className="text-foreground leading-relaxed whitespace-pre-wrap text-sm">{selectedPerson?.bio}</div>
