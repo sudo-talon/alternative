@@ -6,10 +6,10 @@ import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { GraduationCap, Shield, Users, BookOpen } from "lucide-react";
+import { GraduationCap, Shield, Users, BookOpen, ChevronLeft, ChevronRight } from "lucide-react";
 import dicBg from "@/assets/dic-bg.png";
-import dicGroupPhoto from "@/assets/dic-group-photo.webp";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import dicPoster from "@/assets/dic-group-photo.webp";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 const Home = () => {
@@ -44,10 +44,49 @@ const Home = () => {
     { year: "2001", title: t('established2001'), description: t('established2001Desc') },
     { year: "2012", title: t('campusRelocation'), description: t('campusRelocationDesc') },
     { year: "2015", title: t('curriculumExpansion'), description: t('curriculumExpansionDesc') },
-    { year: "2023", title: t('modernEra'), description: t('modernEraDesc') }
+    { year: "2023", title: t('modernEra'), description: t('modernEraDesc') },
+    { year: "2025", title: "Regional Excellence", description: "Expanding collaboration with allied nations and modernizing training across the region." },
   ];
 
   const activeTimeline = timelineData.find(item => item.year === activeYear);
+  const timelineRef = useRef<HTMLDivElement | null>(null);
+
+  const scrollToIndex = useCallback((idx: number) => {
+    const container = timelineRef.current;
+    if (!container) return;
+    const items = container.querySelectorAll(".timeline-item");
+    const el = items[idx] as HTMLElement | undefined;
+    if (el) {
+      container.scrollTo({ left: el.offsetLeft - 32, behavior: "smooth" });
+    }
+  }, []);
+
+  const goToIndex = useCallback((idx: number) => {
+    const next = Math.max(0, Math.min(idx, timelineData.length - 1));
+    setActiveYear(timelineData[next].year);
+    scrollToIndex(next);
+  }, [timelineData, scrollToIndex]);
+
+  const handlePrev = useCallback(() => {
+    const idx = timelineData.findIndex(t => t.year === activeYear);
+    const prev = (idx - 1 + timelineData.length) % timelineData.length;
+    goToIndex(prev);
+  }, [activeYear, timelineData, goToIndex]);
+
+  const handleNext = useCallback(() => {
+    const idx = timelineData.findIndex(t => t.year === activeYear);
+    const next = (idx + 1) % timelineData.length;
+    goToIndex(next);
+  }, [activeYear, timelineData, goToIndex]);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      const idx = timelineData.findIndex(t => t.year === activeYear);
+      const next = (idx + 1) % timelineData.length;
+      goToIndex(next);
+    }, 5000);
+    return () => clearInterval(id);
+  }, [activeYear, timelineData, goToIndex]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -125,39 +164,68 @@ const Home = () => {
             <div>
               <h2 className="text-3xl font-bold mb-8">{t('aboutUs')}</h2>
               <div className="grid md:grid-cols-2 gap-8 items-center">
-                {/* Left: Image */}
                 <div className="rounded-lg overflow-hidden shadow-elevated">
-                  <img 
-                    src={dicGroupPhoto} 
-                    alt="DIC Students Learning" 
+                  <video 
                     className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                  />
+                    autoPlay 
+                    muted 
+                    loop 
+                    playsInline
+                    poster={dicPoster}
+                  >
+                    <source src="/videos/dic.mp4" type="video/mp4" />
+                  </video>
                 </div>
 
                 {/* Right: Content */}
                 <div className="space-y-6">
                   {/* Timeline Dots */}
-                  <div className="flex items-center gap-2">
-                    {timelineData.map((item, index) => (
-                      <div key={index} className="flex items-center">
-                        <button
-                          onClick={() => setActiveYear(item.year)}
-                          className="flex flex-col items-center gap-2 transition-all hover:scale-110 focus:outline-none"
-                        >
-                          <div className={`w-4 h-4 rounded-full transition-all cursor-pointer ${
-                            activeYear === item.year ? 'bg-primary scale-125' : 'bg-muted hover:bg-muted-foreground/50'
-                          }`}></div>
-                          <span className={`text-sm font-semibold transition-colors ${
-                            activeYear === item.year ? 'text-primary' : 'text-muted-foreground'
-                          }`}>
-                            {item.year}
-                          </span>
-                        </button>
-                        {index < 3 && (
-                          <div className="w-12 h-0.5 bg-muted mx-2"></div>
-                        )}
+                  <div className="relative">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      aria-label="Previous year"
+                      onClick={handlePrev}
+                      className="absolute -left-2 sm:-left-4 top-1/2 -translate-y-1/2 rounded-full"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <div
+                      ref={timelineRef}
+                      className="overflow-x-auto -mx-4 px-4 py-2 scroll-smooth snap-x snap-mandatory no-scrollbar"
+                    >
+                      <div className="flex items-center gap-2 min-w-max">
+                        {timelineData.map((item, index) => (
+                          <div key={index} className="timeline-item flex items-center flex-none snap-center">
+                            <button
+                              onClick={() => goToIndex(index)}
+                              className="flex flex-col items-center gap-2 transition-all hover:scale-110 focus:outline-none flex-none"
+                            >
+                              <div className={`w-4 h-4 rounded-full transition-all cursor-pointer ${
+                                activeYear === item.year ? 'bg-primary scale-125' : 'bg-muted hover:bg-muted-foreground/50'
+                              }`}></div>
+                              <span className={`text-sm font-semibold transition-colors ${
+                                activeYear === item.year ? 'text-primary' : 'text-muted-foreground'
+                              }`}>
+                                {item.year}
+                              </span>
+                            </button>
+                            {index < timelineData.length - 1 && (
+                              <div className="w-12 sm:w-16 h-0.5 bg-muted mx-2 flex-none"></div>
+                            )}
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      aria-label="Next year"
+                      onClick={handleNext}
+                      className="absolute -right-2 sm:-right-4 top-1/2 -translate-y-1/2 rounded-full"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
                   </div>
 
                   {/* Content */}

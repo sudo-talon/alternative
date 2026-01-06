@@ -76,12 +76,12 @@ const About = () => {
         <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${dicBg})` }}>
           <div className="absolute inset-0 bg-gradient-hero opacity-70"></div>
         </div>
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="mx-auto text-center">
+        <div className="w-full px-2 sm:px-4 relative z-10">
+          <div className="max-w-screen-xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl font-bold text-primary-foreground mb-6">
               About Defence Intelligence College
             </h1>
-            <p className="text-xl text-primary-foreground/90">
+            <p className="text-base sm:text-lg md:text-xl text-primary-foreground/90">
               A citadel of intelligence and security training in Nigeria
             </p>
           </div>
@@ -89,19 +89,25 @@ const About = () => {
       </section>
 
       {/* Main Content */}
-      <section className="container mx-auto px-4 py-16">
-        <div className="space-y-12">
+      <section className="w-full px-2 sm:px-4 py-12 md:py-16">
+        <div className="max-w-screen-xl mx-auto space-y-8 md:space-y-12">
           <div className="space-y-8">
             <Card className="shadow-elevated">
-              <CardContent className="p-8">
+              <CardContent className="p-6 md:p-8">
                 <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
                   <BookOpen className="h-8 w-8 text-primary" />
                   About Us
                 </h2>
-                <div className="grid md:grid-cols-2 gap-6 items-start">
-                  <p className="text-muted-foreground leading-relaxed text-lg">
-                    The Defence Intelligence College (DIC) hitherto known as the Defence Intelligence School (DIS) was established in 2001. At inception it was located at a temporary site within the Headquarters of the Defence Intelligence Agency (DIA) in Bonny Camp Lagos. However, due to the need for a large space and conducive environment, the school was relocated to its present location in Karu a suburb of Federal Capital Territory Abuja in October 2005. The objective of the relocation was to reposition the school with a focus on capacity building in support of DIA and the Armed Forces of Nigeria (AFN) through the provision of real-time defence intelligence to enhance national security.
-                  </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 items-start">
+                  <div className="space-y-4">
+                    <p className="text-muted-foreground leading-relaxed text-[15px] sm:text-base md:text-lg max-w-prose md:max-w-3xl w-full sm:w-auto hyphens-auto break-words">
+                      The Defence Intelligence College (DIC), hitherto known as the Defence Intelligence School (DIS), was established in 2001. At inception it was located at a temporary site within the Headquarters of the Defence Intelligence Agency (DIA) in Bonny Camp, Lagos. However, due to the need for a large space and conducive environment, the school was relocated to its present location in Karu, a suburb of the Federal Capital Territory Abuja, in October 2005.
+                    </p>
+                    <p className="text-muted-foreground leading-relaxed text-[15px] sm:text-base md:text-lg max-w-prose md:max-w-3xl w-full sm:w-auto hyphens-auto break-words">
+                      The objective of the relocation was to reposition the school with a focus on capacity building in support of DIA and the Armed Forces of Nigeria (AFN) through the provision of real-time defence intelligence to enhance national security.
+                      The nomenclature of the school was subsequently changed to Defence Intelligence College in March 2013, thereby encapsulating the vision of the Agency which is to make the College a citadel of intelligence and security training in Nigeria.
+                    </p>
+                  </div>
                   <div>
                     <Carousel opts={{ align: "start", loop: true }}>
                       <CarouselContent>
@@ -117,7 +123,7 @@ const About = () => {
                         ].map((item, idx) => (
                           <CarouselItem key={idx} className="basis-full">
                             <div className="rounded-lg border overflow-hidden">
-                              <img src={item.src} alt={item.caption} className="w-full h-64 object-cover" />
+                              <img src={item.src} alt={item.caption} className="w-full h-48 md:h-64 object-cover" />
                               <div className="px-3 py-2 text-sm text-muted-foreground">
                                 {item.caption}
                               </div>
@@ -125,11 +131,11 @@ const About = () => {
                           </CarouselItem>
                         ))}
                       </CarouselContent>
-                      <CarouselPrevious className="-left-6" />
-                      <CarouselNext className="-right-6" />
+                      <CarouselPrevious className="hidden sm:flex -left-3 md:-left-6" />
+                      <CarouselNext className="hidden sm:flex -right-3 md:-right-6" />
                     </Carousel>
-                    <p className="mt-4 text-muted-foreground leading-relaxed text-sm">
-                      The nomenclature of the school was subsequently changed to Defence Intelligence College in March 2013 thereby encapsulating the vision of the Agency which is to make the College a citadel of intelligence and security training in Nigeria. The college has trained personnel drawn from DIA, Nigeria Armed Forces, Paramilitary Organisations and Staff of Ministries Department and Agencies. It also pertinent to state that the College has trained allied officers from Niger, Chad, Benin Republic and Ghana.
+                    <p className="mt-4 text-muted-foreground leading-relaxed text-base md:text-lg break-words">
+                      The College has trained personnel drawn from DIA, the Nigerian Armed Forces, Paramilitary Organisations, and staff of Ministries, Departments, and Agencies. It is also pertinent to state that the College has trained allied officers from Niger, Chad, Benin Republic, and Ghana.
                     </p>
                   </div>
                 </div>
@@ -137,14 +143,14 @@ const About = () => {
             </Card>
           <div className="grid md:grid-cols-2 gap-8">
             <Card className="shadow-elevated">
-              <CardContent className="p-8">
+              <CardContent className="p-6 md:p-8">
                 <div className="mb-6 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Shield className="h-7 w-7 text-primary" />
                     <h2 className="text-3xl font-bold">College Leadership</h2>
                   </div>
                 </div>
-                <div className="grid md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                   {topThree.map((p, idx) => (
                     <div key={p.id} className="rounded-lg border bg-card text-card-foreground overflow-hidden animate-in fade-in-50 slide-in-from-bottom-6" style={{ animationDelay: `${idx * 120}ms` }}>
                       <div className="relative aspect-square bg-muted group">
@@ -164,7 +170,7 @@ const About = () => {
                   <Carousel opts={{ align: "start", loop: false }}>
                     <CarouselContent>
                       {secondRowList.map((p, index) => (
-                        <CarouselItem key={p.id} className="basis-[25%]">
+                        <CarouselItem key={p.id} className="basis-[70%] sm:basis-[50%] md:basis-[33.33%] lg:basis-[25%]">
                           <div className="rounded-lg border bg-card text-card-foreground overflow-hidden animate-in fade-in-50 slide-in-from-bottom-6" style={{ animationDelay: `${index * 80}ms` }}>
                             <div className="relative aspect-square bg-muted group">
                               <img src={p.photo_url || ""} alt={p.full_name} className="w-full h-full object-cover" />
@@ -189,24 +195,24 @@ const About = () => {
 
             <div className="space-y-8">
               <Card className="shadow-elevated">
-                <CardContent className="p-8">
+                <CardContent className="p-6 md:p-8">
                   <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
                     <Target className="h-7 w-7 text-primary" />
                     Vision Statement
                   </h2>
-                  <p className="text-muted-foreground leading-relaxed">
+                  <p className="text-muted-foreground leading-relaxed text-base md:text-lg">
                     To produce well trained, patriotic and highly motivated manpower working with cutting edge technology under an effective leadership in collaboration with friendly forces that will provide comprehensive and timely defence intelligence in support of national security strategy.
                   </p>
                 </CardContent>
               </Card>
 
               <Card className="shadow-elevated">
-                <CardContent className="p-8">
+                <CardContent className="p-6 md:p-8">
                   <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
                     <Shield className="h-7 w-7 text-primary" />
                     Mission Statement
                   </h2>
-                  <p className="text-muted-foreground leading-relaxed">
+                  <p className="text-muted-foreground leading-relaxed text-base md:text-lg">
                     To provide security and intelligence training for all categories of DIA staff, personnel of the Nigerian Armed Forces and other security agencies, in order to enable them perform optimally wherever they may be deployed.
                   </p>
                 </CardContent>
@@ -216,7 +222,7 @@ const About = () => {
           </div>
 
           <Card className="shadow-elevated">
-            <CardContent className="p-8">
+            <CardContent className="p-6 md:p-8">
               <h2 className="text-3xl font-bold mb-6">Our Journey</h2>
               <Carousel opts={{ align: "start", loop: true }}>
                 <CarouselContent>
@@ -241,8 +247,8 @@ const About = () => {
                     );
                   })}
                 </CarouselContent>
-                <CarouselPrevious className="-left-6" />
-                <CarouselNext className="-right-6" />
+                <CarouselPrevious className="hidden sm:flex -left-3 md:-left-6" />
+                <CarouselNext className="hidden sm:flex -right-3 md:-right-6" />
               </Carousel>
             </CardContent>
           </Card>
