@@ -92,6 +92,8 @@ const Departments = () => {
                           src={departmentsHero} 
                           alt={`Department of ${dept.name}`}
                           className="w-full h-auto rounded-lg object-cover"
+                          loading="lazy"
+                          decoding="async"
                         />
                       </div>
                       <div>

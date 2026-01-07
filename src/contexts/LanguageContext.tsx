@@ -84,7 +84,7 @@ const translations: Record<Language, Record<string, string>> = {
     message: "Message",
     
     // Government Banner
-    govBannerText: "An Official Website of the Defence Intelligence Agency, Federal Republic of Nigeria",
+    govBannerText: "An Official Website of the Defence Intelligence College Nigeria",
   },
   fr: {
     // Navigation
@@ -161,7 +161,7 @@ const translations: Record<Language, Record<string, string>> = {
     message: "Message",
     
     // Government Banner
-    govBannerText: "Site officiel de l'Agence de Renseignement de Défense, République Fédérale du Nigeria",
+    govBannerText: "Site officiel du Collège de Renseignement de Défense du Nigeria",
   },
   ha: {
     // Navigation
@@ -238,7 +238,7 @@ const translations: Record<Language, Record<string, string>> = {
     message: "Saƙo",
     
     // Government Banner
-    govBannerText: "Shafin yanar gizon Hukumar Leken Asiri na Tsaro ta Jamhuriyar Tarayyar Nigeria",
+    govBannerText: "Shafin yanar gizon hukuma na Kwalejin Leken Asiri na Tsaro ta Najeriya",
   },
   ig: {
     // Navigation
@@ -315,7 +315,7 @@ const translations: Record<Language, Record<string, string>> = {
     message: "Ozi",
     
     // Government Banner
-    govBannerText: "Weebụsaịtị nke ụlọ ọrụ nchekwa ọgụgụ isi nke Federal Republic of Nigeria",
+    govBannerText: "Weebụsaịtị gọọmenti nke Kọleji Nchekwa Ọgụgụ Isi Nigeria",
   },
   yo: {
     // Navigation
@@ -392,7 +392,7 @@ const translations: Record<Language, Record<string, string>> = {
     message: "Ìròyìn",
     
     // Government Banner
-    govBannerText: "Ojú-ẹ̀wé wẹ́ẹ̀bù ti Àjọ Ìmọ̀ Àbò ti Orílẹ̀-èdè Nigeria",
+    govBannerText: "Ojú-ẹ̀wé wẹ́ẹ̀bù osise ti Kọ́lẹ́ẹ̀jì Ìmọ̀ Àbò ti Nigeria",
   },
 };
 

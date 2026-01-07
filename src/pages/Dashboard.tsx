@@ -157,7 +157,7 @@ const Dashboard = () => {
         </div>
 
         <Tabs defaultValue="courses" className="space-y-6">
-          <TabsList>
+          <TabsList className="flex flex-wrap gap-2">
             <TabsTrigger value="courses">
               <BookOpen className="mr-2 h-4 w-4" />
               My Courses

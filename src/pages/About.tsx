@@ -123,7 +123,7 @@ const About = () => {
                         ].map((item, idx) => (
                           <CarouselItem key={idx} className="basis-full">
                             <div className="rounded-lg border overflow-hidden">
-                              <img src={item.src} alt={item.caption} className="w-full h-48 md:h-64 object-cover" />
+                              <img src={item.src} alt={item.caption} className="w-full h-48 md:h-64 object-cover" loading="lazy" decoding="async" />
                               <div className="px-3 py-2 text-sm text-muted-foreground">
                                 {item.caption}
                               </div>
@@ -154,7 +154,7 @@ const About = () => {
                   {topThree.map((p, idx) => (
                     <div key={p.id} className="rounded-lg border bg-card text-card-foreground overflow-hidden animate-in fade-in-50 slide-in-from-bottom-6" style={{ animationDelay: `${idx * 120}ms` }}>
                       <div className="relative aspect-square bg-muted group">
-                        <img src={p.photo_url || ""} alt={p.full_name} className="w-full h-full object-cover" />
+                        <img src={p.photo_url || ""} alt={p.full_name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                         <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button variant="secondary" size="sm" onClick={() => setSelectedPerson(p)}>Preview Résumé</Button>
                         </div>
@@ -173,7 +173,7 @@ const About = () => {
                         <CarouselItem key={p.id} className="basis-[70%] sm:basis-[50%] md:basis-[33.33%] lg:basis-[25%]">
                           <div className="rounded-lg border bg-card text-card-foreground overflow-hidden animate-in fade-in-50 slide-in-from-bottom-6" style={{ animationDelay: `${index * 80}ms` }}>
                             <div className="relative aspect-square bg-muted group">
-                              <img src={p.photo_url || ""} alt={p.full_name} className="w-full h-full object-cover" />
+                              <img src={p.photo_url || ""} alt={p.full_name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                               <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Button variant="secondary" size="sm" onClick={() => setSelectedPerson(p)}>Preview Résumé</Button>
                               </div>

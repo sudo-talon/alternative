@@ -125,7 +125,7 @@ const Auth = () => {
         <Card className="w-full max-w-md shadow-elevated">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
-              <img src={dicLogo} alt="DIC Logo" className="h-20 w-auto" />
+              <img src={dicLogo} alt="DIC Logo" className="h-20 w-auto" loading="lazy" decoding="async" />
             </div>
             <CardTitle className="text-2xl">DIC Portal</CardTitle>
             <CardDescription>

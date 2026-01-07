@@ -1084,13 +1084,13 @@ const AdminDashboard = () => {
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
-                  <TableBody>
-                    {leadership?.map((leader) => (
-                      <TableRow key={leader.id}>
-                        <TableCell>{leader.display_order}</TableCell>
-                        <TableCell className="font-medium">{leader.full_name}</TableCell>
-                        <TableCell>
-                          <Select
+                    <TableBody>
+                      {leadership?.map((leader) => (
+                        <TableRow key={leader.id}>
+                          <TableCell>{leader.display_order}</TableCell>
+                          <TableCell className="font-medium">{leader.full_name}</TableCell>
+                          <TableCell>
+                            <Select
                             value={leader.position || ""}
                             onValueChange={(value) =>
                               updateLeadershipStatusMutation.mutate({ id: leader.id, is_active: !!leader.is_active, position: value })
@@ -1677,6 +1677,87 @@ const AdminDashboard = () => {
                   </TableBody>
                 </Table>
 
+                <div className="grid gap-4 md:hidden">
+                  {(pgPrograms || []).map((program) => (
+                    <div key={program.id} className="border rounded-md p-4 space-y-2">
+                      <div className="font-semibold">{program.department}</div>
+                      <div className="text-sm text-muted-foreground">{program.degree_types}</div>
+                      {program.specializations && program.specializations.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {program.specializations.slice(0, 3).map((spec: string, i: number) => (
+                            <Badge key={i} variant="secondary" className="text-xs">{spec}</Badge>
+                          ))}
+                          {program.specializations.length > 3 && (
+                            <Badge variant="outline" className="text-xs">+{program.specializations.length - 3}</Badge>
+                          )}
+                        </div>
+                      )}
+                      <div className="pt-2 flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setPgProgramForm({
+                              department: program.department,
+                              degree_types: program.degree_types,
+                              specializations: program.specializations?.join(', ') || '',
+                              requirements: program.requirements,
+                              display_order: program.display_order,
+                            });
+                            setEditingPgProgramId(program.id);
+                            setPgProgramDialogOpen(true);
+                          }}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={async () => {
+                            const { error } = await supabase
+                              .from("pg_programs")
+                              .delete()
+                              .eq("id", program.id);
+                            if (error) {
+                              toast({ title: "Error", description: error.message, variant: "destructive" });
+                            } else {
+                              toast({ title: "Success", description: "PG program deleted" });
+                              queryClient.invalidateQueries({ queryKey: ["admin-pg-programs"] });
+                            }
+                          }}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid gap-4 md:hidden">
+                  {(personnel || []).map((p) => (
+                    <div key={p.id} className="border rounded-md p-4 space-y-2">
+                      <div className="font-semibold">{p.full_name}</div>
+                      <div className="text-sm text-muted-foreground">{p.department}</div>
+                      <div>
+                        <Badge variant="outline">{p.category}</Badge>
+                      </div>
+                      <div className="pt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setDocumentsOwner(p);
+                            setDocumentsDialogOpen(true);
+                            refreshDocumentsList(p.id);
+                          }}
+                        >
+                          Manage Docs
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
                 <Dialog open={documentsDialogOpen} onOpenChange={setDocumentsDialogOpen}>
                   <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
@@ -1909,6 +1990,51 @@ const AdminDashboard = () => {
                       ))}
                     </TableBody>
                   </Table>
+
+                  <div className="grid gap-4 md:hidden">
+                    {(leadership || []).map((leader) => (
+                      <div key={leader.id} className="border rounded-md p-4 space-y-2">
+                        <div className="text-sm text-muted-foreground">Order: {leader.display_order}</div>
+                        <div className="font-semibold">{leader.full_name}</div>
+                        <div className="text-sm text-muted-foreground">{leader.position}</div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={leader.is_active ? "secondary" : "outline"}>
+                            {leader.is_active ? "Active" : "Inactive"}
+                          </Badge>
+                          {leader.photo_url && (
+                            <img src={leader.photo_url} alt={leader.full_name} className="h-10 w-10 rounded object-cover" loading="lazy" decoding="async" />
+                          )}
+                        </div>
+                        <div className="flex gap-2 pt-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setLeadershipEdit(leader);
+                              setLeadershipDialogOpen(true);
+                            }}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={async () => {
+                              const { error } = await supabase.from("leadership").delete().eq("id", leader.id);
+                              if (error) {
+                                toast({ title: "Error", description: error.message, variant: "destructive" });
+                              } else {
+                                queryClient.invalidateQueries({ queryKey: ["admin-leadership"] });
+                                toast({ title: "Removed", description: "Leadership profile deleted" });
+                              }
+                            }}
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             </div>

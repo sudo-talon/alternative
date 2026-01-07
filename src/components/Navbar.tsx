@@ -91,6 +91,9 @@ export const Navbar = () => {
           <button
             className="md:hidden text-primary-foreground"
             onClick={() => setIsOpen(!isOpen)}
+            aria-label="Toggle navigation"
+            aria-controls="mobile-nav"
+            aria-expanded={isOpen ? "true" : "false"}
           >
             {isOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
@@ -98,7 +101,7 @@ export const Navbar = () => {
 
         {/* Mobile Navigation */}
         {isOpen && (
-          <div className="md:hidden pb-4 space-y-2">
+          <div id="mobile-nav" className="md:hidden pb-4 space-y-2">
             {navLinks.map((link) => (
               <Link key={link.path} to={link.path} onClick={() => setIsOpen(false)}>
                 <Button variant="ghost" className="w-full text-primary-foreground hover:bg-primary-foreground/10 justify-start">

@@ -54,7 +54,7 @@ const Contact = () => {
       {/* Map Section */}
       <section className="py-8">
         <div className="container mx-auto px-4">
-          <div className="w-full h-[400px] rounded-lg overflow-hidden shadow-elevated">
+          <div className="w-full h-64 sm:h-80 md:h-[400px] rounded-lg overflow-hidden shadow-elevated">
             <iframe
               src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3940.1234567890!2d7.5753639!3d9.001907!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x104e0f1ef9fc140b%3A0x25c1e8caf11c24dd!2sDefence%20Intelligence%20College%20Karu!5e0!3m2!1sen!2sng!4v1234567890"
               width="100%"
@@ -167,7 +167,7 @@ const Contact = () => {
                     </div>
                     <div>
                       <h3 className="font-semibold mb-1">Phone</h3>
-                      <p className="text-muted-foreground">+234 (0) 123 456 7890</p>
+                      <p className="text-muted-foreground">Please use the contact form for official correspondence.</p>
                     </div>
                   </div>
 
@@ -177,7 +177,7 @@ const Contact = () => {
                     </div>
                     <div>
                       <h3 className="font-semibold mb-1">Email</h3>
-                      <p className="text-muted-foreground">info@dic.gov.ng</p>
+                      <p className="text-muted-foreground">Email addresses are not displayed to protect privacy.</p>
                     </div>
                   </div>
 

@@ -56,11 +56,13 @@ const Courses = () => {
       <Navbar />
       
       {/* Hero Section */}
-      <div className="relative h-[400px] overflow-hidden">
+      <div className="relative h-48 sm:h-64 md:h-[400px] overflow-hidden">
         <img 
           src={departmentsHero} 
           alt="Departments hero" 
           className="w-full h-full object-cover"
+          loading="lazy"
+          decoding="async"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-primary/90 to-primary/70 flex items-center">
           <div className="container mx-auto px-4">

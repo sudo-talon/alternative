@@ -169,11 +169,11 @@ const News = () => {
                       const modal = document.createElement('div');
                       modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
                       modal.innerHTML = `
-                        <div class="bg-background rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6 relative">
+                        <div className="bg-background rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6 relative">
                           <button class="absolute top-4 right-4 text-muted-foreground hover:text-foreground" onclick="this.parentElement.parentElement.remove()">
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                           </button>
-                          ${item.featured_image_url ? `<img src="${item.featured_image_url}" alt="${item.title}" class="w-full h-auto rounded mb-4" />` : ''}
+                          ${item.featured_image_url ? `<img src="${item.featured_image_url}" alt="${item.title}" class="w-full h-auto rounded mb-4" loading="lazy" decoding="async" />` : ''}
                           <h2 class="text-3xl font-bold mb-4">${item.title}</h2>
                           <p class="text-sm text-muted-foreground mb-6">${formatDistanceToNow(new Date(item.published_at), { addSuffix: true })}</p>
                           <p class="text-muted-foreground leading-relaxed whitespace-pre-wrap">${item.content}</p>
@@ -187,7 +187,7 @@ const News = () => {
                   >
                     {index === 0 && item.featured_image_url && (
                       <div className="aspect-video w-full overflow-hidden">
-                        <img src={item.featured_image_url} alt={item.title} className="w-full h-full object-cover" />
+                        <img src={item.featured_image_url} alt={item.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                       </div>
                     )}
                     <CardHeader>
@@ -232,6 +232,8 @@ const News = () => {
                           src={overrides[activeCommandant.full_name] || activeCommandant.photo_url || cdreBugaje}
                           alt={activeCommandant.full_name}
                           className="w-full h-auto object-contain shadow-elevated"
+                          loading="lazy"
+                          decoding="async"
                         />
                         <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button variant="secondary" size="sm" onClick={() => setResumeOpen(true)}>Preview Résumé</Button>
@@ -282,6 +284,7 @@ const News = () => {
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         allowFullScreen
                         className="w-full h-full"
+                        loading="lazy"
                       />
                     </div>
                     <div className="grid grid-cols-3 gap-2">
@@ -292,7 +295,7 @@ const News = () => {
                           className={`rounded overflow-hidden border ${selectedVideo === i ? "border-primary" : "border-transparent"}`}
                           title={v.title}
                         >
-                          <img src={v.poster} alt={v.title} className="aspect-video w-full object-cover" />
+                          <img src={v.poster} alt={v.title} className="aspect-video w-full object-cover" loading="lazy" decoding="async" />
                         </button>
                       ))}
                     </div>
@@ -320,7 +323,7 @@ const News = () => {
                         }}
                         title={imageCaptions[idx]}
                       >
-                        <img src={url} alt={imageCaptions[idx]} className="w-full h-full object-cover" />
+                        <img src={url} alt={imageCaptions[idx]} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                       </button>
                     ))}
                     {assetImages.length >= 4 && (
@@ -344,7 +347,7 @@ const News = () => {
                           }}
                           title={imageCaptions[3]}
                         >
-                          <img src={assetImages[3]} alt={imageCaptions[3]} className="w-full h-full object-cover" />
+                          <img src={assetImages[3]} alt={imageCaptions[3]} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                         </button>
                       )
                     )}
@@ -360,7 +363,7 @@ const News = () => {
                           return (
                             <div key={i} className="space-y-2">
                               <div className="aspect-square rounded-lg overflow-hidden">
-                                <img src={url} alt={imageCaptions[globalIndex]} className="w-full h-full object-cover" />
+                                <img src={url} alt={imageCaptions[globalIndex]} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                               </div>
                               <div className="text-xs text-muted-foreground">{imageCaptions[globalIndex]}</div>
                             </div>

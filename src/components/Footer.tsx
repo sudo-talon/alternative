@@ -12,7 +12,7 @@ export const Footer = () => {
         <div className="grid md:grid-cols-3 gap-8">
           <div>
             <div className="flex items-center space-x-3 mb-4">
-              <img src={dicLogo} alt="DIC Logo" className="h-12 w-12" />
+              <img src={dicLogo} alt="DIC Logo" className="h-12 w-12" loading="lazy" decoding="async" />
               <h3 className="font-bold text-lg">Defence Intelligence College</h3>
             </div>
             <p className="text-sm opacity-90">Karu, Abuja, Nigeria</p>
@@ -28,8 +28,7 @@ export const Footer = () => {
           <div>
             <h3 className="font-bold text-lg mb-4">{t('contact')}</h3>
             <p className="text-sm opacity-90">Karu, Federal Capital Territory, Nigeria</p>
-            <p className="text-sm opacity-90">{t('phone')}: +234 (0) 123 456 7890</p>
-            <p className="text-sm opacity-90">{t('email')}: info@dic.gov.ng</p>
+            <p className="text-sm opacity-90">For official inquiries, please use our <a href="/contact" className="underline hover:text-accent">Contact Form</a>.</p>
           </div>
         </div>
         <div className="mt-8 pt-8 border-t border-primary-foreground/20 text-center">
