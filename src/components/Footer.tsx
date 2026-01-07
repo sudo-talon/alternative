@@ -7,17 +7,17 @@ export const Footer = () => {
   const { t } = useLanguage();
 
   return (
-    <footer className="bg-primary-dark text-primary-foreground py-12 mt-12">
+    <footer className="bg-primary-dark text-primary-foreground py-10 sm:py-12 mt-12">
       <div className="container mx-auto px-4">
-        <div className="grid md:grid-cols-3 gap-8">
-          <div>
-            <div className="flex items-center space-x-3 mb-4">
-              <img src={dicLogo} alt="DIC Logo" className="h-12 w-12" loading="lazy" decoding="async" />
+        <div className="grid md:grid-cols-3 gap-8 md:gap-10">
+          <div className="md:text-left text-center">
+            <div className="flex items-center justify-center md:justify-start space-x-3 mb-4">
+              <img src={dicLogo} alt="DIC Logo" className="h-10 w-10 sm:h-12 sm:w-12" />
               <h3 className="font-bold text-lg">Defence Intelligence College</h3>
             </div>
             <p className="text-sm opacity-90">Karu, Abuja, Nigeria</p>
           </div>
-          <div>
+          <div className="md:text-left text-center">
             <h3 className="font-bold text-lg mb-4">{t('quickLinks')}</h3>
             <ul className="space-y-2 text-sm">
               <li><a href="/about" className="hover:text-accent transition-colors">{t('about')}</a></li>
@@ -25,10 +25,11 @@ export const Footer = () => {
               <li><a href="/news" className="hover:text-accent transition-colors">{t('news')}</a></li>
             </ul>
           </div>
-          <div>
+          <div className="md:text-left text-center">
             <h3 className="font-bold text-lg mb-4">{t('contact')}</h3>
             <p className="text-sm opacity-90">Karu, Federal Capital Territory, Nigeria</p>
-            <p className="text-sm opacity-90">For official inquiries, please use our <a href="/contact" className="underline hover:text-accent">Contact Form</a>.</p>
+            <p className="text-sm opacity-90">{t('phone')}: +234 (0) 123 456 7890</p>
+            <p className="text-sm opacity-90">{t('email')}: info@dic.gov.ng</p>
           </div>
         </div>
         <div className="mt-8 pt-8 border-t border-primary-foreground/20 text-center">

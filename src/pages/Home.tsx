@@ -11,35 +11,32 @@ import dicBg from "@/assets/dic-bg.png";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dicPoster from "@/assets/dic-group-photo.webp";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useIsMobile } from "@/hooks/use-mobile";
 
-const base = import.meta.env.BASE_URL || "/";
-const dicVideoUrl = (base.endsWith("/") ? base : base + "/") + "videos/dic.mp4";
+const dicVideoUrl = "/videos/dic.mp4";
 
 const Home = () => {
   const navigate = useNavigate();
   const [activeYear, setActiveYear] = useState("2001");
   const { t } = useLanguage();
-  const isMobile = useIsMobile();
 
   const features = [
     {
-      icon: <Shield className="h-6 w-6 sm:h-8 sm:w-8" />,
+      icon: <Shield className="h-8 w-8" />,
       title: t('eliteTraining'),
       description: t('eliteTrainingDesc'),
     },
     {
-      icon: <GraduationCap className="h-6 w-6 sm:h-8 sm:w-8" />,
+      icon: <GraduationCap className="h-8 w-8" />,
       title: t('professionalDevelopment'),
       description: t('professionalDevelopmentDesc'),
     },
     {
-      icon: <Users className="h-6 w-6 sm:h-8 sm:w-8" />,
+      icon: <Users className="h-8 w-8" />,
       title: t('expertInstructors'),
       description: t('expertInstructorsDesc'),
     },
     {
-      icon: <BookOpen className="h-6 w-6 sm:h-8 sm:w-8" />,
+      icon: <BookOpen className="h-8 w-8" />,
       title: t('comprehensiveCurriculum'),
       description: t('comprehensiveCurriculumDesc'),
     },
@@ -101,19 +98,18 @@ const Home = () => {
       <GovernmentBanner />
       <Navbar />
       
-      {/* Hero Section */}
-      <section className="relative min-h-[420px] sm:min-h-[500px] md:h-[600px] pt-20 sm:pt-24 flex items-center justify-center overflow-hidden">
+      <section className="relative min-h-[360px] sm:min-h-[480px] md:min-h-[600px] flex items-center justify-center overflow-hidden px-4 py-12 sm:py-16">
         <div 
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${dicBg})` }}
         >
           <div className="absolute inset-0 bg-gradient-hero opacity-70"></div>
         </div>
-        <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
-          <h1 className="text-3xl xs:text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground mb-6">
+        <div className="relative z-10 text-center max-w-4xl mx-auto">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground mb-6">
             {t('welcomeTitle')}
           </h1>
-          <p className="text-base xs:text-lg md:text-2xl text-primary-foreground mb-8 max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg md:text-2xl text-primary-foreground mb-8 max-w-2xl mx-auto">
             {t('welcomeSubtitle')}
           </p>
           <div className="flex gap-4 justify-center flex-wrap">
@@ -136,166 +132,175 @@ const Home = () => {
         </div>
       </section>
 
-      <section className="container mx-auto px-4 py-12 space-y-16">
-        <div className="grid lg:grid-cols-2 gap-8">
-          <div>
-            <h2 className="text-2xl md:text-3xl font-bold mb-6 md:mb-8">{t('whyChooseDIC')}</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-              {features.map((feature, index) => (
-                <Card key={index} className="shadow-elevated hover:shadow-xl transition-shadow min-w-0">
-                  <CardContent className="p-4 sm:p-6">
-                    <div className="grid grid-cols-[40px_1fr] sm:grid-cols-[48px_1fr] gap-3 sm:gap-4 items-start">
-                      <div className="bg-gradient-accent rounded-lg text-primary-foreground flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12 shrink-0">
-                        {feature.icon}
+      {/* Main Content with Sidebar */}
+      <section className="container mx-auto px-4 py-12">
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-12">
+            {/* Features Grid */}
+            <div>
+              <h2 className="text-3xl font-bold mb-8">{t('whyChooseDIC')}</h2>
+              <div className="grid md:grid-cols-2 gap-6">
+                {features.map((feature, index) => (
+                  <Card key={index} className="shadow-elevated hover:shadow-xl transition-shadow">
+                    <CardHeader>
+                      <div className="flex items-center gap-4">
+                        <div className="p-3 bg-gradient-accent rounded-lg text-primary-foreground">
+                          {feature.icon}
+                        </div>
+                        <CardTitle>{feature.title}</CardTitle>
                       </div>
-                      <div className="min-w-0 space-y-1">
-                        <CardTitle className="text-lg sm:text-xl break-words leading-snug">{feature.title}</CardTitle>
-                        <p className="text-sm sm:text-base text-muted-foreground break-words leading-relaxed">
-                          {feature.description}
-                        </p>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-muted-foreground">{feature.description}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            {/* Commandants Section */}
+            <div>
+              <CommandantsMarquee />
+            </div>
+
+            {/* About Section */}
+            <div>
+              <h2 className="text-3xl font-bold mb-8">{t('aboutUs')}</h2>
+              <div className="grid md:grid-cols-2 gap-8 items-center">
+                <div className="rounded-lg overflow-hidden shadow-elevated">
+                  <video 
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                    autoPlay 
+                    muted 
+                    loop 
+                    playsInline
+                    poster={dicPoster}
+                    preload="metadata"
+                    src={dicVideoUrl}
+                    onError={(e) => {
+                      const v = e.currentTarget;
+                      v.removeAttribute("src");
+                      v.load();
+                    }}
+                  />
+                </div>
+
+                {/* Right: Content */}
+                <div className="space-y-6">
+                  {/* Timeline Dots */}
+                  <div className="relative">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      aria-label="Previous year"
+                      onClick={handlePrev}
+                      className="absolute -left-2 sm:-left-4 top-1/2 -translate-y-1/2 rounded-full"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <div
+                      ref={timelineRef}
+                      className="overflow-x-auto -mx-4 px-4 py-2 scroll-smooth snap-x snap-mandatory no-scrollbar"
+                    >
+                      <div className="flex items-center gap-2 min-w-max">
+                        {timelineData.map((item, index) => (
+                          <div key={index} className="timeline-item flex items-center flex-none snap-center">
+                            <button
+                              onClick={() => goToIndex(index)}
+                              className="flex flex-col items-center gap-2 transition-all hover:scale-110 focus:outline-none flex-none"
+                            >
+                              <div className={`w-4 h-4 rounded-full transition-all cursor-pointer ${
+                                activeYear === item.year ? 'bg-primary scale-125' : 'bg-muted hover:bg-muted-foreground/50'
+                              }`}></div>
+                              <span className={`text-sm font-semibold transition-colors ${
+                                activeYear === item.year ? 'text-primary' : 'text-muted-foreground'
+                              }`}>
+                                {item.year}
+                              </span>
+                            </button>
+                            {index < timelineData.length - 1 && (
+                              <div className="w-12 sm:w-16 h-0.5 bg-muted mx-2 flex-none"></div>
+                            )}
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-          <div>
-            <NewsFlash />
-          </div>
-        </div>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      aria-label="Next year"
+                      onClick={handleNext}
+                      className="absolute -right-2 sm:-right-4 top-1/2 -translate-y-1/2 rounded-full"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
 
-        <div>
-          <CommandantsMarquee />
-        </div>
-
-        <div>
-          <h2 className="text-3xl font-bold mb-8">{t('aboutUs')}</h2>
-          <div className="grid md:grid-cols-2 gap-8 items-center">
-          <div className="rounded-lg overflow-hidden shadow-elevated">
-              <div className="aspect-video w-full bg-black">
-                <video 
-                  className="block w-full h-full object-cover md:hover:scale-105 transition-transform duration-300"
-                  autoPlay 
-                  muted 
-                  loop 
-                  playsInline
-                  controls={isMobile}
-                  poster={dicPoster}
-                  preload="metadata"
-                  src={dicVideoUrl}
-                  onError={(e) => {
-                    const v = e.currentTarget;
-                    v.removeAttribute("src");
-                    v.load();
-                  }}
-                />
-              </div>
-            </div>
-            <div className="space-y-6">
-              <div className="relative">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  aria-label="Previous year"
-                  onClick={handlePrev}
-                  className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 rounded-full z-10"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <div
-                  ref={timelineRef}
-                  className="overflow-x-auto px-2 sm:px-4 py-2 scroll-smooth snap-x snap-mandatory no-scrollbar"
-                >
-                  <div className="flex items-center gap-2 min-w-max">
-                    {timelineData.map((item, index) => (
-                      <div key={index} className="timeline-item flex items-center flex-none snap-center">
-                        <button
-                          onClick={() => goToIndex(index)}
-                          className="flex flex-col items-center gap-2 transition-all hover:scale-110 focus:outline-none flex-none"
-                        >
-                          <div className={`w-4 h-4 rounded-full transition-all cursor-pointer ${
-                            activeYear === item.year ? 'bg-primary scale-125' : 'bg-muted hover:bg-muted-foreground/50'
-                          }`}></div>
-                          <span className={`text-sm font-semibold transition-colors ${
-                            activeYear === item.year ? 'text-primary' : 'text-muted-foreground'
-                          }`}>
-                            {item.year}
-                          </span>
-                        </button>
-                        {index < timelineData.length - 1 && (
-                          <div className="w-12 sm:w-16 h-0.5 bg-muted mx-2 flex-none"></div>
-                        )}
+                  {/* Content */}
+                  <div className="min-h-[200px]">
+                    {activeTimeline && (
+                      <div className="animate-fade-in">
+                        <h3 className="text-2xl font-bold mb-4">{activeTimeline.title}</h3>
+                        <p className="text-muted-foreground leading-relaxed mb-6">
+                          {activeTimeline.description}
+                        </p>
                       </div>
-                    ))}
+                    )}
+                    <Button 
+                      onClick={() => navigate("/about")} 
+                      className="bg-primary hover:bg-primary-dark text-primary-foreground"
+                    >
+                      {t('readMore')}
+                    </Button>
                   </div>
                 </div>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  aria-label="Next year"
-                  onClick={handleNext}
-                  className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 rounded-full z-10"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="min-h-[200px]">
-                {activeTimeline && (
-                  <div className="animate-fade-in">
-                    <h3 className="text-2xl font-bold mb-4">{activeTimeline.title}</h3>
-                    <p className="text-muted-foreground leading-relaxed mb-6">
-                      {activeTimeline.description}
-                    </p>
-                  </div>
-                )}
-                <Button 
-                  onClick={() => navigate("/about")} 
-                  className="bg-primary hover:bg-primary-dark text-primary-foreground"
-                >
-                  {t('readMore')}
-                </Button>
               </div>
             </div>
           </div>
-        </div>
 
-        <div>
-          <Card className="shadow-elevated">
-            <CardHeader className="bg-primary text-primary-foreground">
-              <CardTitle>{t('quickLinks')}</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-6 grid sm:grid-cols-2 gap-3">
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-                onClick={() => navigate("/courses")}
-              >
-                {t('browseCourses')}
-              </Button>
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-                onClick={() => navigate("/auth")}
-              >
-                {t('collegePortal')}
-              </Button>
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-                onClick={() => window.open("https://elibrary.dic.gov.ng", "_blank")}
-              >
-                {t('eLibrary')}
-              </Button>
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-                onClick={() => navigate("/contact")}
-              >
-                {t('contact')}
-              </Button>
-            </CardContent>
-          </Card>
+          {/* Sidebar */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-24">
+              <NewsFlash />
+              
+              <Card className="mt-6 shadow-elevated">
+                <CardHeader className="bg-primary text-primary-foreground">
+                  <CardTitle>{t('quickLinks')}</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-6 space-y-2">
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    onClick={() => navigate("/courses")}
+                  >
+                    {t('browseCourses')}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    onClick={() => navigate("/auth")}
+                  >
+                    {t('collegePortal')}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    onClick={() => window.open("https://elibrary.dic.gov.ng", "_blank")}
+                  >
+                    {t('eLibrary')}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    onClick={() => navigate("/contact")}
+                  >
+                    {t('contact')}
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
       </section>
 
