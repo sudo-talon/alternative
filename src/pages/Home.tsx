@@ -100,7 +100,7 @@ const Home = () => {
       <Navbar />
       
       {/* Hero Section */}
-      <section className="relative h-64 sm:h-80 md:h-[600px] flex items-center justify-center overflow-hidden">
+      <section className="relative min-h-[420px] sm:min-h-[500px] md:h-[600px] pt-20 sm:pt-24 flex items-center justify-center overflow-hidden">
         <div 
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${dicBg})` }}
@@ -200,7 +200,7 @@ const Home = () => {
                 </Button>
                 <div
                   ref={timelineRef}
-                  className="overflow-x-auto -mx-4 px-4 py-2 scroll-smooth snap-x snap-mandatory no-scrollbar"
+                  className="overflow-x-auto px-2 sm:px-4 py-2 scroll-smooth snap-x snap-mandatory no-scrollbar"
                 >
                   <div className="flex items-center gap-2 min-w-max">
                     {timelineData.map((item, index) => (
