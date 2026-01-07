@@ -11,6 +11,7 @@ import dicBg from "@/assets/dic-bg.png";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dicPoster from "@/assets/dic-group-photo.webp";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const base = import.meta.env.BASE_URL || "/";
 const dicVideoUrl = (base.endsWith("/") ? base : base + "/") + "videos/dic.mp4";
@@ -19,6 +20,7 @@ const Home = () => {
   const navigate = useNavigate();
   const [activeYear, setActiveYear] = useState("2001");
   const { t } = useLanguage();
+  const isMobile = useIsMobile();
 
   const features = [
     {
@@ -170,22 +172,25 @@ const Home = () => {
         <div>
           <h2 className="text-3xl font-bold mb-8">{t('aboutUs')}</h2>
           <div className="grid md:grid-cols-2 gap-8 items-center">
-            <div className="rounded-lg overflow-hidden shadow-elevated">
-              <video 
-                className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                autoPlay 
-                muted 
-                loop 
-                playsInline
-                poster={dicPoster}
-                preload="metadata"
-                src={dicVideoUrl}
-                onError={(e) => {
-                  const v = e.currentTarget;
-                  v.removeAttribute("src");
-                  v.load();
-                }}
-              />
+          <div className="rounded-lg overflow-hidden shadow-elevated">
+              <div className="aspect-video w-full bg-black">
+                <video 
+                  className="block w-full h-full object-cover md:hover:scale-105 transition-transform duration-300"
+                  autoPlay 
+                  muted 
+                  loop 
+                  playsInline
+                  controls={isMobile}
+                  poster={dicPoster}
+                  preload="metadata"
+                  src={dicVideoUrl}
+                  onError={(e) => {
+                    const v = e.currentTarget;
+                    v.removeAttribute("src");
+                    v.load();
+                  }}
+                />
+              </div>
             </div>
             <div className="space-y-6">
               <div className="relative">
