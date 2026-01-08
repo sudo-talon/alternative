@@ -1,25 +1,34 @@
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
-import { Shield, Target, BookOpen, Cog, Users, GraduationCap } from "lucide-react";
+import { Shield, Target, BookOpen, Cog, Users, GraduationCap, Lock } from "lucide-react";
 import dicBg from "@/assets/dic-bg.png";
 import dicGroupPhoto from "@/assets/dic-group-photo.webp";
-import classroomHero from "@/assets/classroom-hero.jpg";
 import departmentsHero from "@/assets/departments-hero.webp";
-import dicLogo from "@/assets/dic-logo.png";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import type { Database } from "@/integrations/supabase/types";
 
 const About = () => {
+  const navigate = useNavigate();
   type PersonnelRow = Database["public"]["Tables"]["personnel"]["Row"];
   type LeadershipRow = Database["public"]["Tables"]["leadership"]["Row"];
   const [selectedPerson, setSelectedPerson] = useState<PersonnelRow | null>(null);
-  const { data: personnel } = useQuery<PersonnelRow[]>({
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
+  // Check authentication status
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsAuthenticated(!!session);
+    });
+  }, []);
+
+  const { data: personnel, isLoading: personnelLoading } = useQuery<PersonnelRow[]>({
     queryKey: ["about-personnel"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -31,8 +40,9 @@ const About = () => {
     },
     retry: false,
     refetchOnWindowFocus: false,
+    enabled: isAuthenticated === true,
   });
-  const { data: leadership } = useQuery<LeadershipRow[]>({
+  const { data: leadership, isLoading: leadershipLoading } = useQuery<LeadershipRow[]>({
     queryKey: ["about-leadership"],
     queryFn: async () => {
       const { data, error } = await supabase
