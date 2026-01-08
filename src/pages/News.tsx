@@ -60,7 +60,16 @@ const News = () => {
     };
   });
 
-  const { data: newsItems, isLoading } = useQuery({
+  type NewsItem = {
+    id: string;
+    title: string;
+    content: string;
+    published_at: string;
+    created_at: string;
+    featured_image_url?: string | null;
+  };
+
+  const { data: newsItems, isLoading } = useQuery<NewsItem[]>({
     queryKey: ["news"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -69,7 +78,7 @@ const News = () => {
         .order("published_at", { ascending: false });
       
       if (error) throw error;
-      return data;
+      return data as NewsItem[];
     },
   });
 
