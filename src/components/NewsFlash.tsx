@@ -5,10 +5,19 @@ import { Separator } from "@/components/ui/separator";
 import { formatDistanceToNow } from "date-fns";
 import { useLanguage } from "@/contexts/LanguageContext";
 
+type NewsItem = {
+  id: string;
+  title: string;
+  content: string;
+  published_at: string;
+  created_at: string;
+  featured_image_url?: string | null;
+};
+
 export const NewsFlash = () => {
   const { t } = useLanguage();
   
-  const { data: news, isLoading } = useQuery({
+  const { data: news, isLoading } = useQuery<NewsItem[]>({
     queryKey: ["news"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -18,7 +27,7 @@ export const NewsFlash = () => {
         .limit(5);
       
       if (error) throw error;
-      return data;
+      return data as NewsItem[];
     },
   });
 

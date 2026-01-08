@@ -160,46 +160,62 @@ const About = () => {
                     <h2 className="text-3xl font-bold">College Leadership</h2>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                  {topThree.map((p, idx) => (
-                    <div key={p.id} className="rounded-lg border bg-card text-card-foreground overflow-hidden animate-in fade-in-50 slide-in-from-bottom-6" style={{ animationDelay: `${idx * 120}ms` }}>
-                      <div className="relative aspect-square bg-muted group">
-                        <img src={p.photo_url || ""} alt={p.full_name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button variant="secondary" size="sm" onClick={() => setSelectedPerson(p)}>Preview Résumé</Button>
-                        </div>
-                      </div>
-                      <div className="p-4 space-y-2">
-                        <div className="text-center font-semibold">{p.rank ? `${p.rank} ${p.full_name}` : p.full_name}</div>
-                        <div className="text-sm text-muted-foreground text-center">{p.position}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-6 relative">
-                  <Carousel opts={{ align: "start", loop: false }}>
-                    <CarouselContent>
-                      {secondRowList.map((p, index) => (
-                        <CarouselItem key={p.id} className="basis-[70%] sm:basis-[50%] md:basis-[33.33%] lg:basis-[25%]">
-                          <div className="rounded-lg border bg-card text-card-foreground overflow-hidden animate-in fade-in-50 slide-in-from-bottom-6" style={{ animationDelay: `${index * 80}ms` }}>
-                            <div className="relative aspect-square bg-muted group">
-                              <img src={p.photo_url || ""} alt={p.full_name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
-                              <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Button variant="secondary" size="sm" onClick={() => setSelectedPerson(p)}>Preview Résumé</Button>
-                              </div>
-                            </div>
-                            <div className="p-4 space-y-2">
-                              <div className="text-center font-semibold">{p.rank ? `${p.rank} ${p.full_name}` : p.full_name}</div>
-                              <div className="text-sm text-muted-foreground text-center">{p.position}</div>
+                {isAuthenticated === false ? (
+                  <div className="text-center py-8 space-y-4">
+                    <Lock className="h-12 w-12 text-muted-foreground mx-auto" />
+                    <p className="text-muted-foreground">Please sign in to view staff profiles and contact information.</p>
+                    <Button onClick={() => navigate("/auth")}>Sign In</Button>
+                  </div>
+                ) : personnelLoading ? (
+                  <div className="text-center py-8 text-muted-foreground">Loading leadership...</div>
+                ) : topThree.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">No leadership profiles available.</div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                      {topThree.map((p, idx) => (
+                        <div key={p.id} className="rounded-lg border bg-card text-card-foreground overflow-hidden animate-in fade-in-50 slide-in-from-bottom-6" style={{ animationDelay: `${idx * 120}ms` }}>
+                          <div className="relative aspect-square bg-muted group">
+                            <img src={p.photo_url || ""} alt={p.full_name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button variant="secondary" size="sm" onClick={() => setSelectedPerson(p)}>Preview Résumé</Button>
                             </div>
                           </div>
-                        </CarouselItem>
+                          <div className="p-4 space-y-2">
+                            <div className="text-center font-semibold">{p.rank ? `${p.rank} ${p.full_name}` : p.full_name}</div>
+                            <div className="text-sm text-muted-foreground text-center">{p.position}</div>
+                          </div>
+                        </div>
                       ))}
-                    </CarouselContent>
-                    <CarouselPrevious className="-left-6" />
-                    <CarouselNext className="-right-6" />
-                  </Carousel>
-                </div>
+                    </div>
+                    {secondRowList.length > 0 && (
+                      <div className="mt-6 relative">
+                        <Carousel opts={{ align: "start", loop: false }}>
+                          <CarouselContent>
+                            {secondRowList.map((p, index) => (
+                              <CarouselItem key={p.id} className="basis-[70%] sm:basis-[50%] md:basis-[33.33%] lg:basis-[25%]">
+                                <div className="rounded-lg border bg-card text-card-foreground overflow-hidden animate-in fade-in-50 slide-in-from-bottom-6" style={{ animationDelay: `${index * 80}ms` }}>
+                                  <div className="relative aspect-square bg-muted group">
+                                    <img src={p.photo_url || ""} alt={p.full_name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <Button variant="secondary" size="sm" onClick={() => setSelectedPerson(p)}>Preview Résumé</Button>
+                                    </div>
+                                  </div>
+                                  <div className="p-4 space-y-2">
+                                    <div className="text-center font-semibold">{p.rank ? `${p.rank} ${p.full_name}` : p.full_name}</div>
+                                    <div className="text-sm text-muted-foreground text-center">{p.position}</div>
+                                  </div>
+                                </div>
+                              </CarouselItem>
+                            ))}
+                          </CarouselContent>
+                          <CarouselPrevious className="-left-6" />
+                          <CarouselNext className="-right-6" />
+                        </Carousel>
+                      </div>
+                    )}
+                  </>
+                )}
               </CardContent>
             </Card>
 

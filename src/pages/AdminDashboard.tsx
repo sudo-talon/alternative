@@ -490,7 +490,16 @@ const AdminDashboard = () => {
   });
   
 
-  const { data: news } = useQuery({
+  type NewsItem = {
+    id: string;
+    title: string;
+    content: string;
+    published_at: string;
+    created_at: string;
+    featured_image_url?: string | null;
+  };
+
+  const { data: news } = useQuery<NewsItem[]>({
     queryKey: ["admin-news"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -498,7 +507,7 @@ const AdminDashboard = () => {
         .select("*")
         .order("published_at", { ascending: false });
       if (error) throw error;
-      return data;
+      return data as NewsItem[];
     },
     enabled: isAdmin,
   });
@@ -2010,7 +2019,8 @@ const AdminDashboard = () => {
                             variant="outline"
                             size="sm"
                             onClick={() => {
-                              setLeadershipEdit(leader);
+                              setLeadershipForm(leader);
+                              setEditingLeadershipId(leader.id);
                               setLeadershipDialogOpen(true);
                             }}
                           >
