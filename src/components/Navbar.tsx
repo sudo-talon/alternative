@@ -51,11 +51,11 @@ export const Navbar = () => {
     <nav className="bg-gradient-hero shadow-elevated sticky top-0 z-50">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-20">
-          <Link to="/" className="flex items-center space-x-3">
-            <img src={dicLogo} alt="DIC Logo" className="h-12 w-12" />
-            <div className="text-primary-foreground">
-              <div className="font-bold text-lg leading-tight">Defence Intelligence College</div>
-              <div className="text-xs opacity-90">Karu, Abuja</div>
+          <Link to="/" className="flex items-center space-x-2 md:space-x-3 max-w-[70%] md:max-w-none">
+            <img src={dicLogo} alt="DIC Logo" className="h-10 w-10 md:h-12 md:w-12 shrink-0" />
+            <div className="text-primary-foreground min-w-0">
+              <div className="font-bold text-sm sm:text-lg leading-tight truncate">Defence Intelligence College</div>
+              <div className="text-xs opacity-90 truncate">Karu, Abuja</div>
             </div>
           </Link>
 
@@ -101,21 +101,24 @@ export const Navbar = () => {
 
         {/* Mobile Navigation */}
         {isOpen && (
-          <div id="mobile-nav" className="md:hidden pb-4 space-y-2">
+          <div id="mobile-nav" className="md:hidden absolute top-20 left-0 w-full bg-gradient-hero shadow-lg border-t border-primary-foreground/10 pb-4 px-4 space-y-2 animate-accordion-down">
             {navLinks.map((link) => (
               <Link key={link.path} to={link.path} onClick={() => setIsOpen(false)}>
-                <Button variant="ghost" className="w-full text-primary-foreground hover:bg-primary-foreground/10 justify-start">
+                <Button variant="ghost" className="w-full text-primary-foreground hover:bg-primary-foreground/10 justify-start h-12 text-base">
                   {link.name}
                 </Button>
               </Link>
             ))}
+            <div className="py-2">
+              <LanguageSwitcher />
+            </div>
             {user ? (
               <Button 
                 onClick={() => {
                   handleLogout();
                   setIsOpen(false);
                 }}
-                className="w-full bg-accent hover:bg-accent/90"
+                className="w-full bg-accent hover:bg-accent/90 h-12 text-base"
               >
                 {t('logout')}
               </Button>
@@ -125,7 +128,7 @@ export const Navbar = () => {
                   navigate("/auth");
                   setIsOpen(false);
                 }}
-                className="w-full bg-accent hover:bg-accent/90"
+                className="w-full bg-accent hover:bg-accent/90 h-12 text-base"
               >
                 {t('login')}
               </Button>

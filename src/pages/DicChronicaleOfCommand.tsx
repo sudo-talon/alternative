@@ -48,16 +48,16 @@ const DicChronicaleOfCommand = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <section className="relative py-20 overflow-hidden">
+      <section className="relative py-12 md:py-20 overflow-hidden min-h-[300px] flex items-center">
         <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${dicBg})` }}>
           <div className="absolute inset-0 bg-gradient-hero opacity-70"></div>
         </div>
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-4xl md:text-5xl font-bold text-primary-foreground mb-6">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-primary-foreground mb-4 md:mb-6">
               DIC – Chronicale of Command
             </h1>
-            <p className="text-xl text-primary-foreground/90">
+            <p className="text-lg sm:text-xl text-primary-foreground/90">
               A historical view of command leadership at Defence Intelligence College
             </p>
           </div>
@@ -73,7 +73,7 @@ const DicChronicaleOfCommand = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
               {leadership?.map((leader) => {
                 const photo = overrides[normalize(leader.full_name)] || leader.photo_url || "";
                 return (
@@ -84,7 +84,7 @@ const DicChronicaleOfCommand = () => {
                         alt={leader.full_name}
                         className="w-full h-full object-cover"
                       />
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex">
                         <Button variant="secondary" size="sm" onClick={() => setSelectedLeader(leader)}>Preview Résumé</Button>
                       </div>
                     </div>
@@ -98,6 +98,9 @@ const DicChronicaleOfCommand = () => {
                         )}
                       </div>
                       <div className="text-sm text-muted-foreground text-center">Commandant DIC</div>
+                      <Button variant="outline" size="sm" className="w-full sm:hidden min-h-[44px]" onClick={() => setSelectedLeader(leader)}>
+                        Preview Résumé
+                      </Button>
                     </div>
                   </div>
                 );

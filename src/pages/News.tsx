@@ -114,7 +114,7 @@ const News = () => {
       <Navbar />
       
       {/* Hero Section */}
-      <section className="relative py-20 overflow-hidden">
+      <section className="relative py-12 md:py-20 overflow-hidden min-h-[300px] flex items-center">
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${dicBg})` }}
@@ -123,10 +123,10 @@ const News = () => {
         </div>
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-4xl md:text-5xl font-bold text-primary-foreground mb-6">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-primary-foreground mb-4 md:mb-6">
               News & Blog
             </h1>
-            <p className="text-xl text-primary-foreground/90">
+            <p className="text-lg sm:text-xl text-primary-foreground/90">
               Stay updated with the latest from Defence Intelligence College
             </p>
           </div>
@@ -134,8 +134,8 @@ const News = () => {
       </section>
 
       {/* Main Content */}
-      <section className="container mx-auto px-4 py-12">
-        <div className="grid lg:grid-cols-3 gap-8">
+      <section className="container mx-auto px-4 py-8 md:py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* News Articles - Main Column */}
           <div className="lg:col-span-2">
             <h2 className="text-3xl font-bold mb-8 flex items-center gap-3">
@@ -169,11 +169,11 @@ const News = () => {
                       const modal = document.createElement('div');
                       modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
                       modal.innerHTML = `
-                        <div className="bg-background rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6 relative">
+                        <div class="bg-background rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto p-4 md:p-6 relative">
                           <button class="absolute top-4 right-4 text-muted-foreground hover:text-foreground" onclick="this.parentElement.parentElement.remove()">
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                           </button>
-                          ${item.featured_image_url ? `<img src="${item.featured_image_url}" alt="${item.title}" class="w-full h-auto rounded mb-4" loading="lazy" decoding="async" />` : ''}
+                          ${item.featured_image_url ? `<img src="${item.featured_image_url}" alt="${item.title}" class="w-full h-auto rounded mb-4" />` : ''}
                           <h2 class="text-3xl font-bold mb-4">${item.title}</h2>
                           <p class="text-sm text-muted-foreground mb-6">${formatDistanceToNow(new Date(item.published_at), { addSuffix: true })}</p>
                           <p class="text-muted-foreground leading-relaxed whitespace-pre-wrap">${item.content}</p>
@@ -187,7 +187,7 @@ const News = () => {
                   >
                     {index === 0 && item.featured_image_url && (
                       <div className="aspect-video w-full overflow-hidden">
-                        <img src={item.featured_image_url} alt={item.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                        <img src={item.featured_image_url} alt={item.title} className="w-full h-full object-cover" />
                       </div>
                     )}
                     <CardHeader>
@@ -232,20 +232,21 @@ const News = () => {
                           src={overrides[activeCommandant.full_name] || activeCommandant.photo_url || cdreBugaje}
                           alt={activeCommandant.full_name}
                           className="w-full h-auto object-contain shadow-elevated"
-                          loading="lazy"
-                          decoding="async"
                         />
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex">
                           <Button variant="secondary" size="sm" onClick={() => setResumeOpen(true)}>Preview Résumé</Button>
                         </div>
                       </div>
-                      <div className="text-center">
+                      <div className="text-center w-full">
                         <div className="font-bold text-lg">{activeCommandant.full_name}</div>
-                        <div className="text-sm text-muted-foreground">{activeCommandant.rank}</div>
+                        <div className="text-sm text-muted-foreground mb-2">{activeCommandant.rank}</div>
+                        <Button variant="outline" size="sm" className="w-full sm:hidden min-h-[44px]" onClick={() => setResumeOpen(true)}>
+                          Preview Résumé
+                        </Button>
                       </div>
                       <button
                         onClick={() => navigate("/chronicle-of-command")}
-                        className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm hover:bg-accent hover:text-accent-foreground"
+                        className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm hover:bg-accent hover:text-accent-foreground min-h-[44px]"
                       >
                         View Chronicle of Command
                       </button>
@@ -284,7 +285,6 @@ const News = () => {
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         allowFullScreen
                         className="w-full h-full"
-                        loading="lazy"
                       />
                     </div>
                     <div className="grid grid-cols-3 gap-2">
@@ -295,7 +295,7 @@ const News = () => {
                           className={`rounded overflow-hidden border ${selectedVideo === i ? "border-primary" : "border-transparent"}`}
                           title={v.title}
                         >
-                          <img src={v.poster} alt={v.title} className="aspect-video w-full object-cover" loading="lazy" decoding="async" />
+                          <img src={v.poster} alt={v.title} className="aspect-video w-full object-cover" />
                         </button>
                       ))}
                     </div>
@@ -323,7 +323,7 @@ const News = () => {
                         }}
                         title={imageCaptions[idx]}
                       >
-                        <img src={url} alt={imageCaptions[idx]} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                        <img src={url} alt={imageCaptions[idx]} className="w-full h-full object-cover" />
                       </button>
                     ))}
                     {assetImages.length >= 4 && (
@@ -347,7 +347,7 @@ const News = () => {
                           }}
                           title={imageCaptions[3]}
                         >
-                          <img src={assetImages[3]} alt={imageCaptions[3]} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                          <img src={assetImages[3]} alt={imageCaptions[3]} className="w-full h-full object-cover" />
                         </button>
                       )
                     )}
@@ -363,7 +363,7 @@ const News = () => {
                           return (
                             <div key={i} className="space-y-2">
                               <div className="aspect-square rounded-lg overflow-hidden">
-                                <img src={url} alt={imageCaptions[globalIndex]} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                                <img src={url} alt={imageCaptions[globalIndex]} className="w-full h-full object-cover" />
                               </div>
                               <div className="text-xs text-muted-foreground">{imageCaptions[globalIndex]}</div>
                             </div>

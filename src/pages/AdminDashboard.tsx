@@ -770,7 +770,7 @@ const AdminDashboard = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
             <p className="text-muted-foreground">Manage all aspects of the platform</p>
@@ -782,18 +782,18 @@ const AdminDashboard = () => {
         </div>
 
         <Tabs defaultValue="courses" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-11 gap-1">
-            <TabsTrigger value="courses"><BookOpen className="mr-1 h-4 w-4" />Courses</TabsTrigger>
-            <TabsTrigger value="personnel"><UserCog className="mr-1 h-4 w-4" />Personnel</TabsTrigger>
-            <TabsTrigger value="leadership"><Crown className="mr-1 h-4 w-4" />Leadership</TabsTrigger>
-            <TabsTrigger value="pgprograms"><GraduationCap className="mr-1 h-4 w-4" />PG Programs</TabsTrigger>
-            <TabsTrigger value="news"><Newspaper className="mr-1 h-4 w-4" />News</TabsTrigger>
-            <TabsTrigger value="users"><Users className="mr-1 h-4 w-4" />Users</TabsTrigger>
-            <TabsTrigger value="categories"><Shield className="mr-1 h-4 w-4" />Categories</TabsTrigger>
-            <TabsTrigger value="analytics"><BarChart3 className="mr-1 h-4 w-4" />Analytics</TabsTrigger>
-            <TabsTrigger value="documents"><FileText className="mr-1 h-4 w-4" />Documents</TabsTrigger>
-            <TabsTrigger value="about-management"><Crown className="mr-1 h-4 w-4" />About Management</TabsTrigger>
-            <TabsTrigger value="gallery"><ImageIcon className="mr-1 h-4 w-4" />Gallery</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 h-auto">
+            <TabsTrigger value="courses" className="h-full whitespace-normal min-h-[44px]"><BookOpen className="mr-1 h-4 w-4" />Courses</TabsTrigger>
+            <TabsTrigger value="personnel" className="h-full whitespace-normal min-h-[44px]"><UserCog className="mr-1 h-4 w-4" />Personnel</TabsTrigger>
+            <TabsTrigger value="leadership" className="h-full whitespace-normal min-h-[44px]"><Crown className="mr-1 h-4 w-4" />Leadership</TabsTrigger>
+            <TabsTrigger value="pgprograms" className="h-full whitespace-normal min-h-[44px]"><GraduationCap className="mr-1 h-4 w-4" />PG Programs</TabsTrigger>
+            <TabsTrigger value="news" className="h-full whitespace-normal min-h-[44px]"><Newspaper className="mr-1 h-4 w-4" />News</TabsTrigger>
+            <TabsTrigger value="users" className="h-full whitespace-normal min-h-[44px]"><Users className="mr-1 h-4 w-4" />Users</TabsTrigger>
+            <TabsTrigger value="categories" className="h-full whitespace-normal min-h-[44px]"><Shield className="mr-1 h-4 w-4" />Categories</TabsTrigger>
+            <TabsTrigger value="analytics" className="h-full whitespace-normal min-h-[44px]"><BarChart3 className="mr-1 h-4 w-4" />Analytics</TabsTrigger>
+            <TabsTrigger value="documents" className="h-full whitespace-normal min-h-[44px]"><FileText className="mr-1 h-4 w-4" />Documents</TabsTrigger>
+            <TabsTrigger value="about-management" className="h-full whitespace-normal min-h-[44px]"><Crown className="mr-1 h-4 w-4" />About Management</TabsTrigger>
+            <TabsTrigger value="gallery" className="h-full whitespace-normal min-h-[44px]"><ImageIcon className="mr-1 h-4 w-4" />Gallery</TabsTrigger>
           </TabsList>
 
           <TabsContent value="courses">
@@ -872,6 +872,7 @@ const AdminDashboard = () => {
                   </DialogContent>
                 </Dialog>
 
+                <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -912,6 +913,7 @@ const AdminDashboard = () => {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -984,6 +986,7 @@ const AdminDashboard = () => {
                     </div>
                   </DialogContent>
                 </Dialog>
+                <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -1019,6 +1022,7 @@ const AdminDashboard = () => {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -1073,6 +1077,7 @@ const AdminDashboard = () => {
                     </div>
                   </DialogContent>
                 </Dialog>
+                <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -1136,6 +1141,7 @@ const AdminDashboard = () => {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -1182,6 +1188,7 @@ const AdminDashboard = () => {
                   </DialogContent>
                 </Dialog>
 
+                <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -1215,6 +1222,7 @@ const AdminDashboard = () => {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -1226,6 +1234,7 @@ const AdminDashboard = () => {
                 <CardDescription>Manage user roles and categories</CardDescription>
               </CardHeader>
               <CardContent>
+                <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -1273,6 +1282,7 @@ const AdminDashboard = () => {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -1314,6 +1324,7 @@ const AdminDashboard = () => {
                   </DialogContent>
                 </Dialog>
 
+                <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -1346,6 +1357,7 @@ const AdminDashboard = () => {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -1414,56 +1426,57 @@ const AdminDashboard = () => {
                         />
                       </div>
                       <Button onClick={async () => {
-                        const specializations = pgProgramForm.specializations
-                          .split(',')
-                          .map(s => s.trim())
-                          .filter(s => s.length > 0);
-                        
-                        if (editingPgProgramId) {
-                          const { error } = await supabase
-                            .from("pg_programs")
-                            .update({
-                              department: pgProgramForm.department,
-                              degree_types: pgProgramForm.degree_types,
-                              specializations,
-                              requirements: pgProgramForm.requirements,
-                              display_order: pgProgramForm.display_order,
-                            })
-                            .eq("id", editingPgProgramId);
-                          if (error) {
-                            toast({ title: "Error", description: error.message, variant: "destructive" });
-                          } else {
-                            toast({ title: "Success", description: "PG program updated" });
-                            queryClient.invalidateQueries({ queryKey: ["admin-pg-programs"] });
-                            setEditingPgProgramId(null);
-                            setPgProgramDialogOpen(false);
-                          }
-                        } else {
-                          const { error } = await supabase
-                            .from("pg_programs")
-                            .insert([{
-                              department: pgProgramForm.department,
-                              degree_types: pgProgramForm.degree_types,
-                              specializations,
-                              requirements: pgProgramForm.requirements,
-                              display_order: pgProgramForm.display_order,
-                            }]);
-                          if (error) {
-                            toast({ title: "Error", description: error.message, variant: "destructive" });
-                          } else {
-                            toast({ title: "Success", description: "PG program added" });
-                            queryClient.invalidateQueries({ queryKey: ["admin-pg-programs"] });
-                            setPgProgramDialogOpen(false);
-                          }
-                        }
-                      }}>
-                        {editingPgProgramId ? "Update" : "Add"} Program
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                    const specializations = pgProgramForm.specializations
+                      .split(',')
+                      .map(s => s.trim())
+                      .filter(s => s.length > 0);
+                    
+                    if (editingPgProgramId) {
+                      const { error } = await supabase
+                        .from("pg_programs")
+                        .update({
+                          department: pgProgramForm.department,
+                          degree_types: pgProgramForm.degree_types,
+                          specializations,
+                          requirements: pgProgramForm.requirements,
+                          display_order: pgProgramForm.display_order,
+                        })
+                        .eq("id", editingPgProgramId);
+                      if (error) {
+                        toast({ title: "Error", description: error.message, variant: "destructive" });
+                      } else {
+                        toast({ title: "Success", description: "PG program updated" });
+                        queryClient.invalidateQueries({ queryKey: ["admin-pg-programs"] });
+                        setEditingPgProgramId(null);
+                        setPgProgramDialogOpen(false);
+                      }
+                    } else {
+                      const { error } = await supabase
+                        .from("pg_programs")
+                        .insert([{
+                          department: pgProgramForm.department,
+                          degree_types: pgProgramForm.degree_types,
+                          specializations,
+                          requirements: pgProgramForm.requirements,
+                          display_order: pgProgramForm.display_order,
+                        }]);
+                      if (error) {
+                        toast({ title: "Error", description: error.message, variant: "destructive" });
+                      } else {
+                        toast({ title: "Success", description: "PG program added" });
+                        queryClient.invalidateQueries({ queryKey: ["admin-pg-programs"] });
+                        setPgProgramDialogOpen(false);
+                      }
+                    }
+                  }}>
+                    {editingPgProgramId ? "Update" : "Add"} Program
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
 
-                <Table>
+            <div className="overflow-x-auto">
+            <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Order</TableHead>
@@ -1532,6 +1545,7 @@ const AdminDashboard = () => {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -1992,44 +2006,13 @@ const AdminDashboard = () => {
                   </Table>
 
                   <div className="grid gap-4 md:hidden">
-                    {(leadership || []).map((leader) => (
-                      <div key={leader.id} className="border rounded-md p-4 space-y-2">
-                        <div className="text-sm text-muted-foreground">Order: {leader.display_order}</div>
-                        <div className="font-semibold">{leader.full_name}</div>
-                        <div className="text-sm text-muted-foreground">{leader.position}</div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant={leader.is_active ? "secondary" : "outline"}>
-                            {leader.is_active ? "Active" : "Inactive"}
-                          </Badge>
-                          {leader.photo_url && (
-                            <img src={leader.photo_url} alt={leader.full_name} className="h-10 w-10 rounded object-cover" loading="lazy" decoding="async" />
-                          )}
-                        </div>
-                        <div className="flex gap-2 pt-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setLeadershipEdit(leader);
-                              setLeadershipDialogOpen(true);
-                            }}
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={async () => {
-                              const { error } = await supabase.from("leadership").delete().eq("id", leader.id);
-                              if (error) {
-                                toast({ title: "Error", description: error.message, variant: "destructive" });
-                              } else {
-                                queryClient.invalidateQueries({ queryKey: ["admin-leadership"] });
-                                toast({ title: "Removed", description: "Leadership profile deleted" });
-                              }
-                            }}
-                          >
-                            Delete
+                    {(galleryPictures || []).map((p) => (
+                      <div key={p.id} className="border rounded-md p-4 space-y-2">
+                        <img src={p.image_url} alt={p.title || "Picture"} className="w-full h-48 object-cover rounded" />
+                        <div className="font-semibold">{p.title || "Untitled"}</div>
+                        <div className="pt-2">
+                          <Button variant="destructive" size="sm" onClick={() => deletePicture(p.id)} className="w-full">
+                            <Trash2 className="mr-2 h-4 w-4" /> Delete
                           </Button>
                         </div>
                       </div>

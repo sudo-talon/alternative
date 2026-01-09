@@ -23,18 +23,18 @@ export const NewsFlash = () => {
   });
 
   return (
-    <Card className="shadow-elevated overflow-hidden">
+    <Card className="shadow-elevated overflow-hidden w-full">
       <CardHeader className="bg-gradient-accent">
         <CardTitle className="text-primary-foreground">{t('newsFlash')}</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="h-[400px] overflow-hidden relative">
+        <div className="h-[400px] overflow-hidden relative min-w-0 max-w-[100vw]">
           {isLoading ? (
-            <div className="p-4 text-center text-muted-foreground">Loading news...</div>
+            <div className="px-4 py-4 text-center text-muted-foreground">Loading news...</div>
           ) : news && news.length > 0 ? (
             <div className="animate-marquee-vertical">
               <div className="space-y-0">
-              <div className="p-4 space-y-4">
+              <div className="px-4 py-4 space-y-4">
                 {news.map((item, index) => (
                   <div 
                     key={item.id}
@@ -67,12 +67,12 @@ export const NewsFlash = () => {
                         <img 
                           src={item.featured_image_url} 
                           alt={item.title} 
-                          className="w-20 h-20 object-cover rounded-md"
+                          className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-md shrink-0"
                         />
                       )}
-                      <div className="space-y-2">
-                        <h4 className="font-semibold text-sm leading-tight">{item.title}</h4>
-                        <p className="text-xs text-muted-foreground line-clamp-2">{item.content}</p>
+                      <div className="space-y-1 sm:space-y-2 min-w-0">
+                        <h4 className="font-semibold text-sm leading-tight break-words">{item.title}</h4>
+                        <p className="text-xs text-muted-foreground line-clamp-2 break-words">{item.content}</p>
                         <p className="text-xs text-accent">
                           {formatDistanceToNow(new Date(item.published_at), { addSuffix: true })}
                         </p>
@@ -83,11 +83,11 @@ export const NewsFlash = () => {
                 ))}
                 </div>
                 {/* Duplicate for seamless loop */}
-                <div className="p-4 space-y-4">
+                <div className="px-4 py-4 space-y-4">
                 {news.map((item, index) => (
                   <div 
                     key={`duplicate-${item.id}`}
-                    className="cursor-pointer hover:bg-muted/50 p-2 rounded-lg transition-colors"
+                    className="cursor-pointer hover:bg-muted/50 p-2 rounded-lg transition-colors min-h-[44px]"
                     onClick={() => {
                       const modal = document.createElement('div');
                       modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
@@ -134,7 +134,7 @@ export const NewsFlash = () => {
               </div>
             </div>
           ) : (
-            <div className="p-4 text-center text-muted-foreground">No news available</div>
+            <div className="px-4 py-4 text-center text-muted-foreground">No news available</div>
           )}
         </div>
       </CardContent>

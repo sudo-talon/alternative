@@ -122,10 +122,10 @@ const Auth = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <div className="container mx-auto px-4 py-12 flex items-center justify-center">
-        <Card className="w-full max-w-md shadow-elevated">
+        <Card className="w-full max-w-md shadow-elevated mx-auto">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
-              <img src={dicLogo} alt="DIC Logo" className="h-20 w-auto" loading="lazy" decoding="async" />
+              <img src={dicLogo} alt="DIC Logo" className="h-20 w-auto" />
             </div>
             <CardTitle className="text-2xl">DIC Portal</CardTitle>
             <CardDescription>
@@ -151,6 +151,7 @@ const Auth = () => {
                       onChange={(e) =>
                         setSignInData({ ...signInData, email: e.target.value })
                       }
+                      className="min-h-[44px]"
                     />
                   </div>
                   <div>
@@ -163,6 +164,7 @@ const Auth = () => {
                       onChange={(e) =>
                         setSignInData({ ...signInData, password: e.target.value })
                       }
+                      className="min-h-[44px]"
                     />
                   </div>
                   <div className="flex items-center space-x-2 p-4 border rounded-lg bg-muted/50">
@@ -175,7 +177,7 @@ const Auth = () => {
                       I am not a robot
                     </Label>
                   </div>
-                  <Button type="submit" className="w-full" disabled={loading || !captchaVerified}>
+                  <Button type="submit" className="w-full min-h-[44px]" disabled={loading || !captchaVerified}>
                     {loading ? "Signing in..." : "Sign In"}
                   </Button>
                 </form>
@@ -237,7 +239,7 @@ const Auth = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
+                  <Button type="submit" className="w-full min-h-[44px]" disabled={loading}>
                     {loading ? "Creating account..." : "Sign Up"}
                   </Button>
                 </form>

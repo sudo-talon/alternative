@@ -136,7 +136,7 @@ const Dashboard = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <div className="container mx-auto px-4 py-12">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold">
               Welcome, {profile?.full_name || "User"}
@@ -150,7 +150,7 @@ const Dashboard = () => {
               </Badge>
             )}
           </div>
-          <Button variant="outline" onClick={handleSignOut}>
+          <Button variant="outline" onClick={handleSignOut} className="w-full sm:w-auto min-h-[44px]">
             <LogOut className="mr-2 h-4 w-4" />
             Sign Out
           </Button>

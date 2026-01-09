@@ -72,16 +72,16 @@ const About = () => {
       <Navbar />
       
       {/* Hero Section */}
-      <section className="relative text-primary-foreground py-20 overflow-hidden">
+      <section className="relative text-primary-foreground py-12 md:py-20 overflow-hidden min-h-[300px] flex items-center">
         <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${dicBg})` }}>
           <div className="absolute inset-0 bg-gradient-hero opacity-70"></div>
         </div>
-        <div className="w-full px-2 sm:px-4 relative z-10">
+        <div className="w-full px-4 relative z-10">
           <div className="max-w-screen-xl mx-auto text-center">
-            <h1 className="text-4xl md:text-5xl font-bold text-primary-foreground mb-6">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-primary-foreground mb-4 md:mb-6">
               About Defence Intelligence College
             </h1>
-            <p className="text-base sm:text-lg md:text-xl text-primary-foreground/90">
+            <p className="text-base sm:text-lg md:text-xl text-primary-foreground/90 max-w-2xl mx-auto">
               A citadel of intelligence and security training in Nigeria
             </p>
           </div>
@@ -174,13 +174,16 @@ const About = () => {
                           <div className="rounded-lg border bg-card text-card-foreground overflow-hidden animate-in fade-in-50 slide-in-from-bottom-6" style={{ animationDelay: `${index * 80}ms` }}>
                             <div className="relative aspect-square bg-muted group">
                               <img src={p.photo_url || ""} alt={p.full_name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
-                              <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex">
                                 <Button variant="secondary" size="sm" onClick={() => setSelectedPerson(p)}>Preview Résumé</Button>
                               </div>
                             </div>
                             <div className="p-4 space-y-2">
                               <div className="text-center font-semibold">{p.rank ? `${p.rank} ${p.full_name}` : p.full_name}</div>
                               <div className="text-sm text-muted-foreground text-center">{p.position}</div>
+                              <Button variant="outline" size="sm" className="w-full sm:hidden mt-2 min-h-[44px]" onClick={() => setSelectedPerson(p)}>
+                                Preview Résumé
+                              </Button>
                             </div>
                           </div>
                         </CarouselItem>

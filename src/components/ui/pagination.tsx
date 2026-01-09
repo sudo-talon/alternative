@@ -39,6 +39,7 @@ const PaginationLink = ({ className, isActive, size = "icon", ...props }: Pagina
         variant: isActive ? "outline" : "ghost",
         size,
       }),
+      "min-h-[44px] min-w-[44px] flex items-center justify-center",
       className,
     )}
     {...props}

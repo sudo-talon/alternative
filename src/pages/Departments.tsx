@@ -51,14 +51,14 @@ const Departments = () => {
       <Navbar />
       
       {/* Hero Section */}
-      <section className="relative text-primary-foreground py-20 overflow-hidden">
+      <section className="relative text-primary-foreground py-12 md:py-20 overflow-hidden min-h-[300px] flex items-center">
         <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${dicBg})` }}>
           <div className="absolute inset-0 bg-gradient-hero opacity-70"></div>
         </div>
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-3xl">
-            <h1 className="text-4xl md:text-5xl font-bold mb-6">Our Departments</h1>
-            <p className="text-xl opacity-90">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 md:mb-6">Our Departments</h1>
+            <p className="text-lg sm:text-xl opacity-90">
               The College has six departments, each specializing in critical areas of intelligence and strategic security education.
             </p>
           </div>
@@ -69,15 +69,15 @@ const Departments = () => {
       <section className="py-16">
         <div className="container mx-auto px-4">
           <Tabs defaultValue="professional" className="w-full">
-            <TabsList className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 h-auto bg-muted/50 p-2">
+            <TabsList className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 h-auto bg-muted/50 p-2">
               {departments.map((dept) => (
                 <TabsTrigger 
                   key={dept.id} 
                   value={dept.id}
-                  className="flex flex-col items-center gap-2 py-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                  className="flex flex-col items-center gap-2 py-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground h-full min-h-[44px]"
                 >
                   {dept.icon}
-                  <span className="text-xs text-center">{dept.name}</span>
+                  <span className="text-xs text-center line-clamp-2">{dept.name}</span>
                 </TabsTrigger>
               ))}
             </TabsList>
@@ -85,25 +85,23 @@ const Departments = () => {
             {departments.map((dept) => (
               <TabsContent key={dept.id} value={dept.id} className="mt-8">
                 <Card className="border-2 shadow-elevated">
-                  <CardContent className="p-8">
+                  <CardContent className="p-4 md:p-8">
                     <div className="grid md:grid-cols-2 gap-8 items-start">
                       <div className="w-full">
                         <img 
                           src={departmentsHero} 
                           alt={`Department of ${dept.name}`}
                           className="w-full h-auto rounded-lg object-cover"
-                          loading="lazy"
-                          decoding="async"
                         />
                       </div>
                       <div>
-                        <div className="flex items-center gap-4 mb-6">
-                          <div className="p-3 bg-primary/10 rounded-lg text-primary">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
+                          <div className="p-3 bg-primary/10 rounded-lg text-primary w-fit">
                             {dept.icon}
                           </div>
-                          <h2 className="text-3xl font-bold">Department of {dept.name}</h2>
+                          <h2 className="text-2xl sm:text-3xl font-bold break-words">Department of {dept.name}</h2>
                         </div>
-                        <p className="text-lg text-muted-foreground leading-relaxed">
+                        <p className="text-base sm:text-lg text-muted-foreground leading-relaxed">
                           {dept.description}
                         </p>
                       </div>

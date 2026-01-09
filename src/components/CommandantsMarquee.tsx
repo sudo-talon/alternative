@@ -89,74 +89,81 @@ export const CommandantsMarquee = () => {
   return (
     <>
       <div className="gradient-subtle py-12">
-        <h2 className="text-2xl md:text-3xl font-bold text-center mb-6 md:mb-8">{t('pastPresentCommandants')}</h2>
-        <div className="relative max-w-2xl mx-auto px-4">
-          <Card className="shadow-elevated">
-            <CardContent className="p-4 sm:p-6">
-              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 items-center">
-                <div className="shrink-0">
-                  {(() => {
-                    const overrideSrc = overrides[normalize(currentCommandant.full_name)];
-                    const src = overrideSrc || currentCommandant.photo_url || "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&h=150&fit=crop";
-                    return (
-                      <img
-                        src={src}
-                        alt={currentCommandant.full_name}
-                        className="w-32 h-32 sm:w-36 sm:h-36 rounded-full object-cover border-4 border-primary shadow-lg"
-                      />
-                    );
-                  })()}
-                </div>
-                <div className="flex-1 min-w-0 space-y-3 text-center sm:text-left">
-                  <div>
-                    <h3 className="font-bold text-lg sm:text-xl text-primary break-words">{`${currentCommandant.rank} ${currentCommandant.full_name}`}</h3>
+        <h2 className="text-2xl md:text-3xl font-bold text-left md:text-center mb-6 md:mb-8">{t('pastPresentCommandants')}</h2>
+        <div className="relative px-4 sm:px-6 overflow-hidden max-w-[100vw]">
+          <div className="relative">
+            <Card className="shadow-elevated mx-0 sm:mx-0 lg:mx-0 w-full">
+              <CardContent className="p-6">
+                <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 items-center sm:items-center justify-center">
+                  <div className="shrink-0 flex justify-center w-full sm:w-auto">
+                    {(() => {
+                      const overrideSrc = overrides[normalize(currentCommandant.full_name)];
+                      const src = overrideSrc || currentCommandant.photo_url || "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&h=150&fit=crop";
+                      return (
+                        <img
+                          src={src}
+                          alt={currentCommandant.full_name}
+                          className="w-32 h-32 sm:w-40 sm:h-40 rounded-full object-cover border-4 border-primary shadow-lg"
+                        />
+                      );
+                    })()}
                   </div>
-                  <div className="flex flex-col sm:flex-row items-center gap-3 sm:justify-between">
-                    <span className="text-sm font-semibold text-accent">
-                      {currentCommandant.is_active ? t('commandantDIC') : formatPosition(currentCommandant.position)}
-                    </span>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setSelectedCommandant(currentCommandant)}
-                    >
-                      {t('readMore')}
-                    </Button>
+                  <div className="flex-1 min-w-0 space-y-3 text-center sm:text-left w-full">
+                    <div>
+                      <h3 className="font-bold text-lg sm:text-xl text-primary break-words">{`${currentCommandant.rank} ${currentCommandant.full_name}`}</h3>
+                    </div>
+                    <div className="flex flex-col sm:flex-row items-center gap-3 sm:justify-between w-full">
+                      <span className={`text-sm font-semibold break-words max-w-full ${currentCommandant.is_active ? 'text-red-500 text-center' : 'text-accent'}`}>
+                        {currentCommandant.is_active ? t('commandantDIC') : formatPosition(currentCommandant.position)}
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setSelectedCommandant(currentCommandant)}
+                        className="shrink-0 min-h-[44px] self-center mx-auto"
+                      >
+                        {t('readMore')}
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handlePrevious}
-            className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full z-10"
-            aria-label="Previous commandant"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handleNext}
-            className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full z-10"
-            aria-label="Next commandant"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+            <div className="block">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handlePrevious}
+                className="absolute left-2 sm:left-3 md:left-4 top-1/2 -translate-y-1/2 h-11 w-11 rounded-full z-10 bg-background/80 backdrop-blur-sm min-h-[44px] min-w-[44px]"
+                aria-label="Previous commandant"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleNext}
+                className="absolute right-2 sm:right-3 md:right-4 top-1/2 -translate-y-1/2 h-11 w-11 rounded-full z-10 bg-background/80 backdrop-blur-sm min-h-[44px] min-w-[44px]"
+                aria-label="Next commandant"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
 
           <div className="flex justify-center gap-2 mt-4">
             {commandants.map((_, index) => (
               <button
                 key={index}
                 onClick={() => setCurrentIndex(index)}
-                className={`w-2 h-2 rounded-full transition-colors ${
-                  index === currentIndex ? "bg-primary" : "bg-muted"
-                }`}
+                className={`flex items-center justify-center w-11 h-11 rounded-full transition-colors`}
                 aria-label={`Go to commandant ${index + 1}`}
-              />
+              >
+                <div className={`w-2 h-2 rounded-full ${
+                  index === currentIndex ? "bg-primary" : "bg-muted"
+                }`} />
+              </button>
             ))}
           </div>
         </div>

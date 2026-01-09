@@ -128,7 +128,7 @@ export const NotificationBell = () => {
         <div className="flex items-center justify-between p-4 border-b">
           <h3 className="font-semibold">Notifications</h3>
           {unreadCount > 0 && (
-            <Button variant="ghost" size="sm" onClick={markAllAsRead}>
+            <Button variant="ghost" size="sm" onClick={markAllAsRead} className="min-h-[44px]">
               Mark all read
             </Button>
           )}

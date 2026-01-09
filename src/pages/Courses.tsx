@@ -56,33 +56,32 @@ const Courses = () => {
       <Navbar />
       
       {/* Hero Section */}
-      <div className="relative h-48 sm:h-64 md:h-[400px] overflow-hidden">
-        <img 
-          src={departmentsHero} 
-          alt="Departments hero" 
-          className="w-full h-full object-cover"
-          loading="lazy"
-          decoding="async"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/90 to-primary/70 flex items-center">
-          <div className="container mx-auto px-4">
-            <div className="max-w-2xl">
-              <div className="flex items-center gap-3 mb-4">
-                <GraduationCap className="h-12 w-12 text-primary-foreground" />
-                <h1 className="text-5xl font-bold text-primary-foreground">Our Courses</h1>
-              </div>
-              <p className="text-xl text-primary-foreground/90 leading-relaxed">
-                Pioneering Excellence in Intelligence and Strategic Leadership since 2001
-              </p>
+      <div className="relative min-h-[300px] h-auto py-12 md:py-0 md:h-[400px] overflow-hidden flex items-center">
+        <div className="absolute inset-0">
+          <img 
+            src={departmentsHero} 
+            alt="Departments hero" 
+            className="w-full h-full object-cover"
+          />
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/90 to-primary/70"></div>
+        <div className="relative container mx-auto px-4 z-10">
+          <div className="max-w-2xl">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4">
+              <GraduationCap className="h-10 w-10 sm:h-12 sm:w-12 text-primary-foreground shrink-0" />
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-primary-foreground">Our Courses</h1>
             </div>
+            <p className="text-base sm:text-lg md:text-xl text-primary-foreground/90 leading-relaxed">
+              Pioneering Excellence in Intelligence and Strategic Leadership since 2001
+            </p>
           </div>
         </div>
       </div>
 
       <div className="container mx-auto px-4 py-12">{courseCategories.map((category, idx) => (
           <div key={idx} className="mb-12">
-            <h2 className="text-3xl font-bold mb-6 text-primary">{category.category}</h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-primary">{category.category}</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {category.courses.map((course, courseIdx) => (
                 <Card 
                   key={courseIdx} 
@@ -104,7 +103,7 @@ const Courses = () => {
                     <p className="text-sm text-muted-foreground mb-4">
                       {course.description}
                     </p>
-                    <Button className="w-full">View Details & Enroll</Button>
+                    <Button className="w-full min-h-[44px]">View Details & Enroll</Button>
                   </CardContent>
                 </Card>
               ))}

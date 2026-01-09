@@ -8,11 +8,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { GraduationCap, Shield, Users, BookOpen, ChevronLeft, ChevronRight } from "lucide-react";
 import dicBg from "@/assets/dic-bg.png";
+import dicVideo from "@/assets/dic.mp4";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import dicPoster from "@/assets/dic-group-photo.webp";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { PageWrapper } from "@/components/PageWrapper";
 
-const dicVideoUrl = "/videos/dic.mp4";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -94,28 +94,28 @@ const Home = () => {
   }, [activeYear, timelineData, goToIndex]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background max-w-[100vw] overflow-x-hidden">
       <GovernmentBanner />
       <Navbar />
       
-      <section className="relative min-h-[360px] sm:min-h-[480px] md:min-h-[600px] flex items-center justify-center overflow-hidden px-4 py-12 sm:py-16">
+      <section className="relative min-h-[320px] sm:min-h-[480px] md:min-h-[600px] flex items-center justify-center overflow-hidden px-4 py-12 sm:py-16 max-w-[100vw]">
         <div 
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${dicBg})` }}
         >
           <div className="absolute inset-0 bg-gradient-hero opacity-70"></div>
         </div>
-        <div className="relative z-10 text-center max-w-4xl mx-auto">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground mb-6">
+        <div className="relative z-10 text-center max-w-4xl mx-auto w-full">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground mb-4 sm:mb-6 px-4 break-words">
             {t('welcomeTitle')}
           </h1>
-          <p className="text-base sm:text-lg md:text-2xl text-primary-foreground mb-8 max-w-2xl mx-auto">
+          <p className="text-sm sm:text-base md:text-xl text-primary-foreground mb-8 max-w-2xl mx-auto px-4">
             {t('welcomeSubtitle')}
           </p>
-          <div className="flex gap-4 justify-center flex-wrap">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center flex-wrap">
             <Button 
               size="lg"
-              className="bg-accent hover:bg-accent/90 text-accent-foreground"
+              className="bg-accent hover:bg-accent/90 text-accent-foreground w-full sm:w-auto min-h-[44px]"
               onClick={() => navigate("/courses")}
             >
               {t('explorePrograms')}
@@ -123,7 +123,7 @@ const Home = () => {
             <Button 
               size="lg"
               variant="outline"
-              className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary"
+              className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary w-full sm:w-auto min-h-[44px]"
               onClick={() => navigate("/about")}
             >
               {t('learnMore')}
@@ -133,26 +133,29 @@ const Home = () => {
       </section>
 
       {/* Main Content with Sidebar */}
-      <section className="container mx-auto px-4 py-12">
-        <div className="grid lg:grid-cols-3 gap-8">
+      <PageWrapper>
+      <section className="py-12">
+        <div className="grid lg:grid-cols-3 gap-6 sm:gap-8">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-12">
+          <div className="lg:col-span-2 space-y-10 sm:space-y-12">
             {/* Features Grid */}
             <div>
-              <h2 className="text-3xl font-bold mb-8">{t('whyChooseDIC')}</h2>
-              <div className="grid md:grid-cols-2 gap-6">
+              <h2 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 text-left">{t('whyChooseDIC')}</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {features.map((feature, index) => (
-                  <Card key={index} className="shadow-elevated hover:shadow-xl transition-shadow">
+                  <Card key={index} className="shadow-elevated hover:shadow-xl transition-shadow w-full">
                     <CardHeader>
-                      <div className="flex items-center gap-4">
-                        <div className="p-3 bg-gradient-accent rounded-lg text-primary-foreground">
+                      <div className="flex items-center gap-4 justify-start flex-wrap">
+                        <div className="p-3 bg-gradient-accent rounded-lg text-primary-foreground shrink-0">
                           {feature.icon}
                         </div>
-                        <CardTitle>{feature.title}</CardTitle>
+                        <div className="flex-1 min-w-0">
+                          <CardTitle className="text-base sm:text-lg font-semibold break-words">{feature.title}</CardTitle>
+                        </div>
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-muted-foreground">{feature.description}</p>
+                      <p className="text-sm text-muted-foreground text-left break-words whitespace-normal leading-relaxed">{feature.description}</p>
                     </CardContent>
                   </Card>
                 ))}
@@ -165,28 +168,15 @@ const Home = () => {
             </div>
 
             {/* About Section */}
-            <div>
-              <h2 className="text-3xl font-bold mb-8">{t('aboutUs')}</h2>
-              <div className="grid md:grid-cols-2 gap-8 items-center">
-                <div className="rounded-lg overflow-hidden shadow-elevated">
-                  <video 
-                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                    autoPlay 
-                    muted 
-                    loop 
-                    playsInline
-                    poster={dicPoster}
-                    preload="metadata"
-                    src={dicVideoUrl}
-                    onError={(e) => {
-                      const v = e.currentTarget;
-                      v.removeAttribute("src");
-                      v.load();
-                    }}
-                  />
+            <div className="pt-8 sm:pt-10 max-w-[100vw] overflow-x-hidden">
+              <h2 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 text-left">{t('aboutUs')}</h2>
+              <div>
+                <div className="mb-6">
+                  <video controls playsInline preload="metadata" className="w-full rounded-lg shadow-elevated">
+                    <source src={dicVideo} type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
                 </div>
-
-                {/* Right: Content */}
                 <div className="space-y-6">
                   {/* Timeline Dots */}
                   <div className="relative">
@@ -195,20 +185,20 @@ const Home = () => {
                       size="icon"
                       aria-label="Previous year"
                       onClick={handlePrev}
-                      className="absolute -left-2 sm:-left-4 top-1/2 -translate-y-1/2 rounded-full"
+                      className="absolute left-1 sm:-left-4 top-1/2 -translate-y-1/2 rounded-full h-9 w-9 sm:h-11 sm:w-11 min-h-[36px] min-w-[36px]"
                     >
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
                     <div
                       ref={timelineRef}
-                      className="overflow-x-auto -mx-4 px-4 py-2 scroll-smooth snap-x snap-mandatory no-scrollbar"
+                      className="overflow-x-auto px-2 py-2 scroll-smooth snap-x snap-mandatory no-scrollbar"
                     >
                       <div className="flex items-center gap-2 min-w-max">
                         {timelineData.map((item, index) => (
                           <div key={index} className="timeline-item flex items-center flex-none snap-center">
                             <button
                               onClick={() => goToIndex(index)}
-                              className="flex flex-col items-center gap-2 transition-all hover:scale-110 focus:outline-none flex-none"
+                              className="flex flex-col items-center gap-2 transition-all hover:scale-110 focus:outline-none flex-none min-w-[44px] min-h-[44px] justify-center"
                             >
                               <div className={`w-4 h-4 rounded-full transition-all cursor-pointer ${
                                 activeYear === item.year ? 'bg-primary scale-125' : 'bg-muted hover:bg-muted-foreground/50'
@@ -231,25 +221,25 @@ const Home = () => {
                       size="icon"
                       aria-label="Next year"
                       onClick={handleNext}
-                      className="absolute -right-2 sm:-right-4 top-1/2 -translate-y-1/2 rounded-full"
+                      className="absolute right-1 sm:-right-4 top-1/2 -translate-y-1/2 rounded-full h-9 w-9 sm:h-11 sm:w-11 min-h-[36px] min-w-[36px]"
                     >
                       <ChevronRight className="h-4 w-4" />
                     </Button>
                   </div>
 
                   {/* Content */}
-                  <div className="min-h-[200px]">
+                  <div className="min-h-[200px] text-left">
                     {activeTimeline && (
                       <div className="animate-fade-in">
-                        <h3 className="text-2xl font-bold mb-4">{activeTimeline.title}</h3>
-                        <p className="text-muted-foreground leading-relaxed mb-6">
+                        <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">{activeTimeline.title}</h3>
+                        <p className="text-sm sm:text-base text-muted-foreground leading-relaxed mb-6">
                           {activeTimeline.description}
                         </p>
                       </div>
                     )}
                     <Button 
                       onClick={() => navigate("/about")} 
-                      className="bg-primary hover:bg-primary-dark text-primary-foreground"
+                      className="bg-primary hover:bg-primary-dark text-primary-foreground ml-1 sm:ml-0"
                     >
                       {t('readMore')}
                     </Button>
@@ -261,7 +251,7 @@ const Home = () => {
 
           {/* Sidebar */}
           <div className="lg:col-span-1">
-            <div className="sticky top-24">
+            <div className="md:sticky md:top-24">
               <NewsFlash />
               
               <Card className="mt-6 shadow-elevated">
@@ -271,28 +261,28 @@ const Home = () => {
                 <CardContent className="pt-6 space-y-2">
                   <Button 
                     variant="outline" 
-                    className="w-full justify-start"
+                    className="w-full justify-start min-h-[44px]"
                     onClick={() => navigate("/courses")}
                   >
                     {t('browseCourses')}
                   </Button>
                   <Button 
                     variant="outline" 
-                    className="w-full justify-start"
+                    className="w-full justify-start min-h-[44px]"
                     onClick={() => navigate("/auth")}
                   >
                     {t('collegePortal')}
                   </Button>
                   <Button 
                     variant="outline" 
-                    className="w-full justify-start"
+                    className="w-full justify-start min-h-[44px]"
                     onClick={() => window.open("https://elibrary.dic.gov.ng", "_blank")}
                   >
                     {t('eLibrary')}
                   </Button>
                   <Button 
                     variant="outline" 
-                    className="w-full justify-start"
+                    className="w-full justify-start min-h-[44px]"
                     onClick={() => navigate("/contact")}
                   >
                     {t('contact')}
@@ -303,6 +293,7 @@ const Home = () => {
           </div>
         </div>
       </section>
+      </PageWrapper>
 
       <Footer />
     </div>

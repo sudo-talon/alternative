@@ -6,20 +6,20 @@ export default {
   content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
   prefix: "",
   theme: {
-    screens: {
-      xs: "360px",
-      sm: "640px",
-      md: "768px",
-      lg: "1024px",
-      xl: "1440px",
-      "2xl": "1441px"
-    },
     container: {
       center: true,
-      padding: "1rem",
+      padding: "2rem",
       screens: {
-        "2xl": "1440px",
+        "2xl": "1400px",
       },
+    },
+    screens: {
+      'xs': '475px',
+      'sm': '640px',
+      'md': '768px',
+      'lg': '1024px',
+      'xl': '1280px',
+      '2xl': '1400px',
     },
     extend: {
       colors: {

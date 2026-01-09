@@ -11,10 +11,10 @@ export const GovernmentBanner = () => {
       <div className="container mx-auto px-4">
         <button 
           onClick={() => setIsExpanded(!isExpanded)}
-          className="w-full py-2 flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="w-full py-2 flex flex-wrap items-center justify-center gap-2 text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors min-h-[44px]"
         >
-          <span>{t('govBannerText')}</span>
-          <span className="flex items-center gap-1 text-primary font-medium">
+          <span className="text-center">{t('govBannerText')}</span>
+          <span className="flex items-center gap-1 text-primary font-medium whitespace-nowrap">
             Here's how you know
             {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </span>

@@ -24,7 +24,7 @@ export const LanguageSwitcher = () => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/10 gap-1">
+        <Button variant="outline" size="sm" className="border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/10 gap-1 min-h-[44px]">
           <Globe className="h-4 w-4" />
           <span className="uppercase text-xs font-medium">{language}</span>
         </Button>
@@ -34,7 +34,7 @@ export const LanguageSwitcher = () => {
           <DropdownMenuItem
             key={lang.code}
             onClick={() => setLanguage(lang.code)}
-            className={`${language === lang.code ? 'bg-primary/10 font-medium' : ''} cursor-pointer`}
+            className={`${language === lang.code ? 'bg-primary/10 font-medium' : ''} cursor-pointer min-h-[44px]`}
           >
             <span className="mr-2">{lang.flag}</span>
             {lang.name}

@@ -27,22 +27,22 @@ const PgProgram = () => {
       <Navbar />
       
       {/* Hero Section */}
-      <section className="relative py-20 text-primary-foreground overflow-hidden">
+      <section className="relative py-12 md:py-20 text-primary-foreground overflow-hidden">
         <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${dicBg})` }}>
           <div className="absolute inset-0 bg-gradient-hero opacity-70"></div>
         </div>
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-4xl mx-auto text-center">
-            <div className="flex items-center justify-center gap-3 mb-6">
-              <GraduationCap className="h-12 w-12" />
-              <h1 className="text-4xl md:text-5xl font-bold">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-6">
+              <GraduationCap className="h-10 w-10 sm:h-12 sm:w-12" />
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold">
                 Postgraduate Programmes
               </h1>
             </div>
-            <p className="text-xl opacity-90 mb-8">
+            <p className="text-lg sm:text-xl opacity-90 mb-8">
               Faculty of Social Sciences UNN in Affiliation with DIC
             </p>
-            <Badge variant="secondary" className="text-lg py-2 px-6">
+            <Badge variant="secondary" className="text-lg py-2 px-6 w-full sm:w-auto justify-center">
               Admission Ongoing - Apply Now
             </Badge>
           </div>
@@ -61,20 +61,20 @@ const PgProgram = () => {
               <div className="space-y-8">
                 {programs?.map((program) => (
                   <Card key={program.id} className="border-2 shadow-elevated hover:shadow-lg transition-shadow">
-                    <CardContent className="p-8">
-                      <div className="flex items-start gap-4 mb-6">
-                        <div className="p-3 bg-primary/10 rounded-lg text-primary flex-shrink-0">
-                          <BookOpen className="h-6 w-6" />
-                        </div>
-                        <div className="flex-1">
-                          <h2 className="text-2xl font-bold mb-2">
-                            {program.department}
-                          </h2>
-                          <Badge variant="outline" className="mb-4">
-                            {program.degree_types}
-                          </Badge>
-                        </div>
+                    <CardContent className="p-4 sm:p-6 md:p-8">
+                    <div className="flex flex-col sm:flex-row items-start gap-4 mb-6">
+                      <div className="p-3 bg-primary/10 rounded-lg text-primary flex-shrink-0">
+                        <BookOpen className="h-6 w-6" />
                       </div>
+                      <div className="flex-1 w-full">
+                        <h2 className="text-xl sm:text-2xl font-bold mb-2 break-words">
+                          {program.department}
+                        </h2>
+                        <Badge variant="outline" className="mb-4">
+                          {program.degree_types}
+                        </Badge>
+                      </div>
+                    </div>
 
                       {program.specializations && program.specializations.length > 0 && (
                         <div className="mb-6">
@@ -116,7 +116,7 @@ const PgProgram = () => {
                   href="https://dicnigeria.com.ng/apply" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-8"
+                  className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-8 min-h-[44px]"
                 >
                   Apply Now
                 </a>

@@ -54,7 +54,7 @@ const CourseDetail = () => {
         <Button 
           variant="outline" 
           onClick={() => navigate("/courses")}
-          className="mb-6"
+          className="mb-6 min-h-[44px]"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Courses
@@ -64,12 +64,12 @@ const CourseDetail = () => {
           <div className="md:col-span-2">
             <Card className="shadow-elevated">
               <CardHeader>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-3 bg-primary rounded-lg">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
+                  <div className="p-3 bg-primary rounded-lg w-fit">
                     <BookOpen className="h-8 w-8 text-primary-foreground" />
                   </div>
                   <div>
-                    <CardTitle className="text-3xl">{decodedTitle}</CardTitle>
+                    <CardTitle className="text-2xl sm:text-3xl break-words">{decodedTitle}</CardTitle>
                     <CardDescription className="text-base mt-2">
                       Professional intelligence and security training
                     </CardDescription>
@@ -177,7 +177,7 @@ const CourseDetail = () => {
                     </p>
                     <Button 
                       onClick={handleEnroll} 
-                      className="w-full bg-white text-primary hover:bg-white/90"
+                      className="w-full bg-white text-primary hover:bg-white/90 min-h-[44px]"
                     >
                       Enroll Now
                     </Button>
