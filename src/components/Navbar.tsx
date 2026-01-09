@@ -48,22 +48,22 @@ export const Navbar = () => {
   };
 
   return (
-    <nav className="bg-gradient-hero shadow-elevated sticky top-0 z-50">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-20">
-          <Link to="/" className="flex items-center space-x-2 md:space-x-3 max-w-[70%] md:max-w-none">
-            <img src={dicLogo} alt="DIC Logo" className="h-10 w-10 md:h-12 md:w-12 shrink-0" />
+    <nav className="bg-gradient-hero shadow-elevated sticky top-0 z-50 w-full max-w-[100vw]">
+      <div className="w-full max-w-[1440px] mx-auto px-3 sm:px-4 lg:px-6">
+        <div className="flex items-center justify-between h-16 sm:h-20">
+          <Link to="/" className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 max-w-[70%] sm:max-w-none">
+            <img src={dicLogo} alt="DIC Logo" className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 shrink-0" />
             <div className="text-primary-foreground min-w-0">
-              <div className="font-bold text-sm sm:text-lg leading-tight truncate">Defence Intelligence College</div>
-              <div className="text-xs opacity-90 truncate">Karu, Abuja</div>
+              <div className="font-bold text-xs sm:text-sm md:text-lg leading-tight truncate">Defence Intelligence College</div>
+              <div className="text-[10px] sm:text-xs opacity-90 truncate">Karu, Abuja</div>
             </div>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-1">
+          <div className="hidden lg:flex items-center gap-1">
             {navLinks.map((link) => (
               <Link key={link.path} to={link.path}>
-                <Button variant="ghost" className="text-primary-foreground hover:bg-primary-foreground/10">
+                <Button variant="ghost" className="text-primary-foreground hover:bg-primary-foreground/10 text-sm px-3">
                   {link.name}
                 </Button>
               </Link>
@@ -73,14 +73,14 @@ export const Navbar = () => {
             {user ? (
               <Button 
                 onClick={handleLogout}
-                className="ml-4 bg-accent hover:bg-accent/90"
+                className="ml-2 bg-accent hover:bg-accent/90 min-h-[40px]"
               >
                 {t('logout')}
               </Button>
             ) : (
               <Button 
                 onClick={() => navigate("/auth")}
-                className="ml-4 bg-accent hover:bg-accent/90"
+                className="ml-2 bg-accent hover:bg-accent/90 min-h-[40px]"
               >
                 {t('login')}
               </Button>
@@ -89,7 +89,7 @@ export const Navbar = () => {
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden text-primary-foreground"
+            className="lg:hidden text-primary-foreground p-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
             onClick={() => setIsOpen(!isOpen)}
             aria-label="Toggle navigation"
             aria-controls="mobile-nav"
@@ -101,7 +101,10 @@ export const Navbar = () => {
 
         {/* Mobile Navigation */}
         {isOpen && (
-          <div id="mobile-nav" className="md:hidden absolute top-20 left-0 w-full bg-gradient-hero shadow-lg border-t border-primary-foreground/10 pb-4 px-4 space-y-2 animate-accordion-down">
+          <div 
+            id="mobile-nav" 
+            className="lg:hidden absolute top-16 sm:top-20 left-0 right-0 w-full bg-gradient-hero shadow-lg border-t border-primary-foreground/10 pb-4 px-4 space-y-2 animate-accordion-down max-h-[calc(100vh-4rem)] overflow-y-auto"
+          >
             {navLinks.map((link) => (
               <Link key={link.path} to={link.path} onClick={() => setIsOpen(false)}>
                 <Button variant="ghost" className="w-full text-primary-foreground hover:bg-primary-foreground/10 justify-start h-12 text-base">
