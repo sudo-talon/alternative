@@ -490,7 +490,16 @@ const AdminDashboard = () => {
   });
   
 
-  const { data: news } = useQuery({
+  type NewsItem = {
+    id: string;
+    title: string;
+    content: string;
+    published_at: string;
+    created_at: string;
+    featured_image_url?: string | null;
+  };
+
+  const { data: news } = useQuery<NewsItem[]>({
     queryKey: ["admin-news"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -498,7 +507,7 @@ const AdminDashboard = () => {
         .select("*")
         .order("published_at", { ascending: false });
       if (error) throw error;
-      return data;
+      return data as NewsItem[];
     },
     enabled: isAdmin,
   });
@@ -2006,6 +2015,7 @@ const AdminDashboard = () => {
                   </Table>
 
                   <div className="grid gap-4 md:hidden">
+<<<<<<< HEAD
                     {(galleryPictures || []).map((p) => (
                       <div key={p.id} className="border rounded-md p-4 space-y-2">
                         <img src={p.image_url} alt={p.title || "Picture"} className="w-full h-48 object-cover rounded" />
@@ -2013,6 +2023,47 @@ const AdminDashboard = () => {
                         <div className="pt-2">
                           <Button variant="destructive" size="sm" onClick={() => deletePicture(p.id)} className="w-full">
                             <Trash2 className="mr-2 h-4 w-4" /> Delete
+=======
+                    {(leadership || []).map((leader) => (
+                      <div key={leader.id} className="border rounded-md p-4 space-y-2">
+                        <div className="text-sm text-muted-foreground">Order: {leader.display_order}</div>
+                        <div className="font-semibold">{leader.full_name}</div>
+                        <div className="text-sm text-muted-foreground">{leader.position}</div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={leader.is_active ? "secondary" : "outline"}>
+                            {leader.is_active ? "Active" : "Inactive"}
+                          </Badge>
+                          {leader.photo_url && (
+                            <img src={leader.photo_url} alt={leader.full_name} className="h-10 w-10 rounded object-cover" loading="lazy" decoding="async" />
+                          )}
+                        </div>
+                        <div className="flex gap-2 pt-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setLeadershipForm(leader);
+                              setEditingLeadershipId(leader.id);
+                              setLeadershipDialogOpen(true);
+                            }}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={async () => {
+                              const { error } = await supabase.from("leadership").delete().eq("id", leader.id);
+                              if (error) {
+                                toast({ title: "Error", description: error.message, variant: "destructive" });
+                              } else {
+                                queryClient.invalidateQueries({ queryKey: ["admin-leadership"] });
+                                toast({ title: "Removed", description: "Leadership profile deleted" });
+                              }
+                            }}
+                          >
+                            Delete
+>>>>>>> b404c1e5001e30a7f448d943b85e0641975b9fa2
                           </Button>
                         </div>
                       </div>

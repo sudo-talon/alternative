@@ -141,25 +141,25 @@ export type Database = {
         Row: {
           content: string
           created_at: string
+          featured_image_url: string | null
           id: string
           published_at: string
-          featured_image_url: string | null
           title: string
         }
         Insert: {
           content: string
           created_at?: string
+          featured_image_url?: string | null
           id?: string
           published_at?: string
-          featured_image_url?: string | null
           title: string
         }
         Update: {
           content?: string
           created_at?: string
+          featured_image_url?: string | null
           id?: string
           published_at?: string
-          featured_image_url?: string | null
           title?: string
         }
         Relationships: []

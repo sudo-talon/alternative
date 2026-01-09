@@ -1,25 +1,34 @@
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
-import { Shield, Target, BookOpen, Cog, Users, GraduationCap } from "lucide-react";
+import { Shield, Target, BookOpen, Cog, Users, GraduationCap, Lock } from "lucide-react";
 import dicBg from "@/assets/dic-bg.png";
 import dicGroupPhoto from "@/assets/dic-group-photo.webp";
-import classroomHero from "@/assets/classroom-hero.jpg";
 import departmentsHero from "@/assets/departments-hero.webp";
-import dicLogo from "@/assets/dic-logo.png";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import type { Database } from "@/integrations/supabase/types";
 
 const About = () => {
+  const navigate = useNavigate();
   type PersonnelRow = Database["public"]["Tables"]["personnel"]["Row"];
   type LeadershipRow = Database["public"]["Tables"]["leadership"]["Row"];
   const [selectedPerson, setSelectedPerson] = useState<PersonnelRow | null>(null);
-  const { data: personnel } = useQuery<PersonnelRow[]>({
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
+  // Check authentication status
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsAuthenticated(!!session);
+    });
+  }, []);
+
+  const { data: personnel, isLoading: personnelLoading } = useQuery<PersonnelRow[]>({
     queryKey: ["about-personnel"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -31,8 +40,9 @@ const About = () => {
     },
     retry: false,
     refetchOnWindowFocus: false,
+    enabled: isAuthenticated === true,
   });
-  const { data: leadership } = useQuery<LeadershipRow[]>({
+  const { data: leadership, isLoading: leadershipLoading } = useQuery<LeadershipRow[]>({
     queryKey: ["about-leadership"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -150,49 +160,65 @@ const About = () => {
                     <h2 className="text-3xl font-bold">College Leadership</h2>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                  {topThree.map((p, idx) => (
-                    <div key={p.id} className="rounded-lg border bg-card text-card-foreground overflow-hidden animate-in fade-in-50 slide-in-from-bottom-6" style={{ animationDelay: `${idx * 120}ms` }}>
-                      <div className="relative aspect-square bg-muted group">
-                        <img src={p.photo_url || ""} alt={p.full_name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button variant="secondary" size="sm" onClick={() => setSelectedPerson(p)}>Preview Résumé</Button>
-                        </div>
-                      </div>
-                      <div className="p-4 space-y-2">
-                        <div className="text-center font-semibold">{p.rank ? `${p.rank} ${p.full_name}` : p.full_name}</div>
-                        <div className="text-sm text-muted-foreground text-center">{p.position}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-6 relative">
-                  <Carousel opts={{ align: "start", loop: false }}>
-                    <CarouselContent>
-                      {secondRowList.map((p, index) => (
-                        <CarouselItem key={p.id} className="basis-[70%] sm:basis-[50%] md:basis-[33.33%] lg:basis-[25%]">
-                          <div className="rounded-lg border bg-card text-card-foreground overflow-hidden animate-in fade-in-50 slide-in-from-bottom-6" style={{ animationDelay: `${index * 80}ms` }}>
-                            <div className="relative aspect-square bg-muted group">
-                              <img src={p.photo_url || ""} alt={p.full_name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
-                              <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex">
-                                <Button variant="secondary" size="sm" onClick={() => setSelectedPerson(p)}>Preview Résumé</Button>
-                              </div>
-                            </div>
-                            <div className="p-4 space-y-2">
-                              <div className="text-center font-semibold">{p.rank ? `${p.rank} ${p.full_name}` : p.full_name}</div>
-                              <div className="text-sm text-muted-foreground text-center">{p.position}</div>
-                              <Button variant="outline" size="sm" className="w-full sm:hidden mt-2 min-h-[44px]" onClick={() => setSelectedPerson(p)}>
-                                Preview Résumé
-                              </Button>
+                {isAuthenticated === false ? (
+                  <div className="text-center py-8 space-y-4">
+                    <Lock className="h-12 w-12 text-muted-foreground mx-auto" />
+                    <p className="text-muted-foreground">Please sign in to view staff profiles and contact information.</p>
+                    <Button onClick={() => navigate("/auth")}>Sign In</Button>
+                  </div>
+                ) : personnelLoading ? (
+                  <div className="text-center py-8 text-muted-foreground">Loading leadership...</div>
+                ) : topThree.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">No leadership profiles available.</div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                      {topThree.map((p, idx) => (
+                        <div key={p.id} className="rounded-lg border bg-card text-card-foreground overflow-hidden animate-in fade-in-50 slide-in-from-bottom-6" style={{ animationDelay: `${idx * 120}ms` }}>
+                          <div className="relative aspect-square bg-muted group">
+                            <img src={p.photo_url || ""} alt={p.full_name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button variant="secondary" size="sm" onClick={() => setSelectedPerson(p)}>Preview Résumé</Button>
                             </div>
                           </div>
-                        </CarouselItem>
+                          <div className="p-4 space-y-2">
+                            <div className="text-center font-semibold">{p.rank ? `${p.rank} ${p.full_name}` : p.full_name}</div>
+                            <div className="text-sm text-muted-foreground text-center">{p.position}</div>
+                          </div>
+                        </div>
                       ))}
-                    </CarouselContent>
-                    <CarouselPrevious className="-left-6" />
-                    <CarouselNext className="-right-6" />
-                  </Carousel>
-                </div>
+                    </div>
+                    {secondRowList.length > 0 && (
+                      <div className="mt-6 relative">
+                        <Carousel opts={{ align: "start", loop: false }}>
+                          <CarouselContent>
+                            {secondRowList.map((p, index) => (
+                              <CarouselItem key={p.id} className="basis-[70%] sm:basis-[50%] md:basis-[33.33%] lg:basis-[25%]">
+                                <div className="rounded-lg border bg-card text-card-foreground overflow-hidden animate-in fade-in-50 slide-in-from-bottom-6" style={{ animationDelay: `${index * 80}ms` }}>
+                                  <div className="relative aspect-square bg-muted group">
+                                    <img src={p.photo_url || ""} alt={p.full_name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex">
+                                      <Button variant="secondary" size="sm" onClick={() => setSelectedPerson(p)}>Preview Résumé</Button>
+                                    </div>
+                                  </div>
+                                  <div className="p-4 space-y-2">
+                                    <div className="text-center font-semibold">{p.rank ? `${p.rank} ${p.full_name}` : p.full_name}</div>
+                                    <div className="text-sm text-muted-foreground text-center">{p.position}</div>
+                                    <Button variant="outline" size="sm" className="w-full sm:hidden mt-2 min-h-[44px]" onClick={() => setSelectedPerson(p)}>
+                                      Preview Résumé
+                                    </Button>
+                                  </div>
+                                </div>
+                              </CarouselItem>
+                            ))}
+                          </CarouselContent>
+                          <CarouselPrevious className="-left-6" />
+                          <CarouselNext className="-right-6" />
+                        </Carousel>
+                      </div>
+                    )}
+                  </>
+                )}
               </CardContent>
             </Card>
 
