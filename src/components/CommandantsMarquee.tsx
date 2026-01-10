@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseClient } from "@/lib/supabase";
 import {
   Dialog,
   DialogContent,
@@ -35,25 +35,29 @@ export const CommandantsMarquee = () => {
     [normalize("U.M. Bugaje")]: cdreBugaje,
   };
 
-  const { data: commandants = [], isLoading } = useQuery({
+  const { data: commandants = [], isLoading, error } = useQuery({
     queryKey: ["leadership"],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
           .from("leadership")
           .select("*")
           .order("display_order", { ascending: true });
-        if (error) throw error;
+        if (error) {
+          console.error("Leadership fetch error:", error);
+          throw error;
+        }
         return (data as Commandant[]) || [];
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message.toLowerCase() : "";
         if (msg.includes("abort") || msg.includes("err_aborted") || msg.includes("failed to fetch")) {
+          console.error("Network error fetching leadership:", e);
           return [];
         }
         throw e;
       }
     },
-    retry: false,
+    retry: 1,
     refetchOnWindowFocus: false,
     staleTime: 300000,
   });
@@ -68,15 +72,22 @@ export const CommandantsMarquee = () => {
 
   if (isLoading) {
     return (
-      <div className="gradient-subtle py-12">
-        <h2 className="text-3xl font-bold text-center mb-8">{t('pastPresentCommandants')}</h2>
-        <div className="text-center">Loading...</div>
+      <div className="gradient-subtle py-8 sm:py-12">
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-center mb-4 sm:mb-6 md:mb-8">{t('pastPresentCommandants')}</h2>
+        <div className="text-center text-muted-foreground">Loading...</div>
       </div>
     );
   }
 
-  if (!commandants.length) {
-    return null;
+  if (error || !commandants.length) {
+    return (
+      <div className="gradient-subtle py-8 sm:py-12">
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-center mb-4 sm:mb-6 md:mb-8">{t('pastPresentCommandants')}</h2>
+        <div className="text-center text-muted-foreground">
+          {error ? "Unable to load commandants" : "No commandants available"}
+        </div>
+      </div>
+    );
   }
 
   const currentCommandant = commandants[currentIndex];

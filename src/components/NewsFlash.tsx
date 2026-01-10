@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseClient } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { formatDistanceToNow } from "date-fns";
@@ -17,16 +17,19 @@ type NewsItem = {
 export const NewsFlash = () => {
   const { t } = useLanguage();
   
-  const { data: news, isLoading } = useQuery<NewsItem[]>({
+  const { data: news, isLoading, error } = useQuery<NewsItem[]>({
     queryKey: ["news"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseClient
         .from("news")
         .select("*")
         .order("published_at", { ascending: false })
         .limit(5);
       
-      if (error) throw error;
+      if (error) {
+        console.error("NewsFlash fetch error:", error);
+        throw error;
+      }
       return data as NewsItem[];
     },
   });
