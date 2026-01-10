@@ -85,6 +85,9 @@ const translations: Record<Language, Record<string, string>> = {
     
     // Government Banner
     govBannerText: "An Official Website of the Defence Intelligence College Nigeria",
+    
+    // Magazine
+    collegeMagazine: "College Magazine",
   },
   fr: {
     // Navigation
@@ -162,6 +165,9 @@ const translations: Record<Language, Record<string, string>> = {
     
     // Government Banner
     govBannerText: "Site officiel du Collège de Renseignement de Défense du Nigeria",
+    
+    // Magazine
+    collegeMagazine: "Magazine du Collège",
   },
   ha: {
     // Navigation
@@ -239,6 +245,9 @@ const translations: Record<Language, Record<string, string>> = {
     
     // Government Banner
     govBannerText: "Shafin yanar gizon hukuma na Kwalejin Leken Asiri na Tsaro ta Najeriya",
+    
+    // Magazine
+    collegeMagazine: "Mujallar Kwalejin",
   },
   ig: {
     // Navigation
@@ -316,6 +325,9 @@ const translations: Record<Language, Record<string, string>> = {
     
     // Government Banner
     govBannerText: "Weebụsaịtị gọọmenti nke Kọleji Nchekwa Ọgụgụ Isi Nigeria",
+    
+    // Magazine
+    collegeMagazine: "Magazin Kọleji",
   },
   yo: {
     // Navigation
@@ -393,6 +405,9 @@ const translations: Record<Language, Record<string, string>> = {
     
     // Government Banner
     govBannerText: "Ojú-ẹ̀wé wẹ́ẹ̀bù osise ti Kọ́lẹ́ẹ̀jì Ìmọ̀ Àbò ti Nigeria",
+    
+    // Magazine
+    collegeMagazine: "Ìwé Ìròyìn Kọ́lẹ́ẹ̀jì",
   },
 };
 

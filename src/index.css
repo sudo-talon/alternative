@@ -263,3 +263,33 @@ All colors MUST be HSL.
     }
   }
 }
+
+/* Flipbook Styles */
+.page {
+  background-color: white;
+  border: 1px solid hsl(var(--border));
+}
+
+.page-cover {
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-dark)));
+}
+
+.stf__parent {
+  margin: 0 auto;
+}
+
+.stf__wrapper {
+  transform-style: preserve-3d;
+  perspective: 2000px;
+}
+
+.react-pdf__Page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.react-pdf__Page__canvas {
+  max-width: 100%;
+  height: auto !important;
+}
