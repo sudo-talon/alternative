@@ -137,6 +137,42 @@ export type Database = {
         }
         Relationships: []
       }
+      magazines: {
+        Row: {
+          cover_image_url: string | null
+          created_at: string
+          description: string | null
+          id: string
+          issue: string | null
+          pdf_url: string
+          published_at: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          issue?: string | null
+          pdf_url: string
+          published_at?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          issue?: string | null
+          pdf_url?: string
+          published_at?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       news: {
         Row: {
           content: string

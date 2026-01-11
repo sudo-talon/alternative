@@ -16,6 +16,7 @@ import News from "./pages/News";
 import DicChronicaleOfCommand from "./pages/DicChronicaleOfCommand";
 import PgProgram from "./pages/PgProgram";
 import Contact from "./pages/Contact";
+import EMagazine from "./pages/EMagazine";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +41,7 @@ const App = () => (
             <Route path="/chronicle-of-command" element={<DicChronicaleOfCommand />} />
             <Route path="/pg-program" element={<PgProgram />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/e-magazine" element={<EMagazine />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

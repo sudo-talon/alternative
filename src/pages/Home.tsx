@@ -12,6 +12,7 @@ import dicVideo from "@/assets/dic.mp4";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { PageWrapper } from "@/components/PageWrapper";
+import { EMagazineSidebar } from "@/components/EMagazineSidebar";
 
 
 const Home = () => {
@@ -136,6 +137,63 @@ const Home = () => {
       {/* Main Content with Sidebar */}
       <PageWrapper className="py-8 sm:py-12">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+          {/* Sidebar - Shows first on mobile */}
+          <div className="lg:col-span-1 order-1 lg:order-2">
+            <div className="lg:sticky lg:top-24 space-y-4 sm:space-y-6">
+              {/* Commandants - Shows first on mobile */}
+              <div className="lg:hidden w-full max-w-full overflow-hidden">
+                <CommandantsMarquee />
+              </div>
+              
+              <NewsFlash />
+              
+              <EMagazineSidebar />
+              
+              <Card className="shadow-elevated">
+                <CardHeader className="bg-primary text-primary-foreground p-4 sm:p-6">
+                  <CardTitle className="text-base sm:text-lg">{t('quickLinks')}</CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 sm:p-6 space-y-2">
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start min-h-[44px] text-sm"
+                    onClick={() => navigate("/courses")}
+                  >
+                    {t('browseCourses')}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start min-h-[44px] text-sm"
+                    onClick={() => navigate("/auth")}
+                  >
+                    {t('collegePortal')}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start min-h-[44px] text-sm"
+                    onClick={() => window.open("https://elibrary.dic.gov.ng", "_blank")}
+                  >
+                    {t('eLibrary')}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start min-h-[44px] text-sm"
+                    onClick={() => navigate("/e-magazine")}
+                  >
+                    {t('eMagazine') || 'E-Magazine'}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start min-h-[44px] text-sm"
+                    onClick={() => navigate("/contact")}
+                  >
+                    {t('contact')}
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8 sm:space-y-10 lg:space-y-12 order-2 lg:order-1">
             {/* Features Grid */}
@@ -162,8 +220,8 @@ const Home = () => {
               </div>
             </div>
 
-            {/* Commandants Section */}
-            <div className="w-full max-w-full overflow-hidden">
+            {/* Commandants Section - Hidden on mobile, shown on desktop */}
+            <div className="hidden lg:block w-full max-w-full overflow-hidden">
               <CommandantsMarquee />
             </div>
 
@@ -246,49 +304,6 @@ const Home = () => {
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-
-          {/* Sidebar */}
-          <div className="lg:col-span-1 order-1 lg:order-2">
-            <div className="lg:sticky lg:top-24 space-y-4 sm:space-y-6">
-              <NewsFlash />
-              
-              <Card className="shadow-elevated">
-                <CardHeader className="bg-primary text-primary-foreground p-4 sm:p-6">
-                  <CardTitle className="text-base sm:text-lg">{t('quickLinks')}</CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 sm:p-6 space-y-2">
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start min-h-[44px] text-sm"
-                    onClick={() => navigate("/courses")}
-                  >
-                    {t('browseCourses')}
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start min-h-[44px] text-sm"
-                    onClick={() => navigate("/auth")}
-                  >
-                    {t('collegePortal')}
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start min-h-[44px] text-sm"
-                    onClick={() => window.open("https://elibrary.dic.gov.ng", "_blank")}
-                  >
-                    {t('eLibrary')}
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start min-h-[44px] text-sm"
-                    onClick={() => navigate("/contact")}
-                  >
-                    {t('contact')}
-                  </Button>
-                </CardContent>
-              </Card>
             </div>
           </div>
         </div>
