@@ -1,13 +1,13 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, BookOpen } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import dicLogo from "@/assets/dic-logo.png";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { NotificationBell } from "./NotificationBell";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { MagazineFlipbook } from "./MagazineFlipbook";
+
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [user, setUser] = useState(null);
@@ -59,7 +59,6 @@ export const Navbar = () => {
             </div>
           </Link>
 
-          {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center gap-1">
             {navLinks.map((link) => (
               <Link key={link.path} to={link.path}>
@@ -68,12 +67,6 @@ export const Navbar = () => {
                 </Button>
               </Link>
             ))}
-            {/* College Magazine Button - Desktop */}
-            <MagazineFlipbook 
-              pdfUrl="/magazine/dic-magazine.pdf" 
-              title="DIC College Magazine"
-              variant="desktop"
-            />
             {user && <NotificationBell />}
             <LanguageSwitcher />
             {user ? (
@@ -118,12 +111,6 @@ export const Navbar = () => {
                 </Button>
               </Link>
             ))}
-            {/* College Magazine Flipbook */}
-            <MagazineFlipbook 
-              pdfUrl="/magazine/dic-magazine.pdf" 
-              title="DIC College Magazine"
-              variant="mobile"
-            />
             <div className="py-2">
               <LanguageSwitcher />
             </div>
