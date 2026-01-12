@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabaseClient as supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import dicLogo from "@/assets/dic-logo.png";
 const Auth = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
   const [captchaVerified, setCaptchaVerified] = useState(false);
   const [signUpData, setSignUpData] = useState({
     email: "",
@@ -26,6 +27,53 @@ const Auth = () => {
     email: "",
     password: "",
   });
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          // User is already logged in, check if admin and redirect
+          const { data: roleData } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", session.user.id)
+            .eq("role", "admin")
+            .maybeSingle();
+          
+          const isAdmin = !!roleData;
+          navigate(isAdmin ? "/admin" : "/dashboard", { replace: true });
+        }
+      } catch (error) {
+        console.error("Session check error:", error);
+      } finally {
+        setCheckingSession(false);
+      }
+    };
+
+    checkSession();
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        // Defer the navigation to avoid deadlock
+        setTimeout(async () => {
+          const { data: roleData } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", session.user.id)
+            .eq("role", "admin")
+            .maybeSingle();
+          
+          const isAdmin = !!roleData;
+          navigate(isAdmin ? "/admin" : "/dashboard", { replace: true });
+        }, 0);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,22 +143,13 @@ const Auth = () => {
             .from("profiles")
             .insert([{ id: userId, email, full_name, role: "student" }]);
         }
-        const { data: profile } = await supabase
-          .from("profiles")
+        const { data: roleData } = await supabase
+          .from("user_roles")
           .select("role")
-          .eq("id", userId)
+          .eq("user_id", userId)
+          .eq("role", "admin")
           .maybeSingle();
-        if (profile?.role === "admin") {
-          isAdmin = true;
-        } else {
-          const { data: roleData } = await supabase
-            .from("user_roles")
-            .select("role")
-            .eq("user_id", userId)
-            .eq("role", "admin")
-            .maybeSingle();
-          isAdmin = !!roleData;
-        }
+        isAdmin = !!roleData;
       }
 
       toast.success("Signed in successfully!");
@@ -122,6 +161,15 @@ const Auth = () => {
       setLoading(false);
     }
   };
+
+  // Show loading while checking session
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
