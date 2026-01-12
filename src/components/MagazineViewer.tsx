@@ -8,6 +8,15 @@ import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, X, Maximize, Minimize } fro
 // Set up the PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
+type PageFlipApi = {
+  flipNext: () => void;
+  flipPrev: () => void;
+};
+
+type FlipBookRef = {
+  pageFlip: () => PageFlipApi;
+};
+
 interface PageCoverProps {
   children: React.ReactNode;
   coverImage?: string;
@@ -75,7 +84,7 @@ export const MagazineViewer = ({ magazine, isOpen, onClose }: MagazineViewerProp
   const [isLoading, setIsLoading] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(true); // Start in fullscreen by default
   const [dimensions, setDimensions] = useState({ width: 300, height: 420 });
-  const bookRef = useRef<any>(null);
+  const bookRef = useRef<FlipBookRef | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Auto-enter fullscreen when viewer opens
@@ -132,7 +141,7 @@ export const MagazineViewer = ({ magazine, isOpen, onClose }: MagazineViewerProp
     }
   };
 
-  const handlePageFlip = (e: any) => {
+  const handlePageFlip = (e: { data: number }) => {
     setCurrentPage(e.data);
   };
 
@@ -186,7 +195,7 @@ export const MagazineViewer = ({ magazine, isOpen, onClose }: MagazineViewerProp
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent 
         ref={containerRef}
-        className="max-w-[98vw] w-full max-h-[98vh] h-full sm:max-w-[95vw] md:max-w-[90vw] lg:max-w-[1400px] p-0 overflow-hidden bg-background/95 backdrop-blur-lg"
+        className="inset-0 left-0 top-0 translate-x-0 translate-y-0 w-screen h-screen sm:left-[50%] sm:top-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:w-[95vw] sm:h-auto md:max-w-[90vw] lg:max-w-[1400px] p-0 overflow-hidden bg-background/95 backdrop-blur-lg sm:rounded-lg"
       >
         <DialogHeader className="p-3 sm:p-4 border-b bg-background/95 backdrop-blur-sm sticky top-0 z-10">
           <div className="flex items-center justify-between gap-2">

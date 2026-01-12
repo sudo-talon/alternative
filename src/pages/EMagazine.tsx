@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabaseClient } from "@/lib/supabase";
 import { Navbar } from "@/components/Navbar";
@@ -11,9 +11,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { MagazineViewer } from "@/components/MagazineViewer";
 import { MagazineUploadDialog } from "@/components/MagazineUploadDialog";
 import { BookOpen, Calendar, FileText, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 
 type Magazine = {
   id: string;
@@ -31,7 +33,7 @@ const EMagazine = () => {
   const [selectedMagazine, setSelectedMagazine] = useState<Magazine | null>(null);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<{ id: string } | null>(null);
 
   // Check admin status
   useEffect(() => {
@@ -63,6 +65,13 @@ const EMagazine = () => {
       return data as Magazine[];
     },
   });
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
+  const totalPages = useMemo(() => Math.max(1, Math.ceil((magazines?.length || 0) / itemsPerPage)), [magazines]);
+  const paginated = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return (magazines || []).slice(start, start + itemsPerPage);
+  }, [magazines, currentPage]);
 
   return (
     <div className="min-h-screen bg-background w-full max-w-[100vw] overflow-x-hidden">
@@ -93,6 +102,33 @@ const EMagazine = () => {
           )}
         </div>
 
+        {/* Controls */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="h-9 w-9 rounded-full"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="h-9 w-9 rounded-full"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <span className="text-sm text-muted-foreground ml-2">
+              Page {currentPage} of {totalPages}
+            </span>
+          </div>
+        </div>
+
         {/* Magazine Grid */}
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
@@ -111,8 +147,9 @@ const EMagazine = () => {
             <p className="text-destructive">Failed to load magazines</p>
           </div>
         ) : magazines && magazines.length > 0 ? (
+          <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-            {magazines.map((magazine) => (
+            {paginated.map((magazine) => (
               <Card 
                 key={magazine.id} 
                 className="group overflow-hidden cursor-pointer transition-all hover:shadow-xl hover:-translate-y-1 bg-card border-border"
@@ -157,11 +194,46 @@ const EMagazine = () => {
               </Card>
             ))}
           </div>
+          
+          {/* Pagination Controls */}
+          <div className="mt-6">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    href="#"
+                    onClick={(e) => { e.preventDefault(); setCurrentPage((p) => Math.max(1, p - 1)); }}
+                    className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                  />
+                </PaginationItem>
+                {Array.from({ length: totalPages }, (_, idx) => (
+                  <PaginationItem key={idx}>
+                    <PaginationLink
+                      href="#"
+                      isActive={idx + 1 === currentPage}
+                      onClick={(e) => { e.preventDefault(); setCurrentPage(idx + 1); }}
+                      className="min-w-[36px]"
+                    >
+                      {idx + 1}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+                <PaginationItem>
+                  <PaginationNext
+                    href="#"
+                    onClick={(e) => { e.preventDefault(); setCurrentPage((p) => Math.min(totalPages, p + 1)); }}
+                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+          </>
         ) : (
           <div className="text-center py-16 px-4">
             <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-muted flex items-center justify-center">
               <BookOpen className="h-12 w-12 text-muted-foreground" />
-            </div>
+              </div>
             <h3 className="text-lg font-semibold mb-2">No magazines available</h3>
             <p className="text-muted-foreground text-sm max-w-md mx-auto">
               Digital magazines will appear here once they are published.
@@ -182,8 +254,8 @@ const EMagazine = () => {
       {/* Upload Dialog (Admin only) */}
       {isAdmin && (
         <MagazineUploadDialog 
-          isOpen={isUploadOpen}
-          onClose={() => setIsUploadOpen(false)}
+          open={isUploadOpen}
+          onOpenChange={setIsUploadOpen}
           onSuccess={() => {
             refetch();
             setIsUploadOpen(false);

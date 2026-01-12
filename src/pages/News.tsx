@@ -7,7 +7,7 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink, Paginati
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Newspaper, Video, Image as ImageIcon, Users } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import cdreBugaje from "@/assets/cdre-bugaje.jpeg";
@@ -17,9 +17,9 @@ import type { Database } from "@/integrations/supabase/types";
 const News = () => {
   const navigate = useNavigate();
   type LeadershipRow = Database["public"]["Tables"]["leadership"]["Row"];
-  const overrides: Record<string, string> = {
+  const overrides = useMemo<Record<string, string>>(() => ({
     "Cdre UM BUGAJE": cdreBugaje,
-  };
+  }), []);
   const [selectedVideo, setSelectedVideo] = useState(0);
   const [resumeOpen, setResumeOpen] = useState(false);
   const assetImages = Object.values(import.meta.glob('../assets/**/*.{png,jpg,jpeg,webp}', { as: 'url', eager: true })) as string[];
@@ -101,6 +101,31 @@ const News = () => {
     refetchOnWindowFocus: false,
     staleTime: 300000,
   });
+  const [resolvedActiveUrl, setResolvedActiveUrl] = useState<string | null>(null);
+  useEffect(() => {
+    const resolve = async () => {
+      const c = activeCommandant;
+      if (!c) { setResolvedActiveUrl(null); return; }
+      const nameLower = c.full_name.toLowerCase();
+      const altLocal = nameLower.includes("bugaje") ? cdreBugaje : undefined;
+      const raw = overrides[c.full_name] || altLocal || c.photo_url || null;
+      if (!raw) { setResolvedActiveUrl(null); return; }
+      if (raw.startsWith("http") || raw.includes("/storage/v1/object/public/") || raw.startsWith("/") || raw.includes("assets/")) {
+        setResolvedActiveUrl(raw);
+        return;
+      }
+      const parts = raw.split("/");
+      const bucket = parts[0];
+      const path = parts.slice(1).join("/");
+      try {
+        const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 300);
+        setResolvedActiveUrl(data?.signedUrl || raw);
+      } catch {
+        setResolvedActiveUrl(raw);
+      }
+    };
+    resolve();
+  }, [activeCommandant, overrides]);
 
   const { data: commandants } = useQuery<LeadershipRow[]>({
     queryKey: ["commandants-list"],
@@ -238,7 +263,7 @@ const News = () => {
                     <div className="flex flex-col items-center gap-4">
                       <div className="relative w-full group">
                         <img
-                          src={overrides[activeCommandant.full_name] || activeCommandant.photo_url || cdreBugaje}
+                          src={resolvedActiveUrl || overrides[activeCommandant.full_name] || activeCommandant.photo_url || cdreBugaje}
                           alt={activeCommandant.full_name}
                           className="w-full h-auto object-contain shadow-elevated"
                         />

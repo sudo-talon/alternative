@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -21,7 +21,29 @@ const Dashboard = () => {
   type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
   type ProfileWithCategory = ProfileRow & { student_categories?: { name: string } | null };
   const [profile, setProfile] = useState<ProfileWithCategory | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const checkIsAdmin = useCallback(async (userId: string) => {
+    const { data: profileRow } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (profileRow?.role === "admin") {
+      setIsAdmin(true);
+      return;
+    }
+
+    const { data: roleData } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("role", "admin")
+      .maybeSingle();
+    setIsAdmin(!!roleData);
+  }, []);
 
   const loadProfile = useCallback(async (userId: string) => {
     try {
@@ -68,6 +90,7 @@ const Dashboard = () => {
       if (session?.user) {
         setTimeout(() => {
           loadProfile(session.user.id);
+          checkIsAdmin(session.user.id);
         }, 0);
       }
     });
@@ -80,12 +103,13 @@ const Dashboard = () => {
         navigate("/auth");
       } else {
         loadProfile(session.user.id);
+        checkIsAdmin(session.user.id);
       }
       setLoading(false);
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate, loadProfile]);
+  }, [navigate, loadProfile, checkIsAdmin]);
 
   // Fetch enrolled courses with instructor info
   const { data: enrolledCourses } = useQuery({
@@ -107,6 +131,70 @@ const Dashboard = () => {
       return data;
     },
     enabled: !!user?.id,
+  });
+
+  const enrolledCourseIds = useMemo(() => {
+    return (enrolledCourses || []).map((e: { course_id: string | null }) => e.course_id).filter(Boolean) as string[];
+  }, [enrolledCourses]);
+
+  const enrolledCourseIdsKey = useMemo(() => enrolledCourseIds.join(","), [enrolledCourseIds]);
+
+  const { data: progressByCourseId } = useQuery({
+    queryKey: ["quizProgress", user?.id, enrolledCourseIdsKey],
+    queryFn: async () => {
+      if (!user?.id) return {} as Record<string, { passed: number; total: number }>;
+      if (enrolledCourseIds.length === 0) return {} as Record<string, { passed: number; total: number }>;
+
+      const { data: quizzesData, error: quizzesError } = await supabase
+        .from("quizzes")
+        .select("id, course_id")
+        .in("course_id", enrolledCourseIds);
+      if (quizzesError) throw quizzesError;
+
+      const quizzes = (quizzesData as Array<{ id: string; course_id: string }>) || [];
+      const quizIds = quizzes.map((q) => q.id);
+
+      if (quizIds.length === 0) {
+        const empty: Record<string, { passed: number; total: number }> = {};
+        for (const cId of enrolledCourseIds) empty[cId] = { passed: 0, total: 0 };
+        return empty;
+      }
+
+      const { data: submissionsData, error: submissionsError } = await supabase
+        .from("quiz_submissions")
+        .select("quiz_id, score")
+        .eq("student_id", user.id)
+        .in("quiz_id", quizIds);
+      if (submissionsError) throw submissionsError;
+
+      const bestScoreByQuizId = new Map<string, number>();
+      for (const s of (submissionsData as Array<{ quiz_id: string; score: number | null }>) || []) {
+        const prev = bestScoreByQuizId.get(s.quiz_id) ?? -1;
+        const next = typeof s.score === "number" ? s.score : -1;
+        if (next > prev) bestScoreByQuizId.set(s.quiz_id, next);
+      }
+
+      const passedByQuizId = new Set<string>();
+      for (const [quizId, score] of bestScoreByQuizId.entries()) {
+        if (score >= 70) passedByQuizId.add(quizId);
+      }
+
+      const totalByCourseId: Record<string, number> = {};
+      const passedByCourseId: Record<string, number> = {};
+      for (const q of quizzes) {
+        totalByCourseId[q.course_id] = (totalByCourseId[q.course_id] || 0) + 1;
+        if (passedByQuizId.has(q.id)) {
+          passedByCourseId[q.course_id] = (passedByCourseId[q.course_id] || 0) + 1;
+        }
+      }
+
+      const out: Record<string, { passed: number; total: number }> = {};
+      for (const cId of enrolledCourseIds) {
+        out[cId] = { passed: passedByCourseId[cId] || 0, total: totalByCourseId[cId] || 0 };
+      }
+      return out;
+    },
+    enabled: !!user?.id && enrolledCourseIds.length > 0,
   });
 
   const handleSignOut = async () => {
@@ -142,7 +230,7 @@ const Dashboard = () => {
               Welcome, {profile?.full_name || "User"}
             </h1>
             <p className="text-muted-foreground capitalize">
-              Role: {profile?.role || "student"}
+              Role: {isAdmin ? "admin" : (profile?.role || "student")}
             </p>
             {profile?.student_categories && (
               <Badge variant="outline" className="mt-2">
@@ -166,6 +254,12 @@ const Dashboard = () => {
               <TabsTrigger value="manage">
                 <Users className="mr-2 h-4 w-4" />
                 Manage Courses
+              </TabsTrigger>
+            )}
+            {isAdmin && (
+              <TabsTrigger value="admin">
+                <Users className="mr-2 h-4 w-4" />
+                Admin
               </TabsTrigger>
             )}
             <TabsTrigger value="profile">
@@ -199,11 +293,16 @@ const Dashboard = () => {
                           <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
                             {enrollment.courses?.description}
                           </p>
+                          <div className="text-xs text-muted-foreground mb-4">
+                            Quizzes passed:{" "}
+                            {progressByCourseId?.[enrollment.course_id]?.passed ?? 0}/
+                            {progressByCourseId?.[enrollment.course_id]?.total ?? 0}
+                          </div>
                           <Button 
                             size="sm" 
-                            onClick={() => navigate(`/course/${enrollment.courses?.title}`)}
+                            onClick={() => navigate(`/course/${enrollment.courses?.id}/learn`)}
                           >
-                            View Course
+                            Continue Learning
                           </Button>
                         </CardContent>
                       </Card>
@@ -225,14 +324,32 @@ const Dashboard = () => {
             <TabsContent value="manage">
               <Card>
                 <CardHeader>
-                  <CardTitle>Manage Your Courses</CardTitle>
+                  <CardTitle>Instructor Dashboard</CardTitle>
                   <CardDescription>
-                    Create and manage courses for your students
+                    Manage your courses, lessons, and quizzes.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Button onClick={() => navigate("/courses/create")}>
-                    Create New Course
+                  <Button onClick={() => navigate("/instructor")}>
+                    Go to Instructor Dashboard
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+
+          {isAdmin && (
+              <TabsContent value="admin">
+            <Card>
+              <CardHeader>
+                <CardTitle>Admin Dashboard</CardTitle>
+                <CardDescription>
+                    Manage users, content, and system settings.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button onClick={() => navigate("/admin")}>
+                    Go to Admin Dashboard
                   </Button>
                 </CardContent>
               </Card>

@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Database } from "@/integrations/supabase/types";
+import cdreBugaje from "@/assets/cdre-bugaje.jpeg";
 
 const About = () => {
   const navigate = useNavigate();
@@ -20,6 +21,7 @@ const About = () => {
   type LeadershipRow = Database["public"]["Tables"]["leadership"]["Row"];
   const [selectedPerson, setSelectedPerson] = useState<PersonnelRow | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [resolvedPhotos, setResolvedPhotos] = useState<Record<string, string>>({});
 
   // Check authentication status
   useEffect(() => {
@@ -28,13 +30,14 @@ const About = () => {
     });
   }, []);
 
-  const { data: personnel, isLoading: personnelLoading } = useQuery<PersonnelRow[]>({
+  const { data: personnel, isLoading: personnelLoading, error: personnelError } = useQuery<PersonnelRow[]>({
     queryKey: ["about-personnel"],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       const { data, error } = await supabase
         .from("personnel")
         .select("*")
-        .order("department", { ascending: true });
+        .order("department", { ascending: true })
+        .abortSignal(signal as AbortSignal);
       if (error) throw error;
       return (data as PersonnelRow[]) || [];
     },
@@ -42,13 +45,14 @@ const About = () => {
     refetchOnWindowFocus: false,
     enabled: isAuthenticated === true,
   });
-  const { data: leadership, isLoading: leadershipLoading } = useQuery<LeadershipRow[]>({
+  const { data: leadership, isLoading: leadershipLoading, error: leadershipError } = useQuery<LeadershipRow[]>({
     queryKey: ["about-leadership"],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       const { data, error } = await supabase
         .from("leadership")
         .select("*")
-        .order("display_order", { ascending: true });
+        .order("display_order", { ascending: true })
+        .abortSignal(signal as AbortSignal);
       if (error) throw error;
       return (data as LeadershipRow[]) || [];
     },
@@ -77,6 +81,34 @@ const About = () => {
   const topThree = orderedTopThree;
   const restHeads = sourceList.filter(p => !orderedTopThree.includes(p));
   const secondRowList = [...restHeads];
+
+  useEffect(() => {
+    const run = async () => {
+      const map: Record<string, string> = {};
+      for (const p of sourceList) {
+        const name = String(p.full_name || "");
+        const altLocal = /bugaje/i.test(name) ? cdreBugaje : undefined;
+        const raw = altLocal || p.photo_url || "";
+        if (!raw) continue;
+        if (raw.startsWith("http") || raw.includes("/storage/v1/object/public/") || raw.startsWith("/") || raw.includes("assets/")) {
+          map[p.id] = raw;
+          continue;
+        }
+        const parts = raw.split("/");
+        const bucket = parts[0];
+        const path = parts.slice(1).join("/");
+        try {
+          const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 300);
+          if (data?.signedUrl) map[p.id] = data.signedUrl;
+        } catch {
+          map[p.id] = raw;
+        }
+      }
+      setResolvedPhotos(map);
+    };
+    run();
+  }, [sourceList]);
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -168,6 +200,8 @@ const About = () => {
                   </div>
                 ) : personnelLoading ? (
                   <div className="text-center py-8 text-muted-foreground">Loading leadership...</div>
+                ) : personnelError ? (
+                  <div className="text-center py-8 text-muted-foreground">Unable to load leadership at the moment.</div>
                 ) : topThree.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">No leadership profiles available.</div>
                 ) : (
@@ -176,7 +210,7 @@ const About = () => {
                       {topThree.map((p, idx) => (
                         <div key={p.id} className="rounded-lg border bg-card text-card-foreground overflow-hidden animate-in fade-in-50 slide-in-from-bottom-6" style={{ animationDelay: `${idx * 120}ms` }}>
                           <div className="relative aspect-square bg-muted group">
-                            <img src={p.photo_url || ""} alt={p.full_name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                            <img src={resolvedPhotos[p.id] || p.photo_url || ""} alt={p.full_name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                             <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
                               <Button variant="secondary" size="sm" onClick={() => setSelectedPerson(p)}>Preview Résumé</Button>
                             </div>
@@ -196,7 +230,7 @@ const About = () => {
                               <CarouselItem key={p.id} className="basis-[70%] sm:basis-[50%] md:basis-[33.33%] lg:basis-[25%]">
                                 <div className="rounded-lg border bg-card text-card-foreground overflow-hidden animate-in fade-in-50 slide-in-from-bottom-6" style={{ animationDelay: `${index * 80}ms` }}>
                                   <div className="relative aspect-square bg-muted group">
-                                    <img src={p.photo_url || ""} alt={p.full_name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                                    <img src={resolvedPhotos[p.id] || p.photo_url || ""} alt={p.full_name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                                     <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex">
                                       <Button variant="secondary" size="sm" onClick={() => setSelectedPerson(p)}>Preview Résumé</Button>
                                     </div>

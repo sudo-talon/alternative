@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { useLanguage } from "@/contexts/LanguageContext";
 import cdreBugaje from "@/assets/cdre-bugaje.jpeg";
+import effahImg from "@/assets/images.jpeg";
 
 interface Commandant {
   id: string;
@@ -28,12 +29,6 @@ export const CommandantsMarquee = () => {
   const [selectedCommandant, setSelectedCommandant] = useState<Commandant | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const { t } = useLanguage();
-  const normalize = (s: string) => s.toLowerCase().replace(/[^a-z]/g, "");
-  const overrides: Record<string, string> = {
-    [normalize("UM Bugaje")]: cdreBugaje,
-    [normalize("Cdre UM BUGAJE")]: cdreBugaje,
-    [normalize("U.M. Bugaje")]: cdreBugaje,
-  };
 
   const { data: commandants = [], isLoading, error } = useQuery({
     queryKey: ["leadership"],
@@ -61,6 +56,34 @@ export const CommandantsMarquee = () => {
     refetchOnWindowFocus: false,
     staleTime: 300000,
   });
+  const overrides = useMemo<Record<string, string>>(() => ({
+    "CDRE A. U. Bugaje": cdreBugaje,
+    "Effah": effahImg,
+  }), []);
+  const [resolvedPhotoUrl, setResolvedPhotoUrl] = useState<string | null>(null);
+  useEffect(() => {
+    const run = async () => {
+      const c = commandants[currentIndex];
+      if (!c) { setResolvedPhotoUrl(null); return; }
+      const altLocal = c.full_name.toLowerCase().includes("bugaje") ? cdreBugaje : undefined;
+      const raw = overrides[c.full_name] || altLocal || c.photo_url || null;
+      if (!raw) { setResolvedPhotoUrl(null); return; }
+      if (raw.startsWith("http") || raw.includes("/storage/v1/object/public/") || raw.startsWith("/") || raw.includes("assets/")) {
+        setResolvedPhotoUrl(raw);
+        return;
+      }
+      const parts = raw.split("/");
+      const bucket = parts[0];
+      const path = parts.slice(1).join("/");
+      try {
+        const { data } = await supabaseClient.storage.from(bucket).createSignedUrl(path, 300);
+        setResolvedPhotoUrl(data?.signedUrl || raw);
+      } catch {
+        setResolvedPhotoUrl(raw);
+      }
+    };
+    run();
+  }, [currentIndex, commandants, overrides]);
 
   const handlePrevious = () => {
     setCurrentIndex((prev) => (prev > 0 ? prev - 1 : commandants.length - 1));
@@ -96,42 +119,42 @@ export const CommandantsMarquee = () => {
     if (s.includes("former commandant")) return "Former Commandant DIC";
     return p || "";
   };
+  
 
   return (
     <>
       <div className="gradient-subtle py-8 sm:py-12 w-full max-w-full overflow-hidden">
-        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-center mb-4 sm:mb-6 md:mb-8 px-4">{t('pastPresentCommandants')}</h2>
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-left mb-4 sm:mb-6 md:mb-8 px-4">{t('pastPresentCommandants')}</h2>
         <div className="relative px-2 sm:px-4 w-full max-w-full">
           <div className="relative">
             <Card className="shadow-elevated w-full max-w-full mx-auto">
               <CardContent className="p-4 sm:p-6">
-                <div className="flex flex-col gap-4 sm:gap-6 items-center justify-center">
+                <div className="flex flex-col items-center justify-center gap-4">
                   <div className="shrink-0 flex justify-center">
                     {(() => {
-                      const overrideSrc = overrides[normalize(currentCommandant.full_name)];
-                      const src = overrideSrc || currentCommandant.photo_url || "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&h=150&fit=crop";
+                      const src = resolvedPhotoUrl || overrides[currentCommandant.full_name] || currentCommandant.photo_url || "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&h=150&fit=crop";
                       return (
                         <img
                           src={src}
                           alt={currentCommandant.full_name}
-                          className="w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 rounded-full object-cover object-center border-4 border-primary shadow-lg mx-auto"
+                          className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 rounded-full object-cover border-4 border-primary shadow-lg"
                         />
                       );
                     })()}
                   </div>
-                  <div className="flex-1 min-w-0 space-y-2 sm:space-y-3 text-center w-full">
+                  <div className="flex flex-col items-center text-center w-full space-y-2">
                     <div>
-                      <h3 className="font-bold text-base sm:text-lg md:text-xl text-primary leading-tight">{`${currentCommandant.rank} ${currentCommandant.full_name}`}</h3>
+                      <h3 className="font-bold text-lg sm:text-xl md:text-2xl text-primary leading-tight">{`${currentCommandant.rank} ${currentCommandant.full_name}`}</h3>
                     </div>
                     <div className="flex flex-col items-center gap-2 w-full">
-                      <span className={`text-xs sm:text-sm font-semibold ${currentCommandant.is_active ? 'text-red-500' : 'text-accent'}`}>
+                      <span className={`text-sm sm:text-base font-semibold ${currentCommandant.is_active ? 'text-red-500' : 'text-accent'}`}>
                         {currentCommandant.is_active ? t('commandantDIC') : formatPosition(currentCommandant.position)}
                       </span>
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => setSelectedCommandant(currentCommandant)}
-                        className="min-h-[44px] text-xs sm:text-sm"
+                        className="mt-2"
                       >
                         {t('readMore')}
                       </Button>
@@ -190,8 +213,7 @@ export const CommandantsMarquee = () => {
           </DialogHeader>
           <div className="mt-4">
             {(() => {
-              const overrideSrc = selectedCommandant ? overrides[normalize(selectedCommandant.full_name)] : undefined;
-              const selectedPhoto = selectedCommandant && (overrideSrc || selectedCommandant.photo_url);
+              const selectedPhoto = selectedCommandant && (resolvedPhotoUrl || overrides[selectedCommandant.full_name] || selectedCommandant.photo_url || "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&h=150&fit=crop");
               return selectedPhoto ? (
                 <img
                   src={selectedPhoto}
@@ -200,7 +222,9 @@ export const CommandantsMarquee = () => {
                 />
               ) : null;
             })()}
-            <p className="text-sm text-foreground leading-relaxed">{selectedCommandant?.bio}</p>
+            <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
+              {selectedCommandant?.bio || t('noBioAvailable')}
+            </p>
           </div>
         </DialogContent>
       </Dialog>

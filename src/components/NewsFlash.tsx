@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabaseClient } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +17,7 @@ type NewsItem = {
 
 export const NewsFlash = () => {
   const { t } = useLanguage();
+  const [resolvedImages, setResolvedImages] = useState<Record<string, string>>({});
   
   const { data: news, isLoading, error } = useQuery<NewsItem[]>({
     queryKey: ["news"],
@@ -33,6 +35,31 @@ export const NewsFlash = () => {
       return data as NewsItem[];
     },
   });
+  
+  useEffect(() => {
+    const run = async () => {
+      const items = (news || []).filter(n => !!n.featured_image_url);
+      const pairs = await Promise.all(items.map(async (n) => {
+        const url = n.featured_image_url as string;
+        if (url.startsWith("http") || url.includes("/storage/v1/object/public/") || url.startsWith("/") || url.includes("assets/")) {
+          return [n.id, url] as const;
+        }
+        const parts = url.split("/");
+        const bucket = parts[0];
+        const path = parts.slice(1).join("/");
+        try {
+          const { data } = await supabaseClient.storage.from(bucket).createSignedUrl(path, 300);
+          return [n.id, data?.signedUrl || url] as const;
+        } catch {
+          return [n.id, url] as const;
+        }
+      }));
+      const map: Record<string, string> = {};
+      for (const [id, u] of pairs) map[id] = u;
+      setResolvedImages(map);
+    };
+    run();
+  }, [news]);
 
   return (
     <Card className="shadow-elevated overflow-hidden w-full max-w-full">
@@ -54,8 +81,9 @@ export const NewsFlash = () => {
                       onClick={() => {
                         const modal = document.createElement('div');
                         modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
-                        const imageBlock = item.featured_image_url 
-                          ? `<img src="${item.featured_image_url}" alt="${item.title}" class="w-full h-40 sm:h-56 object-cover rounded-md mb-4" />`
+                        const imgUrl = resolvedImages[item.id] || item.featured_image_url || "";
+                        const imageBlock = imgUrl 
+                          ? `<img src="${imgUrl}" alt="${item.title}" class="w-full h-40 sm:h-56 object-cover rounded-md mb-4" />`
                           : '';
                         modal.innerHTML = `
                           <div class="bg-background rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto p-4 sm:p-6 relative mx-4">
@@ -75,22 +103,13 @@ export const NewsFlash = () => {
                       }}
                     >
                       <div className="flex items-start gap-3">
-                        <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 shrink-0 rounded-md overflow-hidden bg-muted">
-                          {item.featured_image_url ? (
-                            <img 
-                              src={item.featured_image_url} 
-                              alt={item.title} 
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-primary/10">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary/50">
-                                <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
-                                <circle cx="12" cy="13" r="3"/>
-                              </svg>
-                            </div>
-                          )}
-                        </div>
+                        {(resolvedImages[item.id] || item.featured_image_url) && (
+                          <img 
+                            src={resolvedImages[item.id] || (item.featured_image_url as string)} 
+                            alt={item.title} 
+                            className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 object-cover rounded-md shrink-0"
+                          />
+                        )}
                         <div className="flex-1 min-w-0 space-y-1">
                           <h4 className="font-semibold text-xs sm:text-sm leading-tight line-clamp-2">{item.title}</h4>
                           <p className="text-xs text-muted-foreground line-clamp-2">{item.content}</p>
@@ -112,8 +131,9 @@ export const NewsFlash = () => {
                       onClick={() => {
                         const modal = document.createElement('div');
                         modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
-                        const imageBlock = item.featured_image_url 
-                          ? `<img src="${item.featured_image_url}" alt="${item.title}" class="w-full h-40 sm:h-56 object-cover rounded-md mb-4" />`
+                        const imgUrl = resolvedImages[item.id] || item.featured_image_url || "";
+                        const imageBlock = imgUrl 
+                          ? `<img src="${imgUrl}" alt="${item.title}" class="w-full h-40 sm:h-56 object-cover rounded-md mb-4" />`
                           : '';
                         modal.innerHTML = `
                           <div class="bg-background rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto p-4 sm:p-6 relative mx-4">
@@ -133,22 +153,13 @@ export const NewsFlash = () => {
                       }}
                     >
                       <div className="flex items-start gap-3">
-                        <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 shrink-0 rounded-md overflow-hidden bg-muted">
-                          {item.featured_image_url ? (
-                            <img 
-                              src={item.featured_image_url} 
-                              alt={item.title} 
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-primary/10">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary/50">
-                                <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
-                                <circle cx="12" cy="13" r="3"/>
-                              </svg>
-                            </div>
-                          )}
-                        </div>
+                        {(resolvedImages[item.id] || item.featured_image_url) && (
+                          <img 
+                            src={resolvedImages[item.id] || (item.featured_image_url as string)} 
+                            alt={item.title} 
+                            className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 object-cover rounded-md shrink-0"
+                          />
+                        )}
                         <div className="flex-1 min-w-0 space-y-1">
                           <h4 className="font-semibold text-xs sm:text-sm leading-tight line-clamp-2">{item.title}</h4>
                           <p className="text-xs text-muted-foreground line-clamp-2">{item.content}</p>

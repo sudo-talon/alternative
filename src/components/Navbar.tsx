@@ -1,26 +1,61 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X } from "lucide-react";
+import { Menu, X, User as UserIcon } from "lucide-react";
 import { useState, useEffect } from "react";
 import dicLogo from "@/assets/dic-logo.png";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { NotificationBell } from "./NotificationBell";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ChangePasswordDialog } from "./ChangePasswordDialog";
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [user, setUser] = useState(null);
+  const [role, setRole] = useState<string | null>(null);
   const navigate = useNavigate();
   const { t } = useLanguage();
 
   useEffect(() => {
+    const getRole = async (userId: string) => {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", userId)
+        .single();
+      
+      if (profile?.role === "admin") {
+        setRole("admin");
+      } else {
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", userId)
+          .eq("role", "admin")
+          .maybeSingle();
+        if (roleData) {
+          setRole("admin");
+        } else {
+          setRole(profile?.role || "student");
+        }
+      }
+    };
+
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user);
+      if (user) getRole(user.id);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      if (session?.user) getRole(session.user.id);
+      else setRole(null);
     });
 
     return () => subscription.unsubscribe();
@@ -70,12 +105,27 @@ export const Navbar = () => {
             {user && <NotificationBell />}
             <LanguageSwitcher />
             {user ? (
-              <Button 
-                onClick={handleLogout}
-                className="ml-2 bg-accent hover:bg-accent/90 min-h-[40px]"
-              >
-                {t('logout')}
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="ml-2 h-10 w-10 rounded-full p-0">
+                    <UserIcon className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem 
+                    onClick={() => navigate(role === 'admin' ? '/admin' : role === 'instructor' ? '/instructor' : '/dashboard')}
+                    className="cursor-pointer font-medium"
+                  >
+                    Dashboard
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="p-0">
+                    <ChangePasswordDialog />
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+                    {t('logout')}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : (
               <Button 
                 onClick={() => navigate("/auth")}
