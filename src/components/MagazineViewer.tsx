@@ -73,10 +73,20 @@ export const MagazineViewer = ({ magazine, isOpen, onClose }: MagazineViewerProp
   const [currentPage, setCurrentPage] = useState(0);
   const [scale, setScale] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(true); // Start in fullscreen by default
   const [dimensions, setDimensions] = useState({ width: 300, height: 420 });
   const bookRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-enter fullscreen when viewer opens
+  useEffect(() => {
+    if (isOpen && containerRef.current && !document.fullscreenElement) {
+      containerRef.current.requestFullscreen().catch(() => {
+        // Fullscreen may not be available, that's ok
+        setIsFullscreen(false);
+      });
+    }
+  }, [isOpen]);
 
   // Calculate responsive page dimensions
   const updateDimensions = useCallback(() => {

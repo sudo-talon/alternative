@@ -72,7 +72,12 @@ const Auth = () => {
         password: signInData.password,
       });
 
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes("Failed to fetch") || error.message.includes("fetch")) {
+          throw new Error("Network error. Please check your internet connection and try again.");
+        }
+        throw error;
+      }
 
       const userId = data.user?.id;
       let isAdmin = false;

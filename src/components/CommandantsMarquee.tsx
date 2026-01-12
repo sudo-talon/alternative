@@ -105,7 +105,7 @@ export const CommandantsMarquee = () => {
           <div className="relative">
             <Card className="shadow-elevated w-full max-w-full mx-auto">
               <CardContent className="p-4 sm:p-6">
-                <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 items-center justify-center">
+                <div className="flex flex-col gap-4 sm:gap-6 items-center justify-center">
                   <div className="shrink-0 flex justify-center">
                     {(() => {
                       const overrideSrc = overrides[normalize(currentCommandant.full_name)];
@@ -114,16 +114,16 @@ export const CommandantsMarquee = () => {
                         <img
                           src={src}
                           alt={currentCommandant.full_name}
-                          className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-full object-cover border-4 border-primary shadow-lg"
+                          className="w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 rounded-full object-cover object-center border-4 border-primary shadow-lg mx-auto"
                         />
                       );
                     })()}
                   </div>
-                  <div className="flex-1 min-w-0 space-y-2 sm:space-y-3 text-center sm:text-left w-full">
+                  <div className="flex-1 min-w-0 space-y-2 sm:space-y-3 text-center w-full">
                     <div>
                       <h3 className="font-bold text-base sm:text-lg md:text-xl text-primary leading-tight">{`${currentCommandant.rank} ${currentCommandant.full_name}`}</h3>
                     </div>
-                    <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 sm:justify-between w-full">
+                    <div className="flex flex-col items-center gap-2 w-full">
                       <span className={`text-xs sm:text-sm font-semibold ${currentCommandant.is_active ? 'text-red-500' : 'text-accent'}`}>
                         {currentCommandant.is_active ? t('commandantDIC') : formatPosition(currentCommandant.position)}
                       </span>

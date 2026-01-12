@@ -75,13 +75,22 @@ export const NewsFlash = () => {
                       }}
                     >
                       <div className="flex items-start gap-3">
-                        {item.featured_image_url && (
-                          <img 
-                            src={item.featured_image_url} 
-                            alt={item.title} 
-                            className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 object-cover rounded-md shrink-0"
-                          />
-                        )}
+                        <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 shrink-0 rounded-md overflow-hidden bg-muted">
+                          {item.featured_image_url ? (
+                            <img 
+                              src={item.featured_image_url} 
+                              alt={item.title} 
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-primary/10">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary/50">
+                                <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+                                <circle cx="12" cy="13" r="3"/>
+                              </svg>
+                            </div>
+                          )}
+                        </div>
                         <div className="flex-1 min-w-0 space-y-1">
                           <h4 className="font-semibold text-xs sm:text-sm leading-tight line-clamp-2">{item.title}</h4>
                           <p className="text-xs text-muted-foreground line-clamp-2">{item.content}</p>
@@ -124,13 +133,22 @@ export const NewsFlash = () => {
                       }}
                     >
                       <div className="flex items-start gap-3">
-                        {item.featured_image_url && (
-                          <img 
-                            src={item.featured_image_url} 
-                            alt={item.title} 
-                            className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 object-cover rounded-md shrink-0"
-                          />
-                        )}
+                        <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 shrink-0 rounded-md overflow-hidden bg-muted">
+                          {item.featured_image_url ? (
+                            <img 
+                              src={item.featured_image_url} 
+                              alt={item.title} 
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-primary/10">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary/50">
+                                <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+                                <circle cx="12" cy="13" r="3"/>
+                              </svg>
+                            </div>
+                          )}
+                        </div>
                         <div className="flex-1 min-w-0 space-y-1">
                           <h4 className="font-semibold text-xs sm:text-sm leading-tight line-clamp-2">{item.title}</h4>
                           <p className="text-xs text-muted-foreground line-clamp-2">{item.content}</p>
