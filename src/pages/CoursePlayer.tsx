@@ -11,6 +11,18 @@ import { Menu, PlayCircle, CheckCircle, FileText, ArrowLeft, Video, FileQuestion
 import { QuizPlayer } from "@/components/QuizPlayer";
 import { toast } from "sonner";
 
+// Local lesson type until types are regenerated
+interface LessonRow {
+  id: string;
+  course_id: string;
+  title: string;
+  content: string | null;
+  video_url: string | null;
+  order_index: number;
+  created_at: string;
+  updated_at: string;
+}
+
 const CoursePlayer = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
@@ -36,16 +48,17 @@ const CoursePlayer = () => {
   });
 
   // Fetch lessons
-  const { data: lessons, isLoading: lessonsLoading } = useQuery({
+  const { data: lessons, isLoading: lessonsLoading } = useQuery<LessonRow[]>({
     queryKey: ["course-lessons", courseId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
         .from("lessons")
         .select("*")
         .eq("course_id", courseId)
         .order("order_index", { ascending: true });
       if (error) throw error;
-      return data;
+      return (data as LessonRow[]) || [];
     },
     enabled: !!courseId,
   });
@@ -150,7 +163,7 @@ const CoursePlayer = () => {
     }
   }, [lessons, quizzes, activeLessonId, activeQuizId]);
 
-  const activeLesson = lessons?.find((l: { id: string }) => l.id === activeLessonId);
+  const activeLesson = lessons?.find((l) => l.id === activeLessonId);
 
   const LessonList = () => (
     <div className="py-4">
@@ -160,7 +173,7 @@ const CoursePlayer = () => {
       <div className="mb-6">
         <h4 className="px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Lessons</h4>
         <div className="space-y-1">
-          {lessons?.map((lesson: { id: string; title: string; video_url: string | null }, index: number) => (
+          {lessons?.map((lesson, index) => (
             <Button
               key={lesson.id}
               variant={activeLessonId === lesson.id ? "secondary" : "ghost"}
