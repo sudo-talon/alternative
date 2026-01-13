@@ -38,7 +38,17 @@ import {
 import { Plus, Save, Trash, ArrowLeft, Video, FileText, HelpCircle, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { QuizQuestionsEditor } from "@/components/QuizQuestionsEditor";
-import type { Database } from "@/integrations/supabase/types";
+// Local lesson type until types are regenerated
+interface LessonRow {
+  id: string;
+  course_id: string;
+  title: string;
+  content: string | null;
+  video_url: string | null;
+  order_index: number;
+  created_at: string;
+  updated_at: string;
+}
 
 const CourseEditor = () => {
   const { courseId } = useParams();
@@ -48,7 +58,6 @@ const CourseEditor = () => {
   const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
   
   // Lessons state
-  type LessonRow = Database["public"]["Tables"]["lessons"]["Row"];
   const [createLessonOpen, setCreateLessonOpen] = useState(false);
   const [newLesson, setNewLesson] = useState({
     title: "",
@@ -82,14 +91,14 @@ const CourseEditor = () => {
   const { data: lessons, isLoading: lessonsLoading } = useQuery<LessonRow[]>({
     queryKey: ["course-lessons", courseId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
         .from("lessons")
         .select("*")
         .eq("course_id", courseId)
         .order("order_index", { ascending: true });
       
       if (error) {
-        // If table doesn't exist yet or other error, return empty array
         console.error("Error fetching lessons:", error);
         return [];
       }
@@ -175,7 +184,8 @@ const CourseEditor = () => {
       // Get max order index
       const maxOrder = lessons?.length ? Math.max(...lessons.map(l => l.order_index)) : -1;
       
-      const { error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
         .from("lessons")
         .insert([{
           course_id: courseId,
@@ -199,7 +209,8 @@ const CourseEditor = () => {
 
   const deleteLessonMutation = useMutation({
     mutationFn: async (lessonId: string) => {
-      const { error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
         .from("lessons")
         .delete()
         .eq("id", lessonId);
