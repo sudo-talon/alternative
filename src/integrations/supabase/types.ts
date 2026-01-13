@@ -55,47 +55,6 @@ export type Database = {
           },
         ]
       }
-      lessons: {
-        Row: {
-          id: string
-          course_id: string
-          title: string
-          content: string | null
-          video_url: string | null
-          order_index: number
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          course_id: string
-          title: string
-          content?: string | null
-          video_url?: string | null
-          order_index?: number
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          course_id?: string
-          title?: string
-          content?: string | null
-          video_url?: string | null
-          order_index?: number
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lessons_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "courses"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       enrollments: {
         Row: {
           course_id: string
@@ -362,7 +321,6 @@ export type Database = {
           email: string
           full_name: string
           id: string
-          is_suspended: boolean | null
           role: Database["public"]["Enums"]["user_role"]
           updated_at: string
         }
@@ -372,7 +330,6 @@ export type Database = {
           email: string
           full_name: string
           id: string
-          is_suspended?: boolean | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
         }
@@ -382,7 +339,6 @@ export type Database = {
           email?: string
           full_name?: string
           id?: string
-          is_suspended?: boolean | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
         }
