@@ -5,33 +5,51 @@ import { Button } from "@/components/ui/button";
 import { BookOpen, GraduationCap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import departmentsHero from "@/assets/departments-hero.webp";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 
 const Courses = () => {
   const navigate = useNavigate();
   
-  const { data: courses, isLoading } = useQuery({
-    queryKey: ["courses-list"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("courses")
-        .select("*")
-        .order("title");
-      if (error) throw error;
-      return data;
+  const courseCategories = [
+    {
+      category: "Generic Courses",
+      courses: [
+        { title: "Basic Intelligence Officers' Course", description: "Foundation training for intelligence officers" },
+        { title: "Defence Intelligence Officers' Course", description: "Comprehensive defence intelligence training" },
+        { title: "Advanced Defence Intelligence Officers' Course", description: "Advanced training for senior officers" },
+        { title: "Junior Defence Intelligence Basic Course", description: "Entry-level training for junior personnel" },
+        { title: "Junior Defence Intelligence Intermediate Course", description: "Intermediate skills development" },
+        { title: "Junior Defence Intelligence Advanced Course", description: "Advanced training for junior officers" },
+      ]
     },
-  });
-
-  // Group courses by category
-  const coursesByCategory = courses?.reduce((acc: Record<string, typeof courses>, course) => {
-    const category = course.category || "Other Courses";
-    if (!acc[category]) {
-      acc[category] = [];
+    {
+      category: "Specialized Courses",
+      courses: [
+        { title: "Psychological Operations Course", description: "Strategic psychological operations training" },
+        { title: "Intelligence Analysis Officers' Course", description: "Advanced intelligence analysis techniques" },
+        { title: "Security Investigation and Interrogation Course", description: "Professional interrogation methods" },
+        { title: "Document Security Course", description: "Document classification and protection" },
+        { title: "Joint Military Attache / Advisers Course", description: "Diplomatic and advisory training" },
+        { title: "Special Intelligence and Security Course", description: "Specialized intelligence operations" },
+      ]
+    },
+    {
+      category: "Language Courses",
+      courses: [
+        { title: "Basic French Course", description: "Foundation French language training" },
+        { title: "Intermediate French Language Course", description: "Intermediate French proficiency" },
+        { title: "Basic German Language Course", description: "Foundation German language training" },
+      ]
+    },
+    {
+      category: "Strategic Courses",
+      courses: [
+        { title: "The National Security Training Seminar", description: "National security strategy and policy" },
+        { title: "Intelligence Analysis Course", description: "Strategic intelligence assessment" },
+        { title: "Peace and Conflict Studies", description: "Peace operations and conflict resolution" },
+        { title: "Strategic Security Course", description: "Strategic security planning and management" },
+      ]
     }
-    acc[category].push(course);
-    return acc;
-  }, {} as Record<string, typeof courses>);
+  ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -60,49 +78,39 @@ const Courses = () => {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-12">
-        {isLoading ? (
-            <div className="flex justify-center items-center py-20">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="container mx-auto px-4 py-12">{courseCategories.map((category, idx) => (
+          <div key={idx} className="mb-12">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-primary">{category.category}</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {category.courses.map((course, courseIdx) => (
+                <Card 
+                  key={courseIdx} 
+                  className="shadow-elevated hover:shadow-xl transition-all duration-300 cursor-pointer hover:-translate-y-1"
+                  onClick={() => navigate(`/course/${encodeURIComponent(course.title)}`)}
+                >
+                  <CardHeader>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="p-2 bg-primary rounded-lg">
+                        <BookOpen className="h-5 w-5 text-primary-foreground" />
+                      </div>
+                    </div>
+                    <CardTitle className="text-lg leading-tight">{course.title}</CardTitle>
+                    <CardDescription>
+                      {category.category}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {course.description}
+                    </p>
+                    <Button className="w-full min-h-[44px]">View Details & Enroll</Button>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-        ) : !courses || courses.length === 0 ? (
-            <div className="text-center py-10">
-                <h2 className="text-2xl font-bold text-muted-foreground">No courses available at the moment.</h2>
-            </div>
-        ) : (
-            Object.keys(coursesByCategory || {}).map((category) => (
-            <div key={category} className="mb-12">
-                <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-primary">{category}</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {coursesByCategory[category].map((course) => (
-                    <Card 
-                    key={course.id} 
-                    className="shadow-elevated hover:shadow-xl transition-all duration-300 cursor-pointer hover:-translate-y-1"
-                    onClick={() => navigate(`/course/${course.id}`)}
-                    >
-                    <CardHeader>
-                        <div className="flex items-center gap-2 mb-2">
-                        <div className="p-2 bg-primary rounded-lg">
-                            <BookOpen className="h-5 w-5 text-primary-foreground" />
-                        </div>
-                        </div>
-                        <CardTitle className="text-lg leading-tight">{course.title}</CardTitle>
-                        <CardDescription>
-                        {category}
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
-                        {course.description}
-                        </p>
-                        <Button className="w-full min-h-[44px]">View Details & Enroll</Button>
-                    </CardContent>
-                    </Card>
-                ))}
-                </div>
-            </div>
-            ))
-        )}
+          </div>
+        ))}
+
       </div>
       <Footer />
     </div>

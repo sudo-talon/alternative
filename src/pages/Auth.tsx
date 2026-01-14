@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseClient as supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,14 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Navbar } from "@/components/Navbar";
 import dicLogo from "@/assets/dic-logo.png";
@@ -35,82 +27,6 @@ const Auth = () => {
     email: "",
     password: "",
   });
-  const [recoveryMode, setRecoveryMode] = useState(false);
-  const [resetPassword, setResetPassword] = useState("");
-  const [confirmResetPassword, setConfirmResetPassword] = useState("");
-  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
-  const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
-
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
-      if (event === "PASSWORD_RECOVERY") {
-        setRecoveryMode(true);
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const handleResetPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (resetPassword !== confirmResetPassword) {
-      toast.error("Passwords do not match");
-      return;
-    }
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.updateUser({ password: resetPassword });
-      if (error) throw error;
-      toast.success("Password updated successfully!");
-      setRecoveryMode(false);
-      
-      // Determine redirect based on role
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .maybeSingle();
-        
-        let isAdmin = profile?.role === "admin";
-        if (!isAdmin) {
-          const { data: roleData } = await supabase
-            .from("user_roles")
-            .select("role")
-            .eq("user_id", user.id)
-            .eq("role", "admin")
-            .maybeSingle();
-          isAdmin = !!roleData;
-        }
-        navigate(isAdmin ? "/admin" : "/dashboard");
-      } else {
-        navigate("/auth");
-      }
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
-      toast.error(message || "Failed to update password");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail, {
-        redirectTo: `${window.location.origin}/auth`,
-      });
-      if (error) throw error;
-      toast.success("Password reset link sent to your email!");
-      setForgotPasswordOpen(false);
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
-      toast.error(message || "Failed to send reset link");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Check if user is already logged in
   useEffect(() => {
@@ -270,57 +186,13 @@ const Auth = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {recoveryMode ? (
-              <form onSubmit={handleResetPassword} className="space-y-4">
-                <div className="text-center mb-6">
-                  <h3 className="text-lg font-semibold">Set New Password</h3>
-                  <p className="text-sm text-muted-foreground">Please enter your new password below.</p>
-                </div>
-                <div>
-                  <Label htmlFor="reset-password">New Password</Label>
-                  <Input
-                    id="reset-password"
-                    type="password"
-                    required
-                    minLength={6}
-                    value={resetPassword}
-                    onChange={(e) => setResetPassword(e.target.value)}
-                    className="min-h-[44px]"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="confirm-reset-password">Confirm Password</Label>
-                  <Input
-                    id="confirm-reset-password"
-                    type="password"
-                    required
-                    minLength={6}
-                    value={confirmResetPassword}
-                    onChange={(e) => setConfirmResetPassword(e.target.value)}
-                    className="min-h-[44px]"
-                  />
-                </div>
-                <Button type="submit" className="w-full min-h-[44px]" disabled={loading}>
-                  {loading ? "Updating..." : "Update Password"}
-                </Button>
-                <Button 
-                  type="button" 
-                  variant="ghost" 
-                  className="w-full" 
-                  onClick={() => setRecoveryMode(false)}
-                  disabled={loading}
-                >
-                  Cancel
-                </Button>
-              </form>
-            ) : (
-              <Tabs defaultValue="signin">
-                <TabsList className="grid w-full grid-cols-2 mb-6">
-                  <TabsTrigger value="signin">Sign In</TabsTrigger>
-                  <TabsTrigger value="signup">Sign Up</TabsTrigger>
-                </TabsList>
+            <Tabs defaultValue="signin">
+              <TabsList className="grid w-full grid-cols-2 mb-6">
+                <TabsTrigger value="signin">Sign In</TabsTrigger>
+                <TabsTrigger value="signup">Sign Up</TabsTrigger>
+              </TabsList>
 
-                <TabsContent value="signin">
+              <TabsContent value="signin">
                 <form onSubmit={handleSignIn} className="space-y-4">
                   <div>
                     <Label htmlFor="signin-email">Email</Label>
@@ -357,39 +229,6 @@ const Auth = () => {
                     <Label htmlFor="captcha" className="text-sm cursor-pointer">
                       I am not a robot
                     </Label>
-                  </div>
-                  <div className="text-right">
-                    <Dialog open={forgotPasswordOpen} onOpenChange={setForgotPasswordOpen}>
-                      <DialogTrigger asChild>
-                        <Button variant="link" className="px-0 font-normal h-auto text-muted-foreground hover:text-primary">
-                          Forgot Password?
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Reset Password</DialogTitle>
-                          <DialogDescription>
-                            Enter your email address and we'll send you a link to reset your password.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <form onSubmit={handleForgotPassword} className="space-y-4 mt-4">
-                          <div>
-                            <Label htmlFor="forgot-email">Email</Label>
-                            <Input
-                              id="forgot-email"
-                              type="email"
-                              required
-                              value={forgotPasswordEmail}
-                              onChange={(e) => setForgotPasswordEmail(e.target.value)}
-                              className="min-h-[44px]"
-                            />
-                          </div>
-                          <Button type="submit" className="w-full min-h-[44px]" disabled={loading}>
-                            {loading ? "Sending..." : "Send Reset Link"}
-                          </Button>
-                        </form>
-                      </DialogContent>
-                    </Dialog>
                   </div>
                   <Button type="submit" className="w-full min-h-[44px]" disabled={loading || !captchaVerified}>
                     {loading ? "Signing in..." : "Sign In"}
@@ -459,7 +298,6 @@ const Auth = () => {
                 </form>
               </TabsContent>
             </Tabs>
-            )}
           </CardContent>
         </Card>
       </div>

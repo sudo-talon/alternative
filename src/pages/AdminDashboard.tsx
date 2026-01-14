@@ -30,9 +30,6 @@ const categoryClasses = (name?: string) => {
   return "bg-slate-600 text-white";
 };
 
-import { MagazineUploadDialog } from "@/components/MagazineUploadDialog";
-import { formatDistanceToNow } from "date-fns";
-
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -44,7 +41,6 @@ const AdminDashboard = () => {
   const [newsTitle, setNewsTitle] = useState("");
   const [newsContent, setNewsContent] = useState("");
   const [newsFeaturedImage, setNewsFeaturedImage] = useState("");
-  const [newsImageFile, setNewsImageFile] = useState<File | null>(null);
   const [editingNewsId, setEditingNewsId] = useState<string | null>(null);
   const [newsDialogOpen, setNewsDialogOpen] = useState(false);
   
@@ -128,42 +124,6 @@ const AdminDashboard = () => {
   const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
   const [courseDialogOpen, setCourseDialogOpen] = useState(false);
   const [documentsDialogOpen, setDocumentsDialogOpen] = useState(false);
-
-  const [isMagazineUploadOpen, setIsMagazineUploadOpen] = useState(false);
-  const [editingMagazine, setEditingMagazine] = useState<{
-    id: string;
-    title: string;
-    issue: string | null;
-    description: string | null;
-    cover_image_url: string | null;
-    pdf_url: string;
-  } | null>(null);
-
-  const { data: magazines, refetch: refetchMagazines } = useQuery({
-    queryKey: ["magazines"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("magazines")
-        .select("*")
-        .order("published_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const deleteMagazineMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("magazines").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["magazines"] });
-      toast({ title: "Success", description: "Magazine deleted" });
-    },
-    onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    },
-  });
   type PersonnelRow = Database["public"]["Tables"]["personnel"]["Row"];
   type LeadershipRow = Database["public"]["Tables"]["leadership"]["Row"];
   const [documentsOwner, setDocumentsOwner] = useState<PersonnelRow | null>(null);
@@ -279,45 +239,37 @@ const AdminDashboard = () => {
   // Queries and mutations
   const createNewsMutation = useMutation({
     mutationFn: async () => {
-      let imageUrl = newsFeaturedImage;
-
-      if (newsImageFile) {
-        const fileExt = newsImageFile.name.split('.').pop();
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage
-          .from('news-images')
-          .upload(fileName, newsImageFile);
-
-        if (uploadError) {
-          // If bucket doesn't exist, try creating it or fallback (handling in catch usually)
-          // For now, assume it might fail if bucket missing.
-          throw uploadError;
-        }
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('news-images')
-          .getPublicUrl(fileName);
-        
-        imageUrl = publicUrl;
-      }
-
       const payloadWithImage: { title: string; content: string; featured_image_url?: string | null } = {
         title: newsTitle,
         content: newsContent,
-        featured_image_url: imageUrl || null,
       };
-
+      if (newsFeaturedImage) payloadWithImage.featured_image_url = newsFeaturedImage;
       if (editingNewsId) {
-        const { error } = await supabase
-          .from("news")
-          .update(payloadWithImage)
-          .eq("id", editingNewsId);
-        if (error) throw error;
+        try {
+          const { error } = await supabase
+            .from("news")
+            .update(payloadWithImage)
+            .eq("id", editingNewsId);
+          if (error) throw error;
+        } catch {
+          const { error } = await supabase
+            .from("news")
+            .update({ title: newsTitle, content: newsContent })
+            .eq("id", editingNewsId);
+          if (error) throw error;
+        }
       } else {
-        const { error } = await supabase
-          .from("news")
-          .insert([payloadWithImage]);
-        if (error) throw error;
+        try {
+          const { error } = await supabase
+            .from("news")
+            .insert([payloadWithImage]);
+          if (error) throw error;
+        } catch {
+          const { error } = await supabase
+            .from("news")
+            .insert([{ title: newsTitle, content: newsContent }]);
+          if (error) throw error;
+        }
       }
     },
     onSuccess: () => {
@@ -326,7 +278,6 @@ const AdminDashboard = () => {
       setNewsContent("");
       setEditingNewsId(null);
       setNewsFeaturedImage("");
-      setNewsImageFile(null);
       setNewsDialogOpen(false);
       toast({ title: "Success", description: editingNewsId ? "News updated successfully" : "News created successfully" });
     },
@@ -447,6 +398,27 @@ const AdminDashboard = () => {
     }
   };
 
+  const updateUserRoleMutation = useMutation({
+    mutationFn: async ({ userId, role }: { userId: string; role: "student" | "instructor" | "admin" }) => {
+      // First delete existing role
+      await supabase.from("user_roles").delete().eq("user_id", userId);
+      
+      // Then insert new role
+      const { error } = await supabase
+        .from("user_roles")
+        .insert([{ user_id: userId, role }]);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      toast({ title: "Success", description: "User role updated successfully" });
+    },
+    onError: (error) => {
+      const message = (error as unknown) instanceof Error ? (error as Error).message : String(error);
+      toast({ title: "Error", description: message, variant: "destructive" });
+    },
+  });
+
   const updateUserCategoryMutation = useMutation({
     mutationFn: async ({ userId, categoryId }: { userId: string; categoryId: string | null }) => {
       const { error } = await supabase
@@ -463,6 +435,19 @@ const AdminDashboard = () => {
       const message = (error as unknown) instanceof Error ? (error as Error).message : String(error);
       toast({ title: "Error", description: message, variant: "destructive" });
     },
+  });
+
+  const { data: users } = useQuery({
+    queryKey: ["admin-users"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*, student_categories(name)")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: isAdmin,
   });
 
   const { data: courses } = useQuery({
@@ -565,113 +550,6 @@ const AdminDashboard = () => {
       return data;
     },
     enabled: isAdmin,
-  });
-
-  const { data: users, refetch: refetchUsers } = useQuery({
-    queryKey: ["admin-users"],
-    queryFn: async () => {
-      try {
-        const { data, error } = await supabase
-          .from("profiles")
-          .select(`
-            *,
-            user_roles (role),
-            student_categories (name)
-          `)
-          .order("created_at", { ascending: false });
-        if (error) throw error;
-        return data;
-      } catch (e: unknown) {
-        const msg = e instanceof Error ? e.message.toLowerCase() : "";
-        if (msg.includes("abort") || msg.includes("err_aborted") || msg.includes("failed to fetch")) {
-          const prev = queryClient.getQueryData(["admin-users"]) as unknown as Array<{
-            id: string; full_name: string; email: string; role: "student" | "instructor" | "admin"; category_id: string | null; is_suspended: boolean;
-          }> | undefined;
-          return prev || [];
-        }
-        throw e;
-      }
-    },
-    enabled: isAdmin,
-    retry: 1,
-    refetchOnWindowFocus: false,
-    staleTime: 300000,
-  });
-  const usersList = (users ?? []) as Array<{
-    id: string;
-    full_name: string;
-    email: string;
-    role: "student" | "instructor" | "admin";
-    category_id: string | null;
-    is_suspended: boolean;
-  }>;
-
-  const updateUserStatusMutation = useMutation({
-    mutationFn: async ({ id, is_suspended }: { id: string; is_suspended: boolean }) => {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ is_suspended } as never)
-        .eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
-      toast({ title: "Success", description: "User status updated" });
-    },
-    onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    },
-  });
-
-  const updateUserRoleMutation = useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: "student" | "instructor" | "admin" }) => {
-      // First delete existing roles from user_roles table
-      const { error: deleteError } = await supabase.from("user_roles").delete().eq("user_id", userId);
-      if (deleteError) {
-        console.error("Error deleting existing roles:", deleteError);
-        // Continue anyway, might not have existing roles
-      }
-      
-      // Insert new role into user_roles table
-      const { error: insertError } = await supabase.from("user_roles").insert([{ user_id: userId, role }]);
-      if (insertError) {
-        console.error("Error inserting new role:", insertError);
-        throw insertError;
-      }
-      
-      // Update profile role as well for display purposes (cast to satisfy TypeScript)
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({ role } as never)
-        .eq("id", userId);
-      
-      if (profileError) {
-        console.error("Error updating profile role:", profileError);
-        throw profileError;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
-      toast({ title: "Success", description: "User role updated successfully" });
-    },
-    onError: (error) => {
-      console.error("Update user role error:", error);
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    },
-  });
-
-  const deleteUserMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("profiles").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
-      toast({ title: "Success", description: "User deleted" });
-    },
-    onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    },
   });
 
   const monthKey = (d: string) => {
@@ -915,12 +793,11 @@ const AdminDashboard = () => {
         <Tabs defaultValue="courses" className="space-y-6">
           <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 h-auto">
             <TabsTrigger value="courses" className="h-full whitespace-normal min-h-[44px]"><BookOpen className="mr-1 h-4 w-4" />Courses</TabsTrigger>
-            <TabsTrigger value="users" className="h-full whitespace-normal min-h-[44px]"><Users className="mr-1 h-4 w-4" />Users</TabsTrigger>
             <TabsTrigger value="personnel" className="h-full whitespace-normal min-h-[44px]"><UserCog className="mr-1 h-4 w-4" />Personnel</TabsTrigger>
             <TabsTrigger value="leadership" className="h-full whitespace-normal min-h-[44px]"><Crown className="mr-1 h-4 w-4" />Leadership</TabsTrigger>
             <TabsTrigger value="pgprograms" className="h-full whitespace-normal min-h-[44px]"><GraduationCap className="mr-1 h-4 w-4" />PG Programs</TabsTrigger>
             <TabsTrigger value="news" className="h-full whitespace-normal min-h-[44px]"><Newspaper className="mr-1 h-4 w-4" />News</TabsTrigger>
-            <TabsTrigger value="emagazine" className="h-full whitespace-normal min-h-[44px]"><BookOpen className="mr-1 h-4 w-4" />eMagazine</TabsTrigger>
+            <TabsTrigger value="users" className="h-full whitespace-normal min-h-[44px]"><Users className="mr-1 h-4 w-4" />Users</TabsTrigger>
             <TabsTrigger value="categories" className="h-full whitespace-normal min-h-[44px]"><Shield className="mr-1 h-4 w-4" />Categories</TabsTrigger>
             <TabsTrigger value="analytics" className="h-full whitespace-normal min-h-[44px]"><BarChart3 className="mr-1 h-4 w-4" />Analytics</TabsTrigger>
             <TabsTrigger value="documents" className="h-full whitespace-normal min-h-[44px]"><FileText className="mr-1 h-4 w-4" />Documents</TabsTrigger>
@@ -1046,165 +923,6 @@ const AdminDashboard = () => {
                   </TableBody>
                 </Table>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="users" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>User Management</CardTitle>
-                <CardDescription>Manage user accounts, roles, and status</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(users || []).filter((u: { is_suspended?: boolean | null }) => !u?.is_suspended).map((user: {
-                      id: string;
-                      full_name: string;
-                      email: string;
-                      role: "student" | "instructor" | "admin";
-                      is_suspended: boolean | null;
-                    }) => (
-                      <TableRow key={user.id}>
-                        <TableCell>{user.full_name}</TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>
-                          <Select
-                            defaultValue={user.role}
-                            onValueChange={(val: "student" | "instructor" | "admin") =>
-                              updateUserRoleMutation.mutate({ userId: user.id, role: val })
-                            }
-                          >
-                            <SelectTrigger className="w-[120px]">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="student">Student</SelectItem>
-                              <SelectItem value="instructor">Instructor</SelectItem>
-                              <SelectItem value="admin">Admin</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={user.is_suspended ? "destructive" : "secondary"}>
-                            {user.is_suspended ? "Suspended" : "Active"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            {user.is_suspended && (
-                              <Button
-                                variant="default"
-                                size="sm"
-                                onClick={() => updateUserStatusMutation.mutate({ id: user.id, is_suspended: false })}
-                              >
-                                Approve
-                              </Button>
-                            )}
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => updateUserStatusMutation.mutate({ id: user.id, is_suspended: !user.is_suspended })}
-                            >
-                              {user.is_suspended ? "Activate" : "Suspend"}
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => {
-                                if (confirm("Are you sure you want to delete this user?")) {
-                                  deleteUserMutation.mutate(user.id);
-                                }
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="emagazine" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>eMagazine Management</CardTitle>
-                <CardDescription>Upload and manage eMagazines</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex justify-end mb-4">
-                  <Button onClick={() => {
-                    setEditingMagazine(null);
-                    setIsMagazineUploadOpen(true);
-                  }}>
-                    <Plus className="mr-2 h-4 w-4" /> Upload Magazine
-                  </Button>
-                </div>
-
-                <MagazineUploadDialog 
-                  open={isMagazineUploadOpen} 
-                  onOpenChange={setIsMagazineUploadOpen}
-                  initialData={editingMagazine}
-                  onSuccess={() => {
-                    refetchMagazines();
-                    setEditingMagazine(null);
-                  }}
-                />
-
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Title</TableHead>
-                      <TableHead>Issue</TableHead>
-                      <TableHead>Published</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {magazines?.map((mag) => (
-                      <TableRow key={mag.id}>
-                        <TableCell className="font-medium">{mag.title}</TableCell>
-                        <TableCell>{mag.issue || "-"}</TableCell>
-                        <TableCell>{new Date(mag.published_at).toLocaleDateString()}</TableCell>
-                        <TableCell className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setEditingMagazine(mag);
-                              setIsMagazineUploadOpen(true);
-                            }}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            variant="destructive" 
-                            size="sm"
-                            onClick={() => {
-                              if(confirm("Delete this magazine?")) deleteMagazineMutation.mutate(mag.id);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
               </CardContent>
             </Card>
           </TabsContent>
@@ -1469,22 +1187,8 @@ const AdminDashboard = () => {
                         <Textarea id="news_content" placeholder="News content" value={newsContent} onChange={(e) => setNewsContent(e.target.value)} rows={4} />
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="news_image">Featured Image</Label>
-                        <div className="grid gap-2">
-                          <Input id="news_image_url" placeholder="Image URL (optional)" value={newsFeaturedImage} onChange={(e) => setNewsFeaturedImage(e.target.value)} />
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-muted-foreground">OR Upload:</span>
-                            <Input 
-                              id="news_image_file" 
-                              type="file" 
-                              accept="image/*"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) setNewsImageFile(file);
-                              }} 
-                            />
-                          </div>
-                        </div>
+                        <Label htmlFor="news_image">Featured Image URL</Label>
+                        <Input id="news_image" placeholder="https://..." value={newsFeaturedImage} onChange={(e) => setNewsFeaturedImage(e.target.value)} />
                       </div>
                       <Button onClick={() => createNewsMutation.mutate()} disabled={!newsTitle || !newsContent}>
                         {editingNewsId ? "Update" : "Create"} News
@@ -1551,14 +1255,7 @@ const AdminDashboard = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {users?.map((user: {
-                      id: string;
-                      full_name: string;
-                      email: string;
-                      role: "student" | "instructor" | "admin";
-                      category_id: string | null;
-                      is_suspended: boolean | null;
-                    }) => (
+                    {users?.map((user) => (
                       <TableRow key={user.id}>
                         <TableCell className="font-medium">{user.full_name}</TableCell>
                         <TableCell>{user.email}</TableCell>
@@ -1588,29 +1285,7 @@ const AdminDashboard = () => {
                           </Select>
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Button 
-                              variant={user.is_suspended ? "destructive" : "outline"}
-                              size="sm"
-                              onClick={() => updateUserStatusMutation.mutate({ 
-                                id: user.id, 
-                                is_suspended: !user.is_suspended 
-                              })}
-                            >
-                              {user.is_suspended ? "Suspended" : "Active"}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => {
-                                if (confirm("Are you sure you want to delete this user?")) {
-                                  deleteUserMutation.mutate(user.id);
-                                }
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
+                          <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>{user.role}</Badge>
                         </TableCell>
                       </TableRow>
                     ))}

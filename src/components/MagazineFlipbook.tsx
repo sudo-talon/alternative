@@ -9,15 +9,6 @@ import { useLanguage } from "@/contexts/LanguageContext";
 // Set up the PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
-type PageFlipApi = {
-  flipNext: () => void;
-  flipPrev: () => void;
-};
-
-type FlipBookRef = {
-  pageFlip: () => PageFlipApi;
-};
-
 interface PageCoverProps {
   children: React.ReactNode;
 }
@@ -67,7 +58,7 @@ export const MagazineFlipbook = ({ pdfUrl, title = "College Magazine", variant =
   const [currentPage, setCurrentPage] = useState(0);
   const [scale, setScale] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
-  const bookRef = useRef<FlipBookRef | null>(null);
+  const bookRef = useRef<any>(null);
   const { t } = useLanguage();
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
@@ -91,7 +82,7 @@ export const MagazineFlipbook = ({ pdfUrl, title = "College Magazine", variant =
     }
   };
 
-  const handlePageFlip = (e: { data: number }) => {
+  const handlePageFlip = (e: any) => {
     setCurrentPage(e.data);
   };
 

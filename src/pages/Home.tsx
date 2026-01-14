@@ -56,36 +56,6 @@ const Home = () => {
     [timelineData, activeYear]
   );
   const timelineRef = useRef<HTMLDivElement | null>(null);
-  const sidebarVideoRef = useRef<HTMLVideoElement | null>(null);
-  const [sidebarVideoPoster, setSidebarVideoPoster] = useState<string | null>(null);
-  useEffect(() => {
-    const video = sidebarVideoRef.current;
-    if (!video) return;
-    const onLoaded = () => {
-      try {
-        video.currentTime = 2;
-      } catch { /* noop */ }
-    };
-    const onSeeked = () => {
-      try {
-        const canvas = document.createElement("canvas");
-        canvas.width = video.videoWidth || 640;
-        canvas.height = video.videoHeight || 360;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const url = canvas.toDataURL("image/jpeg");
-        setSidebarVideoPoster(url);
-        video.pause();
-      } catch { /* noop */ }
-    };
-    video.addEventListener("loadedmetadata", onLoaded, { once: true });
-    video.addEventListener("seeked", onSeeked, { once: true });
-    return () => {
-      video.removeEventListener("loadedmetadata", onLoaded);
-      video.removeEventListener("seeked", onSeeked);
-    };
-  }, []);
 
   const scrollToIndex = useCallback((idx: number) => {
     const container = timelineRef.current;
@@ -167,30 +137,17 @@ const Home = () => {
       {/* Main Content with Sidebar */}
       <PageWrapper className="py-8 sm:py-12">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-          {/* Sidebar - Show after main on mobile */}
-          <div className="lg:col-span-1 order-2 lg:order-2">
+          {/* Sidebar - Shows first on mobile */}
+          <div className="lg:col-span-1 order-1 lg:order-2">
             <div className="lg:sticky lg:top-24 space-y-4 sm:space-y-6">
+              {/* Commandants - Shows first on mobile */}
+              <div className="lg:hidden w-full max-w-full overflow-hidden">
+                <CommandantsMarquee />
+              </div>
+              
               <NewsFlash />
               
               <EMagazineSidebar />
-              
-              <Card className="shadow-elevated">
-                <CardHeader className="bg-primary text-primary-foreground p-4 sm:p-6">
-                  <CardTitle className="text-base sm:text-lg">Campus Video</CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 sm:p-6">
-                  <video
-                    ref={sidebarVideoRef}
-                    controls
-                    playsInline
-                    preload="metadata"
-                    poster={sidebarVideoPoster || undefined}
-                    className="w-full rounded-lg shadow-elevated"
-                  >
-                    <source src={dicVideo} type="video/mp4" />
-                  </video>
-                </CardContent>
-              </Card>
               
               <Card className="shadow-elevated">
                 <CardHeader className="bg-primary text-primary-foreground p-4 sm:p-6">
@@ -238,7 +195,7 @@ const Home = () => {
           </div>
 
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-8 sm:space-y-10 lg:space-y-12 order-1 lg:order-1">
+          <div className="lg:col-span-2 space-y-8 sm:space-y-10 lg:space-y-12 order-2 lg:order-1">
             {/* Features Grid */}
             <div>
               <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-4 sm:mb-6 md:mb-8">{t('whyChooseDIC')}</h2>
@@ -264,7 +221,7 @@ const Home = () => {
             </div>
 
             {/* Commandants Section - Hidden on mobile, shown on desktop */}
-            <div className="block w-full max-w-full overflow-hidden">
+            <div className="hidden lg:block w-full max-w-full overflow-hidden">
               <CommandantsMarquee />
             </div>
 
@@ -272,6 +229,12 @@ const Home = () => {
             <div className="w-full max-w-full">
               <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-4 sm:mb-6 md:mb-8">{t('aboutUs')}</h2>
               <div>
+                <div className="mb-4 sm:mb-6">
+                  <video controls playsInline preload="metadata" className="w-full rounded-lg shadow-elevated">
+                    <source src={dicVideo} type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
+                </div>
                 <div className="space-y-4 sm:space-y-6">
                   {/* Timeline Dots */}
                   <div className="relative px-8 sm:px-12">
@@ -339,8 +302,6 @@ const Home = () => {
                       {t('readMore')}
                     </Button>
                   </div>
-                </div>
-                <div className="mb-4 sm:mb-6">
                 </div>
               </div>
             </div>

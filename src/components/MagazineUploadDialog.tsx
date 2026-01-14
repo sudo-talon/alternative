@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,23 +9,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Upload, FileText, Image as ImageIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-interface Magazine {
-  id: string;
-  title: string;
-  issue: string | null;
-  description: string | null;
-  cover_image_url: string | null;
-  pdf_url: string;
-}
-
 interface MagazineUploadDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSuccess?: () => void;
-  initialData?: Magazine | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
 }
 
-export const MagazineUploadDialog = ({ open, onOpenChange, onSuccess, initialData }: MagazineUploadDialogProps) => {
+export const MagazineUploadDialog = ({ isOpen, onClose, onSuccess }: MagazineUploadDialogProps) => {
   const [title, setTitle] = useState("");
   const [issue, setIssue] = useState("");
   const [description, setDescription] = useState("");
@@ -33,32 +23,6 @@ export const MagazineUploadDialog = ({ open, onOpenChange, onSuccess, initialDat
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-
-  useEffect(() => {
-    if (initialData) {
-      setTitle(initialData.title);
-      setIssue(initialData.issue || "");
-      setDescription(initialData.description || "");
-      setCoverPreview(initialData.cover_image_url);
-      // We don't set files, only URLs/previews
-    } else {
-      resetForm();
-    }
-  }, [initialData, open]);
-
-  const resetForm = () => {
-    setTitle("");
-    setIssue("");
-    setDescription("");
-    setPdfFile(null);
-    setCoverFile(null);
-    setCoverPreview(null);
-  };
-
-  const handleClose = () => {
-    onOpenChange(false);
-    if (!initialData) resetForm();
-  };
 
   const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -81,7 +45,7 @@ export const MagazineUploadDialog = ({ open, onOpenChange, onSuccess, initialDat
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || (!initialData && !pdfFile)) {
+    if (!title || !pdfFile) {
       toast.error("Title and PDF file are required");
       return;
     }
@@ -92,8 +56,8 @@ export const MagazineUploadDialog = ({ open, onOpenChange, onSuccess, initialDat
       if (!user) throw new Error("Not authenticated");
 
       const timestamp = Date.now();
-      let coverUrl = initialData?.cover_image_url || null;
-      let pdfUrl = initialData?.pdf_url || "";
+      let coverUrl = null;
+      let pdfUrl = "";
 
       // Upload cover image if provided
       if (coverFile) {
@@ -110,70 +74,59 @@ export const MagazineUploadDialog = ({ open, onOpenChange, onSuccess, initialDat
         coverUrl = publicUrl;
       }
 
-      // Upload PDF if provided
-      if (pdfFile) {
-        const pdfPath = `pdfs/${timestamp}-${pdfFile.name}`;
-        const { data: pdfData, error: pdfError } = await supabase.storage
-          .from("magazines")
-          .upload(pdfPath, pdfFile);
-        
-        if (pdfError) throw pdfError;
-        
-        const { data: { publicUrl: pdfPublicUrl } } = supabase.storage
-          .from("magazines")
-          .getPublicUrl(pdfPath);
-        pdfUrl = pdfPublicUrl;
-      }
+      // Upload PDF
+      const pdfPath = `pdfs/${timestamp}-${pdfFile.name}`;
+      const { data: pdfData, error: pdfError } = await supabase.storage
+        .from("magazines")
+        .upload(pdfPath, pdfFile);
+      
+      if (pdfError) throw pdfError;
+      
+      const { data: { publicUrl: pdfPublicUrl } } = supabase.storage
+        .from("magazines")
+        .getPublicUrl(pdfPath);
+      pdfUrl = pdfPublicUrl;
 
-      if (initialData) {
-        // Update existing magazine
-        const { error: updateError } = await supabaseClient
-          .from("magazines")
-          .update({
-            title,
-            issue: issue || null,
-            description: description || null,
-            cover_image_url: coverUrl,
-            pdf_url: pdfUrl,
-          })
-          .eq("id", initialData.id);
+      // Insert magazine record
+      const { error: insertError } = await supabaseClient
+        .from("magazines")
+        .insert({
+          title,
+          issue: issue || null,
+          description: description || null,
+          cover_image_url: coverUrl,
+          pdf_url: pdfUrl,
+        });
 
-        if (updateError) throw updateError;
-        toast.success("Magazine updated successfully!");
-      } else {
-        // Insert new magazine
-        const { error: insertError } = await supabaseClient
-          .from("magazines")
-          .insert({
-            title,
-            issue: issue || null,
-            description: description || null,
-            cover_image_url: coverUrl,
-            pdf_url: pdfUrl,
-          });
+      if (insertError) throw insertError;
 
-        if (insertError) throw insertError;
-        toast.success("Magazine uploaded successfully!");
-      }
-
-      handleClose();
-      if (onSuccess) onSuccess();
-    } catch (error: unknown) {
-      console.error("Upload/Update error:", error);
-      const message = error instanceof Error ? error.message : "Failed to save magazine";
-      toast.error(message);
+      toast.success("Magazine uploaded successfully!");
+      resetForm();
+      onSuccess();
+    } catch (error: any) {
+      console.error("Upload error:", error);
+      toast.error(error.message || "Failed to upload magazine");
     } finally {
       setIsUploading(false);
     }
   };
 
+  const resetForm = () => {
+    setTitle("");
+    setIssue("");
+    setDescription("");
+    setPdfFile(null);
+    setCoverFile(null);
+    setCoverPreview(null);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-lg w-full max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5" />
-            {initialData ? "Edit Magazine" : "Upload Magazine"}
+            Upload Magazine
           </DialogTitle>
         </DialogHeader>
 
@@ -241,23 +194,20 @@ export const MagazineUploadDialog = ({ open, onOpenChange, onSuccess, initialDat
 
           {/* PDF File */}
           <div className="space-y-2">
-            <Label>PDF File {initialData ? "(optional)" : "*"}</Label>
+            <Label>PDF File *</Label>
             <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-muted-foreground/30 rounded-lg cursor-pointer hover:border-primary/50 transition-colors">
               <FileText className="h-8 w-8 text-muted-foreground mb-2" />
               <span className="text-sm text-muted-foreground">
-                {pdfFile ? pdfFile.name : initialData ? "Click to change PDF" : "Click to upload PDF"}
+                {pdfFile ? pdfFile.name : "Click to upload PDF"}
               </span>
               <input
                 type="file"
                 accept="application/pdf"
                 onChange={handlePdfChange}
                 className="hidden"
-                required={!initialData}
+                required
               />
             </label>
-            {initialData && (
-              <p className="text-xs text-muted-foreground">Current PDF: {initialData.pdf_url ? "Available" : "None"}</p>
-            )}
           </div>
 
           {/* Actions */}
@@ -265,7 +215,7 @@ export const MagazineUploadDialog = ({ open, onOpenChange, onSuccess, initialDat
             <Button
               type="button"
               variant="outline"
-              onClick={handleClose}
+              onClick={onClose}
               className="flex-1"
               disabled={isUploading}
             >
@@ -274,17 +224,17 @@ export const MagazineUploadDialog = ({ open, onOpenChange, onSuccess, initialDat
             <Button
               type="submit"
               className="flex-1 gap-2"
-              disabled={isUploading || !title || (!initialData && !pdfFile)}
+              disabled={isUploading || !title || !pdfFile}
             >
               {isUploading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  {initialData ? "Updating..." : "Uploading..."}
+                  Uploading...
                 </>
               ) : (
                 <>
                   <Upload className="h-4 w-4" />
-                  {initialData ? "Update" : "Upload"}
+                  Upload
                 </>
               )}
             </Button>
