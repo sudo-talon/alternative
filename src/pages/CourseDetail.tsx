@@ -5,7 +5,7 @@ import { Navbar } from "@/components/Navbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseClient as supabase } from "@/lib/supabase";
 import { BookOpen, Calendar, Users, Award, ArrowLeft } from "lucide-react";
 
 const CourseDetail = () => {

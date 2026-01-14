@@ -1,6 +1,6 @@
 import { useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseClient as supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
 const INACTIVITY_TIMEOUT = 2 * 60 * 1000; // 2 minutes in milliseconds

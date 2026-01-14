@@ -3,7 +3,7 @@ import { Footer } from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseClient as supabase } from "@/lib/supabase";
 import { Crown } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 import cdreBugaje from "@/assets/cdre-bugaje.jpeg";
