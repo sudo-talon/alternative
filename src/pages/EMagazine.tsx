@@ -12,7 +12,7 @@ import { MagazineViewer } from "@/components/MagazineViewer";
 import { MagazineUploadDialog } from "@/components/MagazineUploadDialog";
 import { BookOpen, Calendar, FileText, Plus } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseClient as supabase } from "@/lib/supabase";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 type Magazine = {

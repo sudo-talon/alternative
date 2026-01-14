@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import dicLogo from "@/assets/dic-logo.png";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { NotificationBell } from "./NotificationBell";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseClient as supabase } from "@/lib/supabase";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 export const Navbar = () => {

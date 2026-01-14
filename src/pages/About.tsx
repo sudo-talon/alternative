@@ -6,7 +6,7 @@ import dicBg from "@/assets/dic-bg.png";
 import dicGroupPhoto from "@/assets/dic-group-photo.webp";
 import departmentsHero from "@/assets/departments-hero.webp";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseClient as supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";

@@ -137,6 +137,54 @@ export type Database = {
         }
         Relationships: []
       }
+      lessons: {
+        Row: {
+          content: string | null
+          course_id: string
+          created_at: string
+          id: string
+          order_index: number
+          title: string
+          updated_at: string
+          video_url: string | null
+        }
+        Insert: {
+          content?: string | null
+          course_id: string
+          created_at?: string
+          id?: string
+          order_index?: number
+          title: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Update: {
+          content?: string | null
+          course_id?: string
+          created_at?: string
+          id?: string
+          order_index?: number
+          title?: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lessons_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lessons_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "enrollment_analytics"
+            referencedColumns: ["course_id"]
+          },
+        ]
+      }
       magazines: {
         Row: {
           cover_image_url: string | null
@@ -321,6 +369,7 @@ export type Database = {
           email: string
           full_name: string
           id: string
+          is_suspended: boolean | null
           role: Database["public"]["Enums"]["user_role"]
           updated_at: string
         }
@@ -330,6 +379,7 @@ export type Database = {
           email: string
           full_name: string
           id: string
+          is_suspended?: boolean | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
         }
@@ -339,6 +389,7 @@ export type Database = {
           email?: string
           full_name?: string
           id?: string
+          is_suspended?: boolean | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
         }
