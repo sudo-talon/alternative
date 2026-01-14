@@ -625,20 +625,37 @@ const AdminDashboard = () => {
 
   const updateUserRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: "student" | "instructor" | "admin" }) => {
-      // First delete existing roles
-      await supabase.from("user_roles").delete().eq("user_id", userId);
-      // Insert new role
-      const { error } = await supabase.from("user_roles").insert([{ user_id: userId, role }]);
-      if (error) throw error;
+      // First delete existing roles from user_roles table
+      const { error: deleteError } = await supabase.from("user_roles").delete().eq("user_id", userId);
+      if (deleteError) {
+        console.error("Error deleting existing roles:", deleteError);
+        // Continue anyway, might not have existing roles
+      }
       
-      // Update profile role as well for redundancy/display
-      await supabase.from("profiles").update({ role }).eq("id", userId);
+      // Insert new role into user_roles table
+      const { error: insertError } = await supabase.from("user_roles").insert([{ user_id: userId, role }]);
+      if (insertError) {
+        console.error("Error inserting new role:", insertError);
+        throw insertError;
+      }
+      
+      // Update profile role as well for display purposes (cast to satisfy TypeScript)
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({ role } as never)
+        .eq("id", userId);
+      
+      if (profileError) {
+        console.error("Error updating profile role:", profileError);
+        throw profileError;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
-      toast({ title: "Success", description: "User role updated" });
+      toast({ title: "Success", description: "User role updated successfully" });
     },
     onError: (error) => {
+      console.error("Update user role error:", error);
       toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
