@@ -9,10 +9,12 @@ import { Lock, Eye, EyeOff } from "lucide-react";
 
 interface ChangePasswordDialogProps {
   trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export const ChangePasswordDialog = ({ trigger }: ChangePasswordDialogProps) => {
-  const [open, setOpen] = useState(false);
+export const ChangePasswordDialog = ({ trigger, open, onOpenChange }: ChangePasswordDialogProps) => {
+  const [internalOpen, setInternalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -20,6 +22,10 @@ export const ChangePasswordDialog = ({ trigger }: ChangePasswordDialogProps) => 
     newPassword: "",
     confirmPassword: "",
   });
+
+  // Use controlled or uncontrolled state
+  const isOpen = open !== undefined ? open : internalOpen;
+  const setIsOpen = onOpenChange || setInternalOpen;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +50,7 @@ export const ChangePasswordDialog = ({ trigger }: ChangePasswordDialogProps) => 
 
       toast.success("Password updated successfully");
       setFormData({ newPassword: "", confirmPassword: "" });
-      setOpen(false);
+      setIsOpen(false);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Failed to update password";
       toast.error(message);
@@ -54,15 +60,12 @@ export const ChangePasswordDialog = ({ trigger }: ChangePasswordDialogProps) => 
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger || (
-          <Button variant="outline" className="gap-2">
-            <Lock className="h-4 w-4" />
-            Change Password
-          </Button>
-        )}
-      </DialogTrigger>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      {trigger && (
+        <DialogTrigger asChild>
+          {trigger}
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -122,7 +125,7 @@ export const ChangePasswordDialog = ({ trigger }: ChangePasswordDialogProps) => 
             <Button
               type="button"
               variant="outline"
-              onClick={() => setOpen(false)}
+              onClick={() => setIsOpen(false)}
               className="flex-1"
             >
               Cancel
