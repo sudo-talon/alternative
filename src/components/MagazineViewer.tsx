@@ -88,20 +88,44 @@ export const MagazineViewer = ({ magazine, isOpen, onClose }: MagazineViewerProp
     }
   }, [isOpen]);
 
-  // Calculate responsive page dimensions
+  // Calculate responsive page dimensions - maximize for fullscreen reading
   const updateDimensions = useCallback(() => {
-    const isMobile = window.innerWidth < 640;
-    const isTablet = window.innerWidth < 1024;
+    const viewportHeight = window.innerHeight;
+    const viewportWidth = window.innerWidth;
+    const isMobile = viewportWidth < 640;
+    const isTablet = viewportWidth < 1024;
+    
+    // Calculate maximum dimensions based on viewport, leaving space for controls
+    const maxHeight = viewportHeight - 180; // Space for header and nav controls
+    const maxWidth = (viewportWidth - 100) / (isMobile ? 1 : 2); // Two pages on desktop
+    
+    // Maintain aspect ratio (roughly A4 - 1:1.4)
+    const aspectRatio = 1.4;
+    let width, height;
+    
+    if (maxHeight / aspectRatio > maxWidth) {
+      width = maxWidth;
+      height = width * aspectRatio;
+    } else {
+      height = maxHeight;
+      width = height / aspectRatio;
+    }
     
     if (isMobile) {
       setDimensions({ 
-        width: Math.min(280, window.innerWidth - 80), 
-        height: Math.min(380, (window.innerWidth - 80) * 1.4) 
+        width: Math.max(280, Math.min(width, viewportWidth - 40)), 
+        height: Math.max(380, Math.min(height, viewportHeight - 160))
       });
     } else if (isTablet) {
-      setDimensions({ width: 320, height: 440 });
+      setDimensions({ 
+        width: Math.max(350, Math.min(width, 450)), 
+        height: Math.max(490, Math.min(height, 630))
+      });
     } else {
-      setDimensions({ width: 400, height: 550 });
+      setDimensions({ 
+        width: Math.max(450, Math.min(width, 550)), 
+        height: Math.max(630, Math.min(height, 770))
+      });
     }
   }, []);
 
@@ -186,7 +210,7 @@ export const MagazineViewer = ({ magazine, isOpen, onClose }: MagazineViewerProp
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent 
         ref={containerRef}
-        className="max-w-[98vw] w-full max-h-[98vh] h-full sm:max-w-[95vw] md:max-w-[90vw] lg:max-w-[1400px] p-0 overflow-hidden bg-background/95 backdrop-blur-lg"
+        className="max-w-[100vw] w-[100vw] max-h-[100vh] h-[100vh] sm:max-w-[100vw] md:max-w-[100vw] lg:max-w-[100vw] p-0 overflow-hidden bg-background border-0 rounded-none"
       >
         <DialogHeader className="p-3 sm:p-4 border-b bg-background/95 backdrop-blur-sm sticky top-0 z-10">
           <div className="flex items-center justify-between gap-2">
