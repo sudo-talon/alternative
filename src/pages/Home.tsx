@@ -13,6 +13,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { PageWrapper } from "@/components/PageWrapper";
 import { EMagazineSidebar } from "@/components/EMagazineSidebar";
+import { AboutVideoSidebar } from "@/components/AboutVideoSidebar";
 
 
 const Home = () => {
@@ -146,6 +147,8 @@ const Home = () => {
               </div>
               
               <NewsFlash />
+              
+              <AboutVideoSidebar />
               
               <EMagazineSidebar />
               

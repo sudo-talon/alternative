@@ -49,44 +49,52 @@ export const EMagazineSidebar = () => {
         </CardHeader>
         <CardContent className="p-3 sm:p-4">
           {isLoading ? (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {[1, 2].map((i) => (
-                <div key={i} className="flex gap-3">
-                  <Skeleton className="w-16 h-20 shrink-0 rounded" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-3 w-2/3" />
-                  </div>
+                <div key={i} className="space-y-2">
+                  <Skeleton className="w-full aspect-[3/4] rounded-lg" />
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-3 w-1/2" />
                 </div>
               ))}
             </div>
           ) : magazines && magazines.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {magazines.map((magazine) => (
                 <div 
                   key={magazine.id}
-                  className="flex gap-3 p-2 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+                  className="group cursor-pointer hover:bg-muted/50 transition-colors rounded-lg p-2"
                   onClick={() => setSelectedMagazine(magazine)}
                 >
-                  {magazine.cover_image_url ? (
-                    <img 
-                      src={magazine.cover_image_url}
-                      alt={magazine.title}
-                      className="w-14 h-18 sm:w-16 sm:h-20 object-cover rounded shrink-0"
-                    />
-                  ) : (
-                    <div className="w-14 h-18 sm:w-16 sm:h-20 bg-muted rounded shrink-0 flex items-center justify-center">
-                      <BookOpen className="h-6 w-6 text-muted-foreground" />
+                  {/* Large Cover Preview */}
+                  <div className="relative aspect-[3/4] w-full overflow-hidden rounded-lg mb-3 bg-muted">
+                    {magazine.cover_image_url ? (
+                      <img 
+                        src={magazine.cover_image_url}
+                        alt={magazine.title}
+                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/40">
+                        <BookOpen className="h-12 w-12 text-primary/50" />
+                      </div>
+                    )}
+                    {/* Hover overlay */}
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <span className="text-white text-sm font-medium">Read Now</span>
                     </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-semibold text-xs sm:text-sm line-clamp-2 leading-tight">
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="font-semibold text-sm line-clamp-2 leading-tight group-hover:text-primary transition-colors">
                       {magazine.title}
                     </h4>
                     {magazine.issue && (
-                      <p className="text-xs text-muted-foreground mt-1">{magazine.issue}</p>
+                      <p className="text-xs text-muted-foreground">{magazine.issue}</p>
                     )}
-                    <span className="text-xs text-primary mt-1 inline-block">Read now →</span>
+                    <span className="text-xs text-primary inline-flex items-center gap-1">
+                      <BookOpen className="h-3 w-3" />
+                      Read now →
+                    </span>
                   </div>
                 </div>
               ))}
