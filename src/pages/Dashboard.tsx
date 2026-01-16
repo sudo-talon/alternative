@@ -9,9 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { User, Session } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { BookOpen, Users, GraduationCap, LogOut } from "lucide-react";
+import { BookOpen, Users, GraduationCap, LogOut, Lock } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { useInactivityLogout } from "@/hooks/useInactivityLogout";
+import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
 
 const Dashboard = () => {
   useInactivityLogout();
@@ -240,29 +241,56 @@ const Dashboard = () => {
           )}
 
           <TabsContent value="profile">
-            <Card>
-              <CardHeader>
-                <CardTitle>Profile Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div>
-                  <span className="font-semibold">Name:</span> {profile?.full_name}
-                </div>
-                <div>
-                  <span className="font-semibold">Email:</span> {profile?.email}
-                </div>
-                <div>
-                  <span className="font-semibold">Role:</span>{" "}
-                  <span className="capitalize">{profile?.role}</span>
-                </div>
-                {profile?.student_categories && (
-                  <div>
-                    <span className="font-semibold">Category:</span>{" "}
-                    {profile.student_categories.name}
+            <div className="grid gap-6 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Profile Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-3">
+                    <div className="flex justify-between items-center py-2 border-b">
+                      <span className="font-semibold text-muted-foreground">Name</span>
+                      <span>{profile?.full_name}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b">
+                      <span className="font-semibold text-muted-foreground">Email</span>
+                      <span>{profile?.email}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b">
+                      <span className="font-semibold text-muted-foreground">Role</span>
+                      <Badge variant="secondary" className="capitalize">{profile?.role}</Badge>
+                    </div>
+                    {profile?.student_categories && (
+                      <div className="flex justify-between items-center py-2 border-b">
+                        <span className="font-semibold text-muted-foreground">Category</span>
+                        <Badge variant="outline">{profile.student_categories.name}</Badge>
+                      </div>
+                    )}
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Lock className="h-5 w-5" />
+                    Security Settings
+                  </CardTitle>
+                  <CardDescription>
+                    Manage your account security
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="p-4 bg-muted/50 rounded-lg">
+                    <h4 className="font-semibold mb-2">Password</h4>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Change your password to keep your account secure
+                    </p>
+                    <ChangePasswordDialog />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
