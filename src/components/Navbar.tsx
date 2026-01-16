@@ -63,7 +63,7 @@ export const Navbar = () => {
           <div className="flex items-center justify-between h-16 sm:h-20">
             <Link to="/" className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 max-w-[70%] sm:max-w-none">
               <img src={dicLogo} alt="DIC Logo" className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 shrink-0" />
-              <div className="text-primary-foreground min-w-0">
+              <div className="text-foreground min-w-0">
                 <div className="font-bold text-xs sm:text-sm md:text-lg leading-tight truncate">Defence Intelligence College</div>
                 <div className="text-[10px] sm:text-xs opacity-90 truncate">Karu, Abuja</div>
               </div>
@@ -134,17 +134,19 @@ export const Navbar = () => {
           {isOpen && (
             <div 
               id="mobile-nav" 
-              className="lg:hidden absolute top-16 sm:top-20 left-0 right-0 w-full bg-gradient-hero shadow-lg border-t border-primary-foreground/10 pb-4 px-4 space-y-2 animate-accordion-down max-h-[calc(100vh-4rem)] overflow-y-auto"
+                  className="lg:hidden absolute top-16 sm:top-20 left-0 right-0 w-full bg-gradient-hero shadow-lg border-t border-primary-foreground/10 pb-4 px-4 space-y-2 animate-accordion-down max-h-[calc(100vh-4rem)] overflow-y-auto"
             >
               {navLinks.map((link) => (
                 <Link key={link.path} to={link.path} onClick={() => setIsOpen(false)}>
-                  <Button variant="ghost" className="w-full text-primary-foreground hover:bg-primary-foreground/10 justify-start h-12 text-base">
+                      <Button variant="ghost" className="w-full text-primary-foreground hover:bg-primary-foreground/10 justify-start h-12 text-base">
                     {link.name}
                   </Button>
                 </Link>
               ))}
               <div className="py-2">
-                <LanguageSwitcher />
+                <div className="flex items-center justify-between gap-3">
+                  <LanguageSwitcher />
+                </div>
               </div>
               {user ? (
                 <div className="space-y-2">
@@ -165,7 +167,7 @@ export const Navbar = () => {
                       setIsOpen(false);
                     }}
                     variant="ghost"
-                    className="w-full text-primary-foreground hover:bg-primary-foreground/10 justify-start h-12 text-base"
+                    className="w-full text-foreground hover:bg-muted justify-start h-12 text-base"
                   >
                     <Lock className="mr-2 h-4 w-4" />
                     {t('changePassword') || 'Change Password'}

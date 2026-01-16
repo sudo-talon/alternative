@@ -137,14 +137,9 @@ const Home = () => {
       {/* Main Content with Sidebar */}
       <PageWrapper className="py-8 sm:py-12">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-          {/* Sidebar - Shows first on mobile */}
-          <div className="lg:col-span-1 order-1 lg:order-2">
+          {/* Sidebar */}
+          <div className="lg:col-span-1 order-2 lg:order-2">
             <div className="lg:sticky lg:top-24 space-y-4 sm:space-y-6">
-              {/* Commandants - Shows first on mobile */}
-              <div className="lg:hidden w-full max-w-full overflow-hidden">
-                <CommandantsMarquee />
-              </div>
-              
               <NewsFlash />
               
               <EMagazineSidebar />
@@ -171,7 +166,7 @@ const Home = () => {
                   <Button 
                     variant="outline" 
                     className="w-full justify-start min-h-[44px] text-sm"
-                    onClick={() => window.open("https://elibrary.dic.gov.ng", "_blank")}
+                    onClick={() => window.open("https://dadel-b2d3cba9.vercel.app/", "_blank")}
                   >
                     {t('eLibrary')}
                   </Button>
@@ -195,7 +190,7 @@ const Home = () => {
           </div>
 
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-8 sm:space-y-10 lg:space-y-12 order-2 lg:order-1">
+          <div className="lg:col-span-2 space-y-8 sm:space-y-10 lg:space-y-12 order-1 lg:order-1">
             {/* Features Grid */}
             <div>
               <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-4 sm:mb-6 md:mb-8">{t('whyChooseDIC')}</h2>
@@ -220,8 +215,8 @@ const Home = () => {
               </div>
             </div>
 
-            {/* Commandants Section - Hidden on mobile, shown on desktop */}
-            <div className="hidden lg:block w-full max-w-full overflow-hidden">
+            {/* Commandants Section */}
+            <div className="w-full max-w-full overflow-hidden">
               <CommandantsMarquee />
             </div>
 
@@ -229,12 +224,6 @@ const Home = () => {
             <div className="w-full max-w-full">
               <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-4 sm:mb-6 md:mb-8">{t('aboutUs')}</h2>
               <div>
-                <div className="mb-4 sm:mb-6">
-                  <video controls playsInline preload="metadata" className="w-full rounded-lg shadow-elevated">
-                    <source src={dicVideo} type="video/mp4" />
-                    Your browser does not support the video tag.
-                  </video>
-                </div>
                 <div className="space-y-4 sm:space-y-6">
                   {/* Timeline Dots */}
                   <div className="relative px-8 sm:px-12">
@@ -302,6 +291,12 @@ const Home = () => {
                       {t('readMore')}
                     </Button>
                   </div>
+                </div>
+                <div className="mt-6 sm:mt-8">
+                  <video controls playsInline preload="metadata" className="w-full rounded-lg shadow-elevated">
+                    <source src={dicVideo} type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
                 </div>
               </div>
             </div>

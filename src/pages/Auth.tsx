@@ -104,6 +104,30 @@ const Auth = () => {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!signInData.email.trim()) {
+      toast.error("Please enter your email address first");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(
+        signInData.email.trim(),
+        {
+          redirectTo: `${window.location.origin}/auth`,
+        }
+      );
+      if (error) throw error;
+      toast.success("Password reset email sent. Please check your inbox.");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(message || "Failed to send password reset email");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -220,15 +244,25 @@ const Auth = () => {
                       className="min-h-[44px]"
                     />
                   </div>
-                  <div className="flex items-center space-x-2 p-4 border rounded-lg bg-muted/50">
-                    <Checkbox
-                      id="captcha"
-                      checked={captchaVerified}
-                      onCheckedChange={(checked) => setCaptchaVerified(checked as boolean)}
-                    />
-                    <Label htmlFor="captcha" className="text-sm cursor-pointer">
-                      I am not a robot
-                    </Label>
+                  <div className="flex items-center justify-between gap-4 p-4 border rounded-lg bg-muted/50">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="captcha"
+                        checked={captchaVerified}
+                        onCheckedChange={(checked) => setCaptchaVerified(checked as boolean)}
+                      />
+                      <Label htmlFor="captcha" className="text-sm cursor-pointer">
+                        I am not a robot
+                      </Label>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleForgotPassword}
+                      className="text-sm text-primary hover:underline whitespace-nowrap"
+                      disabled={loading}
+                    >
+                      Forgot password?
+                    </button>
                   </div>
                   <Button type="submit" className="w-full min-h-[44px]" disabled={loading || !captchaVerified}>
                     {loading ? "Signing in..." : "Sign In"}

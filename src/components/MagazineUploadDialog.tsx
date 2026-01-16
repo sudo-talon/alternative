@@ -44,8 +44,8 @@ export const MagazineUploadDialog = ({ isOpen, onClose, onSuccess }: MagazineUpl
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !pdfFile) {
-      toast.error("Title and PDF file are required");
+    if (!title.trim() || !pdfFile) {
+      toast.error("Title and a PDF file are required");
       return;
     }
 
@@ -55,7 +55,7 @@ export const MagazineUploadDialog = ({ isOpen, onClose, onSuccess }: MagazineUpl
       if (!user) throw new Error("Not authenticated");
 
       const timestamp = Date.now();
-      let coverUrl = null;
+      let coverUrl = null as string | null;
       let pdfUrl = "";
 
       // Upload cover image if provided
@@ -73,9 +73,8 @@ export const MagazineUploadDialog = ({ isOpen, onClose, onSuccess }: MagazineUpl
         coverUrl = publicUrl;
       }
 
-      // Upload PDF
       const pdfPath = `pdfs/${timestamp}-${pdfFile.name}`;
-      const { data: pdfData, error: pdfError } = await supabase.storage
+      const { error: pdfError } = await supabase.storage
         .from("magazines")
         .upload(pdfPath, pdfFile);
       
@@ -102,9 +101,10 @@ export const MagazineUploadDialog = ({ isOpen, onClose, onSuccess }: MagazineUpl
       toast.success("Magazine uploaded successfully!");
       resetForm();
       onSuccess();
-    } catch (error: any) {
-      console.error("Upload error:", error);
-      toast.error(error.message || "Failed to upload magazine");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to upload magazine";
+      console.error("Upload error:", message);
+      toast.error(message);
     } finally {
       setIsUploading(false);
     }
@@ -118,6 +118,9 @@ export const MagazineUploadDialog = ({ isOpen, onClose, onSuccess }: MagazineUpl
     setCoverFile(null);
     setCoverPreview(null);
   };
+
+  const isSubmitDisabled =
+    isUploading || !title.trim() || !pdfFile;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -204,7 +207,6 @@ export const MagazineUploadDialog = ({ isOpen, onClose, onSuccess }: MagazineUpl
                 accept="application/pdf"
                 onChange={handlePdfChange}
                 className="hidden"
-                required
               />
             </label>
           </div>
@@ -223,7 +225,7 @@ export const MagazineUploadDialog = ({ isOpen, onClose, onSuccess }: MagazineUpl
             <Button
               type="submit"
               className="flex-1 gap-2"
-              disabled={isUploading || !title || !pdfFile}
+              disabled={isSubmitDisabled}
             >
               {isUploading ? (
                 <>

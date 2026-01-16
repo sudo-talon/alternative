@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import type { User } from "@supabase/supabase-js";
 import { useQuery } from "@tanstack/react-query";
 import { supabaseClient } from "@/lib/supabase";
 import { Navbar } from "@/components/Navbar";
@@ -31,7 +32,7 @@ const EMagazine = () => {
   const [selectedMagazine, setSelectedMagazine] = useState<Magazine | null>(null);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
 
   // Check admin status
   useEffect(() => {

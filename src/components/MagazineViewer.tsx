@@ -71,60 +71,71 @@ interface MagazineViewerProps {
 export const MagazineViewer = ({ magazine, isOpen, onClose }: MagazineViewerProps) => {
   const [numPages, setNumPages] = useState<number>(0);
   const [currentPage, setCurrentPage] = useState(0);
-  const [scale, setScale] = useState(1);
+  const [scale, setScale] = useState(1.1);
   const [isLoading, setIsLoading] = useState(true);
-  const [isFullscreen, setIsFullscreen] = useState(true); // Start in fullscreen by default
+  const [isFullscreen, setIsFullscreen] = useState(true);
   const [dimensions, setDimensions] = useState({ width: 300, height: 420 });
-  const bookRef = useRef<any>(null);
+  type PageFlipController = { flipPrev: () => void; flipNext: () => void };
+  type BookRefType = { pageFlip: () => PageFlipController };
+  const bookRef = useRef<BookRefType | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Auto-enter fullscreen when viewer opens
-  useEffect(() => {
-    if (isOpen && containerRef.current && !document.fullscreenElement) {
-      containerRef.current.requestFullscreen().catch(() => {
-        // Fullscreen may not be available, that's ok
-        setIsFullscreen(false);
-      });
+  const getPdfUrl = useCallback((rawUrl: string) => {
+    const trimmed = rawUrl.trim();
+    if (!trimmed) return trimmed;
+    try {
+      const url = new URL(trimmed);
+      if (url.hostname.includes("drive.google.com")) {
+        let fileId = "";
+        const segments = url.pathname.split("/").filter(Boolean);
+        const dIndex = segments.indexOf("d");
+        if (dIndex !== -1 && segments[dIndex + 1]) {
+          fileId = segments[dIndex + 1];
+        }
+        if (!fileId) {
+          const idParam = url.searchParams.get("id");
+          if (idParam) {
+            fileId = idParam;
+          }
+        }
+        if (fileId) {
+          return `https://drive.google.com/uc?export=view&id=${fileId}`;
+        }
+      }
+    } catch {
+      return trimmed;
     }
-  }, [isOpen]);
+    return trimmed;
+  }, []);
 
-  // Calculate responsive page dimensions - maximize for fullscreen reading
   const updateDimensions = useCallback(() => {
     const viewportHeight = window.innerHeight;
     const viewportWidth = window.innerWidth;
-    const isMobile = viewportWidth < 640;
-    const isTablet = viewportWidth < 1024;
-    
-    // Calculate maximum dimensions based on viewport, leaving space for controls
-    const maxHeight = viewportHeight - 180; // Space for header and nav controls
-    const maxWidth = (viewportWidth - 100) / (isMobile ? 1 : 2); // Two pages on desktop
-    
-    // Maintain aspect ratio (roughly A4 - 1:1.4)
+    const isMobile = viewportWidth < 768;
+    const isTablet = viewportWidth >= 768 && viewportWidth < 1024;
+    const isDesktop = viewportWidth >= 1024;
+
     const aspectRatio = 1.4;
-    let width, height;
-    
-    if (maxHeight / aspectRatio > maxWidth) {
-      width = maxWidth;
-      height = width * aspectRatio;
-    } else {
-      height = maxHeight;
-      width = height / aspectRatio;
-    }
-    
+
+    const targetWidth =
+      isDesktop ? viewportWidth * 0.85 : isTablet ? viewportWidth * 0.95 : viewportWidth * 1.0;
+    const targetHeight =
+      isDesktop ? viewportHeight * 0.88 : isTablet ? viewportHeight * 0.82 : viewportHeight * 0.88;
+
     if (isMobile) {
-      setDimensions({ 
-        width: Math.max(280, Math.min(width, viewportWidth - 40)), 
-        height: Math.max(380, Math.min(height, viewportHeight - 160))
-      });
-    } else if (isTablet) {
-      setDimensions({ 
-        width: Math.max(350, Math.min(width, 450)), 
-        height: Math.max(490, Math.min(height, 630))
+      const singlePageWidth = Math.min(targetWidth, targetHeight / (aspectRatio));
+      const singlePageHeight = singlePageWidth * aspectRatio;
+      setDimensions({
+        width: singlePageWidth,
+        height: singlePageHeight,
       });
     } else {
-      setDimensions({ 
-        width: Math.max(450, Math.min(width, 550)), 
-        height: Math.max(630, Math.min(height, 770))
+      const pageWidthCandidate = targetWidth / 2;
+      const pageWidth = Math.min(pageWidthCandidate, targetHeight / aspectRatio);
+      const pageHeight = pageWidth * aspectRatio;
+      setDimensions({
+        width: pageWidth,
+        height: pageHeight,
       });
     }
   }, []);
@@ -156,7 +167,7 @@ export const MagazineViewer = ({ magazine, isOpen, onClose }: MagazineViewerProp
     }
   };
 
-  const handlePageFlip = (e: any) => {
+  const handlePageFlip = (e: { data: number }) => {
     setCurrentPage(e.data);
   };
 
@@ -169,13 +180,7 @@ export const MagazineViewer = ({ magazine, isOpen, onClose }: MagazineViewerProp
   };
 
   const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      containerRef.current?.requestFullscreen();
-      setIsFullscreen(true);
-    } else {
-      document.exitFullscreen();
-      setIsFullscreen(false);
-    }
+    setIsFullscreen((prev) => !prev);
   };
 
   // Handle keyboard navigation
@@ -210,7 +215,7 @@ export const MagazineViewer = ({ magazine, isOpen, onClose }: MagazineViewerProp
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent 
         ref={containerRef}
-        className="max-w-[100vw] w-[100vw] max-h-[100vh] h-[100vh] sm:max-w-[100vw] md:max-w-[100vw] lg:max-w-[100vw] p-0 overflow-hidden bg-background border-0 rounded-none"
+        className="max-w-[100vw] w-[100vw] max-h-[100vh] h-[100vh] sm:max-w-[100vw] md:max-w-[100vw] lg:max-w-[100vw] p-0 overflow-hidden bg-background border-0 rounded-none flex flex-col"
       >
         <DialogHeader className="p-3 sm:p-4 border-b bg-background/95 backdrop-blur-sm sticky top-0 z-10">
           <div className="flex items-center justify-between gap-2">
@@ -264,12 +269,12 @@ export const MagazineViewer = ({ magazine, isOpen, onClose }: MagazineViewerProp
         </DialogHeader>
 
         <div 
-          className="flex-1 flex flex-col items-center justify-center p-2 sm:p-4 overflow-auto bg-gradient-to-b from-muted/30 to-muted/50"
+          className="flex-1 flex flex-col items-center justify-center p-1 sm:p-2 lg:p-2 overflow-hidden bg-gradient-to-b from-muted/30 to-muted/50 w-full"
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
         >
           <Document
-            file={magazine.pdf_url}
+            file={getPdfUrl(magazine.pdf_url)}
             onLoadSuccess={onDocumentLoadSuccess}
             onLoadError={onDocumentLoadError}
             loading={
@@ -281,7 +286,16 @@ export const MagazineViewer = ({ magazine, isOpen, onClose }: MagazineViewerProp
             error={
               <div className="flex flex-col items-center justify-center h-64 text-center p-4">
                 <p className="text-destructive font-medium">Failed to load magazine</p>
-                <p className="text-sm text-muted-foreground mt-2">Please try again later</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  We could not load the PDF directly. You can still open it in a new tab.
+                </p>
+                <Button
+                  variant="outline"
+                  className="mt-4"
+                  onClick={() => window.open(magazine.pdf_url, "_blank")}
+                >
+                  Open magazine in new tab
+                </Button>
               </div>
             }
           >
@@ -295,10 +309,10 @@ export const MagazineViewer = ({ magazine, isOpen, onClose }: MagazineViewerProp
                   width={dimensions.width}
                   height={dimensions.height}
                   size="stretch"
-                  minWidth={200}
-                  maxWidth={500}
-                  minHeight={300}
-                  maxHeight={650}
+                  minWidth={220}
+                  maxWidth={dimensions.width}
+                  minHeight={320}
+                  maxHeight={dimensions.height}
                   showCover={true}
                   mobileScrollSupport={true}
                   onFlip={handlePageFlip}
@@ -307,7 +321,7 @@ export const MagazineViewer = ({ magazine, isOpen, onClose }: MagazineViewerProp
                   startPage={0}
                   drawShadow={true}
                   flippingTime={600}
-                  usePortrait={window.innerWidth < 640}
+                  usePortrait={window.innerWidth < 768}
                   startZIndex={0}
                   autoSize={true}
                   maxShadowOpacity={0.4}

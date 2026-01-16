@@ -17,6 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { MagazineUploadDialog } from "@/components/MagazineUploadDialog";
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, LineChart, Line, XAxis, YAxis, BarChart, Bar } from "recharts";
 
 const COLORS = ['hsl(85, 25%, 35%)', 'hsl(85, 25%, 45%)', 'hsl(85, 25%, 55%)', 'hsl(85, 25%, 65%)'];
@@ -101,6 +102,8 @@ const AdminDashboard = () => {
     full_name: "", email: "", phone: "", category: "civilian", position: "", department: "", rank: "", bio: "", photo_url: ""
   });
   const [editingPersonnelId, setEditingPersonnelId] = useState<string | null>(null);
+  const [personnelPhotoFile, setPersonnelPhotoFile] = useState<File | null>(null);
+  const [personnelPhotoPreview, setPersonnelPhotoPreview] = useState<string | null>(null);
   const [personnelDialogOpen, setPersonnelDialogOpen] = useState(false);
 
   // Leadership state
@@ -108,6 +111,8 @@ const AdminDashboard = () => {
     full_name: "", position: "", rank: "", bio: "", photo_url: "", display_order: 0
   });
   const [editingLeadershipId, setEditingLeadershipId] = useState<string | null>(null);
+  const [leadershipPhotoFile, setLeadershipPhotoFile] = useState<File | null>(null);
+  const [leadershipPhotoPreview, setLeadershipPhotoPreview] = useState<string | null>(null);
   const [leadershipDialogOpen, setLeadershipDialogOpen] = useState(false);
 
   // PG Programs state
@@ -116,6 +121,50 @@ const AdminDashboard = () => {
   });
   const [editingPgProgramId, setEditingPgProgramId] = useState<string | null>(null);
   const [pgProgramDialogOpen, setPgProgramDialogOpen] = useState(false);
+
+  type MagazineRow = Database["public"]["Tables"]["magazines"]["Row"];
+  const [magazineDialogOpen, setMagazineDialogOpen] = useState(false);
+  const [magazineUploadOpen, setMagazineUploadOpen] = useState(false);
+  const [editingMagazine, setEditingMagazine] = useState<MagazineRow | null>(null);
+  const [magazineForm, setMagazineForm] = useState({
+    title: "",
+    issue: "",
+    description: "",
+    published_at: "",
+  });
+
+  const uploadAvatarImage = async (file: File, folder: "personnel" | "leadership") => {
+    const timestamp = Date.now();
+    const path = `avatars/${folder}/${timestamp}-${file.name}`;
+    const { error } = await supabase.storage
+      .from(bucketName)
+      .upload(path, file);
+    if (error) throw error;
+    const { data: { publicUrl } } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(path);
+    return publicUrl;
+  };
+
+  const handlePersonnelPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPersonnelPhotoFile(file);
+      const reader = new FileReader();
+      reader.onload = () => setPersonnelPhotoPreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleLeadershipPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setLeadershipPhotoFile(file);
+      const reader = new FileReader();
+      reader.onload = () => setLeadershipPhotoPreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
 
   // Courses state
   const [courseForm, setCourseForm] = useState({
@@ -131,15 +180,15 @@ const AdminDashboard = () => {
   const [docVolumeByDept, setDocVolumeByDept] = useState<Array<{ department: string; count: number }>>([]);
   const [populatingAll, setPopulatingAll] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [bucketName, setBucketName] = useState<string>(import.meta.env.VITE_SUPABASE_STORAGE_BUCKET ?? "documents");
+  const [bucketName, setBucketName] = useState<string>(import.meta.env.VITE_SUPABASE_STORAGE_BUCKET ?? "magazines");
   const mapStorageError = (msg: string) => (/bucket\s*not\s*found/i.test(msg) ? `Storage bucket '${bucketName}' not found. Create it in Supabase Storage or set VITE_SUPABASE_STORAGE_BUCKET.` : msg);
 
   useEffect(() => {
     const detectBucket = async () => {
-      const candidates = [bucketName, "documents", "public", "files", "uploads", "avatars"];
+      const candidates = [bucketName, "magazines", "public", "documents", "files", "uploads", "avatars"];
       for (const name of candidates) {
         try {
-          const { error } = await supabase.storage.from(name).list("personnel", { limit: 1 });
+          const { error } = await supabase.storage.from(name).list("", { limit: 1 });
           if (!error) { setBucketName(name); return; }
         } catch (_) { void 0; }
       }
@@ -624,6 +673,19 @@ const AdminDashboard = () => {
     enabled: isAdmin,
   });
 
+  const { data: magazines } = useQuery<MagazineRow[]>({
+    queryKey: ["admin-magazines"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("magazines")
+        .select("*")
+        .order("published_at", { ascending: false });
+      if (error) throw error;
+      return data as MagazineRow[];
+    },
+    enabled: isAdmin,
+  });
+
   const createCourseMutation = useMutation({
     mutationFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -678,23 +740,34 @@ const AdminDashboard = () => {
 
   const createPersonnelMutation = useMutation({
     mutationFn: async () => {
+      let photoUrl = personnelForm.photo_url || null;
+      if (personnelPhotoFile) {
+        photoUrl = await uploadAvatarImage(personnelPhotoFile, "personnel");
+      }
+      const payload = { ...personnelForm, photo_url: photoUrl };
       if (editingPersonnelId) {
         const { error } = await supabase
           .from("personnel")
-          .update(personnelForm)
+          .update(payload)
           .eq("id", editingPersonnelId);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("personnel").insert([personnelForm]);
+        const { error } = await supabase.from("personnel").insert([payload]);
         if (error) throw error;
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-personnel"] });
       setPersonnelForm({ full_name: "", email: "", phone: "", category: "civilian", position: "", department: "", rank: "", bio: "", photo_url: "" });
+      setPersonnelPhotoFile(null);
+      setPersonnelPhotoPreview(null);
       setEditingPersonnelId(null);
       setPersonnelDialogOpen(false);
       toast({ title: "Success", description: editingPersonnelId ? "Personnel updated" : "Personnel created" });
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : "Failed to save personnel";
+      toast({ title: "Error", description: message, variant: "destructive" });
     },
   });
 
@@ -711,23 +784,34 @@ const AdminDashboard = () => {
 
   const createLeadershipMutation = useMutation({
     mutationFn: async () => {
+      let photoUrl = leadershipForm.photo_url || null;
+      if (leadershipPhotoFile) {
+        photoUrl = await uploadAvatarImage(leadershipPhotoFile, "leadership");
+      }
+      const payload = { ...leadershipForm, photo_url: photoUrl };
       if (editingLeadershipId) {
         const { error } = await supabase
           .from("leadership")
-          .update(leadershipForm)
+          .update(payload)
           .eq("id", editingLeadershipId);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("leadership").insert([leadershipForm]);
+        const { error } = await supabase.from("leadership").insert([payload]);
         if (error) throw error;
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-leadership"] });
       setLeadershipForm({ full_name: "", position: "", rank: "", bio: "", photo_url: "", display_order: 0 });
+      setLeadershipPhotoFile(null);
+      setLeadershipPhotoPreview(null);
       setEditingLeadershipId(null);
       setLeadershipDialogOpen(false);
       toast({ title: "Success", description: editingLeadershipId ? "Leadership updated" : "Leadership created" });
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : "Failed to save leadership";
+      toast({ title: "Error", description: message, variant: "destructive" });
     },
   });
 
@@ -757,6 +841,46 @@ const AdminDashboard = () => {
     onError: (error: unknown) => {
       const message = error instanceof Error ? error.message : String(error);
       toast({ title: "Error", description: message, variant: "destructive" });
+    },
+  });
+
+  const updateMagazineMutation = useMutation({
+    mutationFn: async () => {
+      if (!editingMagazine) return;
+      const { error } = await supabase
+        .from("magazines")
+        .update({
+          title: magazineForm.title,
+          issue: magazineForm.issue || null,
+          description: magazineForm.description || null,
+          published_at: magazineForm.published_at || editingMagazine.published_at,
+        })
+        .eq("id", editingMagazine.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-magazines"] });
+      setEditingMagazine(null);
+      setMagazineDialogOpen(false);
+      setMagazineForm({ title: "", issue: "", description: "", published_at: "" });
+      toast({ title: "Success", description: "Magazine updated" });
+    },
+    onError: (error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteMagazineMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("magazines").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-magazines"] });
+      toast({ title: "Success", description: "Magazine deleted" });
+    },
+    onError: (error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 
@@ -797,6 +921,7 @@ const AdminDashboard = () => {
             <TabsTrigger value="leadership" className="h-full whitespace-normal min-h-[44px]"><Crown className="mr-1 h-4 w-4" />Leadership</TabsTrigger>
             <TabsTrigger value="pgprograms" className="h-full whitespace-normal min-h-[44px]"><GraduationCap className="mr-1 h-4 w-4" />PG Programs</TabsTrigger>
             <TabsTrigger value="news" className="h-full whitespace-normal min-h-[44px]"><Newspaper className="mr-1 h-4 w-4" />News</TabsTrigger>
+            <TabsTrigger value="magazines" className="h-full whitespace-normal min-h-[44px]"><FileText className="mr-1 h-4 w-4" />Magazines</TabsTrigger>
             <TabsTrigger value="users" className="h-full whitespace-normal min-h-[44px]"><Users className="mr-1 h-4 w-4" />Users</TabsTrigger>
             <TabsTrigger value="categories" className="h-full whitespace-normal min-h-[44px]"><Shield className="mr-1 h-4 w-4" />Categories</TabsTrigger>
             <TabsTrigger value="analytics" className="h-full whitespace-normal min-h-[44px]"><BarChart3 className="mr-1 h-4 w-4" />Analytics</TabsTrigger>
@@ -937,6 +1062,8 @@ const AdminDashboard = () => {
                 <Button onClick={() => {
                   setPersonnelForm({ full_name: "", email: "", phone: "", category: "civilian", position: "", department: "", rank: "", bio: "", photo_url: "" });
                   setEditingPersonnelId(null);
+                  setPersonnelPhotoFile(null);
+                  setPersonnelPhotoPreview(null);
                   setPersonnelDialogOpen(true);
                 }}>
                   <Plus className="mr-2 h-4 w-4" />Add Personnel
@@ -988,8 +1115,28 @@ const AdminDashboard = () => {
                         <Textarea id="p_bio" value={personnelForm.bio} onChange={(e) => setPersonnelForm({...personnelForm, bio: e.target.value})} />
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="p_photo">Photo URL</Label>
-                        <Input id="p_photo" value={personnelForm.photo_url} onChange={(e) => setPersonnelForm({...personnelForm, photo_url: e.target.value})} />
+                        <Label>Photo (optional)</Label>
+                        <div className="flex items-start gap-4">
+                          <label className="flex-1 flex flex-col items-center justify-center p-4 border-2 border-dashed border-muted-foreground/30 rounded-lg cursor-pointer hover:border-primary/50 transition-colors">
+                            <ImageIcon className="h-8 w-8 text-muted-foreground mb-2" />
+                            <span className="text-sm text-muted-foreground">
+                              {personnelPhotoFile ? personnelPhotoFile.name : "Click to upload photo"}
+                            </span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handlePersonnelPhotoChange}
+                              className="hidden"
+                            />
+                          </label>
+                          {(personnelPhotoPreview || personnelForm.photo_url) && (
+                            <img
+                              src={personnelPhotoPreview || personnelForm.photo_url || ""}
+                              alt="Photo preview"
+                              className="w-20 h-20 object-cover rounded border"
+                            />
+                          )}
+                        </div>
                       </div>
                       <Button onClick={() => createPersonnelMutation.mutate()}>{editingPersonnelId ? "Update" : "Create"} Personnel</Button>
                     </div>
@@ -1018,6 +1165,8 @@ const AdminDashboard = () => {
                             <Button variant="outline" size="sm" onClick={() => {
                               setPersonnelForm(person);
                               setEditingPersonnelId(person.id);
+                              setPersonnelPhotoFile(null);
+                              setPersonnelPhotoPreview(person.photo_url || null);
                               setPersonnelDialogOpen(true);
                             }}>
                               <Edit className="h-4 w-4" />
@@ -1046,6 +1195,8 @@ const AdminDashboard = () => {
                 <Button onClick={() => {
                   setLeadershipForm({ full_name: "", position: "", rank: "", bio: "", photo_url: "", display_order: 0 });
                   setEditingLeadershipId(null);
+                  setLeadershipPhotoFile(null);
+                  setLeadershipPhotoPreview(null);
                   setLeadershipDialogOpen(true);
                 }}>
                   <Plus className="mr-2 h-4 w-4" />Add Leader
@@ -1075,12 +1226,43 @@ const AdminDashboard = () => {
                         <Textarea id="l_bio" value={leadershipForm.bio} onChange={(e) => setLeadershipForm({...leadershipForm, bio: e.target.value})} />
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="l_photo">Photo URL</Label>
-                        <Input id="l_photo" value={leadershipForm.photo_url} onChange={(e) => setLeadershipForm({...leadershipForm, photo_url: e.target.value})} />
+                        <Label>Photo (optional)</Label>
+                        <div className="flex items-start gap-4">
+                          <label className="flex-1 flex flex-col items-center justify-center p-4 border-2 border-dashed border-muted-foreground/30 rounded-lg cursor-pointer hover:border-primary/50 transition-colors">
+                            <ImageIcon className="h-8 w-8 text-muted-foreground mb-2" />
+                            <span className="text-sm text-muted-foreground">
+                              {leadershipPhotoFile ? leadershipPhotoFile.name : "Click to upload photo"}
+                            </span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleLeadershipPhotoChange}
+                              className="hidden"
+                            />
+                          </label>
+                          {(leadershipPhotoPreview || leadershipForm.photo_url) && (
+                            <img
+                              src={leadershipPhotoPreview || leadershipForm.photo_url || ""}
+                              alt="Photo preview"
+                              className="w-20 h-20 object-cover rounded border"
+                            />
+                          )}
+                        </div>
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="l_order">Display Order</Label>
-                        <Input id="l_order" type="number" value={leadershipForm.display_order} onChange={(e) => setLeadershipForm({...leadershipForm, display_order: parseInt(e.target.value)})} />
+                        <Input
+                          id="l_order"
+                          type="number"
+                          value={leadershipForm.display_order}
+                          onChange={(e) => {
+                            const value = parseInt(e.target.value, 10);
+                            setLeadershipForm({
+                              ...leadershipForm,
+                              display_order: Number.isNaN(value) ? 0 : value,
+                            });
+                          }}
+                        />
                       </div>
                       <Button onClick={() => createLeadershipMutation.mutate()}>{editingLeadershipId ? "Update" : "Create"} Leader</Button>
                     </div>
@@ -1137,6 +1319,8 @@ const AdminDashboard = () => {
                             <Button variant="outline" size="sm" onClick={() => {
                               setLeadershipForm(leader);
                               setEditingLeadershipId(leader.id);
+                              setLeadershipPhotoFile(null);
+                              setLeadershipPhotoPreview(leader.photo_url || null);
                               setLeadershipDialogOpen(true);
                             }}>
                               <Edit className="h-4 w-4" />
@@ -1231,6 +1415,147 @@ const AdminDashboard = () => {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="magazines">
+            <Card>
+              <CardHeader>
+                <CardTitle>Magazine Management</CardTitle>
+                <CardDescription>Upload and manage digital magazines</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={() => setMagazineUploadOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" />Add Magazine
+                  </Button>
+                </div>
+
+                <MagazineUploadDialog
+                  isOpen={magazineUploadOpen}
+                  onClose={() => setMagazineUploadOpen(false)}
+                  onSuccess={() => {
+                    queryClient.invalidateQueries({ queryKey: ["admin-magazines"] });
+                    setMagazineUploadOpen(false);
+                    toast({ title: "Success", description: "Magazine uploaded" });
+                  }}
+                />
+
+                <Dialog
+                  open={magazineDialogOpen}
+                  onOpenChange={(open) => {
+                    setMagazineDialogOpen(open);
+                    if (!open) {
+                      setEditingMagazine(null);
+                      setMagazineForm({ title: "", issue: "", description: "", published_at: "" });
+                    }
+                  }}
+                >
+                  <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Edit Magazine</DialogTitle>
+                      <DialogDescription>Update magazine details</DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="m_title">Title</Label>
+                        <Input
+                          id="m_title"
+                          value={magazineForm.title}
+                          onChange={(e) => setMagazineForm({ ...magazineForm, title: e.target.value })}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="m_issue">Issue</Label>
+                        <Input
+                          id="m_issue"
+                          value={magazineForm.issue}
+                          onChange={(e) => setMagazineForm({ ...magazineForm, issue: e.target.value })}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="m_description">Description</Label>
+                        <Textarea
+                          id="m_description"
+                          value={magazineForm.description}
+                          onChange={(e) => setMagazineForm({ ...magazineForm, description: e.target.value })}
+                          rows={3}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="m_published_at">Published Date</Label>
+                        <Input
+                          id="m_published_at"
+                          type="date"
+                          value={magazineForm.published_at}
+                          onChange={(e) => setMagazineForm({ ...magazineForm, published_at: e.target.value })}
+                        />
+                      </div>
+                      <Button
+                        onClick={() => updateMagazineMutation.mutate()}
+                        disabled={!editingMagazine || !magazineForm.title}
+                      >
+                        Update Magazine
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Issue</TableHead>
+                        <TableHead>Published</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {magazines?.map((magazine) => (
+                        <TableRow key={magazine.id}>
+                          <TableCell className="font-medium">{magazine.title}</TableCell>
+                          <TableCell>{magazine.issue}</TableCell>
+                          <TableCell>
+                            {magazine.published_at
+                              ? new Date(magazine.published_at).toLocaleDateString()
+                              : ""}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setEditingMagazine(magazine);
+                                  setMagazineForm({
+                                    title: magazine.title,
+                                    issue: magazine.issue || "",
+                                    description: magazine.description || "",
+                                    published_at: magazine.published_at
+                                      ? magazine.published_at.slice(0, 10)
+                                      : "",
+                                  });
+                                  setMagazineDialogOpen(true);
+                                }}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => deleteMagazineMutation.mutate(magazine.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
               </CardContent>
             </Card>
@@ -1990,6 +2315,7 @@ const AdminDashboard = () => {
                   </div>
                   <div className="flex gap-2 flex-wrap">
                     <Button onClick={addPicture} disabled={!pictureForm.image_url}><Plus className="mr-2 h-4 w-4" />Add Picture</Button>
+                  <Button variant="outline" onClick={() => { persistPictures([]); toast({ title: "Cleared", description: "All pictures removed" }); }}>Clear Pictures</Button>
                   </div>
                   <Table>
                     <TableHeader>

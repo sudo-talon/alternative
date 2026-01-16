@@ -63,7 +63,7 @@ const translations: Record<Language, Record<string, string>> = {
     modernEraDesc: "Partner with Talongeeks to achieve full digitalization of learning systems and international accreditation for all programs.",
     
     // Commandants
-    pastPresentCommandants: "Past and Present Commandants",
+    pastPresentCommandants: "Chronicle of Command",
     commandantDIC: "Commandant DIC",
     
     // News
@@ -143,7 +143,7 @@ const translations: Record<Language, Record<string, string>> = {
     modernEraDesc: "Partenariat avec Talongeeks pour la numérisation complète des systèmes d'apprentissage.",
     
     // Commandants
-    pastPresentCommandants: "Commandants passés et présents",
+    pastPresentCommandants: "Chronicle of Command",
     commandantDIC: "Commandant DIC",
     
     // News
@@ -223,7 +223,7 @@ const translations: Record<Language, Record<string, string>> = {
     modernEraDesc: "Haɗin gwiwa da Talongeeks don cikakken dijital.",
     
     // Commandants
-    pastPresentCommandants: "Kwamandojin Da Suka Gabata da Na Yanzu",
+    pastPresentCommandants: "Chronicle of Command",
     commandantDIC: "Kwamandan DIC",
     
     // News
@@ -303,7 +303,7 @@ const translations: Record<Language, Record<string, string>> = {
     modernEraDesc: "Ndị mmekọ na Talongeeks maka dijitalụ zuru oke.",
     
     // Commandants
-    pastPresentCommandants: "Ndị Kọmanda Gara Aga na Ndị Kọmanda Ugbu a",
+    pastPresentCommandants: "Chronicle of Command",
     commandantDIC: "Kọmanda DIC",
     
     // News
@@ -383,7 +383,7 @@ const translations: Record<Language, Record<string, string>> = {
     modernEraDesc: "Àjọṣe pẹ̀lú Talongeeks fún dígítálù kíkún.",
     
     // Commandants
-    pastPresentCommandants: "Àwọn Kọ̀màńdà Àtijọ́ àti Lọ́wọ́lọ́wọ́",
+    pastPresentCommandants: "Chronicle of Command",
     commandantDIC: "Kọ̀màńdà DIC",
     
     // News

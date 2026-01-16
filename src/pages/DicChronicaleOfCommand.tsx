@@ -7,7 +7,7 @@ import { supabaseClient as supabase } from "@/lib/supabase";
 import { Crown } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 import cdreBugaje from "@/assets/cdre-bugaje.jpeg";
-import effahImg from "@/assets/images.jpeg";
+import effahImg from "@/assets/dic-logo.png";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";

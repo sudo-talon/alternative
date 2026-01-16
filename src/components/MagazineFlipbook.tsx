@@ -58,7 +58,7 @@ export const MagazineFlipbook = ({ pdfUrl, title = "College Magazine", variant =
   const [currentPage, setCurrentPage] = useState(0);
   const [scale, setScale] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
-  const bookRef = useRef<any>(null);
+  const bookRef = useRef<HTMLFlipBook | null>(null);
   const { t } = useLanguage();
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
@@ -82,7 +82,7 @@ export const MagazineFlipbook = ({ pdfUrl, title = "College Magazine", variant =
     }
   };
 
-  const handlePageFlip = (e: any) => {
+  const handlePageFlip = (e: { data: number }) => {
     setCurrentPage(e.data);
   };
 
