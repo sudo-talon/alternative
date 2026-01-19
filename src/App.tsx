@@ -13,6 +13,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import About from "./pages/About";
 import Departments from "./pages/Departments";
 import News from "./pages/News";
+import NewsDetail from "./pages/NewsDetail";
 import DicChronicaleOfCommand from "./pages/DicChronicaleOfCommand";
 import PgProgram from "./pages/PgProgram";
 import Contact from "./pages/Contact";
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/about" element={<About />} />
             <Route path="/departments" element={<Departments />} />
             <Route path="/news" element={<News />} />
+            <Route path="/news/:id" element={<NewsDetail />} />
             <Route path="/chronicle-of-command" element={<DicChronicaleOfCommand />} />
             <Route path="/pg-program" element={<PgProgram />} />
             <Route path="/contact" element={<Contact />} />

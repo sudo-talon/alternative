@@ -4,7 +4,7 @@ import { Document, Page, pdfjs } from "react-pdf";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, X, BookOpen } from "lucide-react";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useLanguage } from "@/contexts/useLanguage";
 
 // Set up the PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -58,7 +58,9 @@ export const MagazineFlipbook = ({ pdfUrl, title = "College Magazine", variant =
   const [currentPage, setCurrentPage] = useState(0);
   const [scale, setScale] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
-  const bookRef = useRef<HTMLFlipBook | null>(null);
+  type PageFlipController = { flipPrev: () => void; flipNext: () => void };
+  type BookRefType = { pageFlip: () => PageFlipController };
+  const bookRef = useRef<BookRefType | null>(null);
   const { t } = useLanguage();
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {

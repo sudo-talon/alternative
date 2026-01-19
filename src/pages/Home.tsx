@@ -13,12 +13,29 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { PageWrapper } from "@/components/PageWrapper";
 import { EMagazineSidebar } from "@/components/EMagazineSidebar";
+import { supabaseClient as supabase } from "@/lib/supabase";
+import { useQuery } from "@tanstack/react-query";
 
 
 const Home = () => {
   const navigate = useNavigate();
   const [activeYear, setActiveYear] = useState("2001");
   const { t } = useLanguage();
+  const { data: homeVideoSetting } = useQuery<{ id: string; message: string } | null>({
+    queryKey: ["home-video-url"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("notifications")
+        .select("id, message")
+        .eq("type", "setting")
+        .eq("title", "home_video_url")
+        .maybeSingle();
+      if (error) throw error;
+      return data ?? null;
+    },
+    staleTime: 300000,
+    refetchOnWindowFocus: false,
+  });
 
   const features = [
     {
@@ -293,10 +310,32 @@ const Home = () => {
                   </div>
                 </div>
                 <div className="mt-6 sm:mt-8">
-                  <video controls playsInline preload="metadata" className="w-full rounded-lg shadow-elevated">
-                    <source src={dicVideo} type="video/mp4" />
-                    Your browser does not support the video tag.
-                  </video>
+                  {(() => {
+                    const url = homeVideoSetting?.message || "";
+                    const isYouTube = /youtube\.com|youtu\.be/.test(url);
+                    if (isYouTube && url) {
+                      const idMatch = url.match(/[?&]v=([^&]+)/) || url.match(/youtu\.be\/([^?]+)/);
+                      const id = idMatch ? idMatch[1] : "";
+                      const embed = id ? `https://www.youtube.com/embed/${id}` : url;
+                      return (
+                        <div className="aspect-video rounded-lg overflow-hidden shadow-elevated bg-muted">
+                          <iframe
+                            src={embed}
+                            title="Home Video"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            className="w-full h-full"
+                          />
+                        </div>
+                      );
+                    }
+                    const src = url || dicVideo;
+                    return (
+                      <video controls playsInline preload="metadata" className="w-full rounded-lg shadow-elevated">
+                        <source src={src} type="video/mp4" />
+                      </video>
+                    );
+                  })()}
                 </div>
               </div>
             </div>

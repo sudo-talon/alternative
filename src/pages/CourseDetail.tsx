@@ -1,12 +1,18 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect, useCallback } from "react";
 import type { User } from "@supabase/supabase-js";
+import { useQuery } from "@tanstack/react-query";
 import { Navbar } from "@/components/Navbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabaseClient as supabase } from "@/lib/supabase";
-import { BookOpen, Calendar, Users, Award, ArrowLeft } from "lucide-react";
+import type { Database } from "@/integrations/supabase/types";
+import { BookOpen, Calendar, Users, Award, ArrowLeft, CreditCard, Clock } from "lucide-react";
+
+type CourseRow = Database["public"]["Tables"]["courses"]["Row"];
+type EnrollmentRow = Database["public"]["Tables"]["enrollments"]["Row"];
 
 const CourseDetail = () => {
   const { courseTitle } = useParams();
@@ -15,16 +21,63 @@ const CourseDetail = () => {
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
+  const [enrollment, setEnrollment] = useState<EnrollmentRow | null>(null);
+
+  const courseIdentifier = courseTitle || "";
+  const decodedIdentifier = decodeURIComponent(courseIdentifier);
+
+  const { data: course, isLoading: courseLoading } = useQuery<CourseRow | null>({
+    queryKey: ["course-detail", courseIdentifier],
+    queryFn: async () => {
+      if (!courseIdentifier) return null;
+      const { data: byId, error: byIdError } = await supabase
+        .from("courses")
+        .select("*")
+        .eq("id", courseIdentifier)
+        .maybeSingle();
+      if (!byIdError && byId) return byId as CourseRow;
+
+      const { data: byTitle, error: byTitleError } = await supabase
+        .from("courses")
+        .select("*")
+        .ilike("title", decodedIdentifier);
+      if (byTitleError) throw byTitleError;
+      return (byTitle && byTitle.length > 0 ? byTitle[0] : null) as CourseRow | null;
+    },
+  });
 
   const checkEnrollment = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     setUser(user);
+
+    if (!user || !course) {
+      setLoading(false);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("enrollments")
+      .select("*")
+      .eq("student_id", user.id)
+      .eq("course_id", course.id)
+      .maybeSingle();
+
+    if (!error && data) {
+      setEnrollment(data as EnrollmentRow);
+      setIsEnrolled(true);
+    } else {
+      setEnrollment(null);
+      setIsEnrolled(false);
+    }
+
     setLoading(false);
-  }, []);
+  }, [course]);
 
   useEffect(() => {
-    checkEnrollment();
-  }, [checkEnrollment]);
+    if (course) {
+      checkEnrollment();
+    }
+  }, [course, checkEnrollment]);
 
   
 
@@ -38,14 +91,79 @@ const CourseDetail = () => {
       return;
     }
 
-    toast({
-      title: "Enrollment Successful",
-      description: `You have been enrolled in ${courseTitle}`,
-    });
-    setIsEnrolled(true);
+    if (!course) {
+      toast({
+        title: "Error",
+        description: "Course details could not be loaded",
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      if (course.is_paid && course.price_cents && course.price_cents > 0) {
+        const { error: paymentError } = await supabase.from("payments").insert([
+          {
+            student_id: user.id,
+            course_id: course.id,
+            amount_cents: course.price_cents,
+            currency: course.currency,
+            status: "succeeded",
+            provider: "manual",
+            reference: crypto.randomUUID(),
+          },
+        ]);
+        if (paymentError) throw paymentError;
+
+        const { error: enrollmentError } = await supabase.from("enrollments").insert([
+          {
+            student_id: user.id,
+            course_id: course.id,
+            payment_status: "succeeded",
+            access_state: "active",
+          },
+        ]);
+        if (enrollmentError) throw enrollmentError;
+      } else {
+        const { error: enrollmentError } = await supabase.from("enrollments").insert([
+          {
+            student_id: user.id,
+            course_id: course.id,
+            payment_status: "free",
+            access_state: "active",
+          },
+        ]);
+        if (enrollmentError) throw enrollmentError;
+      }
+
+      toast({
+        title: "Enrollment Successful",
+        description: `You have been enrolled in ${course.title}`,
+      });
+      await checkEnrollment();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (message.includes("duplicate key")) {
+        toast({
+          title: "Already enrolled",
+          description: "You are already enrolled in this course",
+        });
+      } else {
+        toast({
+          title: "Enrollment failed",
+          description: message,
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const decodedTitle = decodeURIComponent(courseTitle || "");
+  const decodedTitle = decodedIdentifier;
+  const titleToShow = course?.title || decodedTitle;
+  const isPaidCourse = course?.is_paid && (course.price_cents || 0) > 0;
+  const hasActiveAccess = isEnrolled && enrollment?.access_state !== "revoked";
+  const showLoadingState = loading || courseLoading;
 
   return (
     <div className="min-h-screen bg-background">
@@ -60,6 +178,10 @@ const CourseDetail = () => {
           Back to Courses
         </Button>
 
+        {showLoadingState && (
+          <div className="mb-6 text-center text-muted-foreground">Loading course...</div>
+        )}
+
         <div className="grid md:grid-cols-3 gap-6">
           <div className="md:col-span-2">
             <Card className="shadow-elevated">
@@ -69,9 +191,16 @@ const CourseDetail = () => {
                     <BookOpen className="h-8 w-8 text-primary-foreground" />
                   </div>
                   <div>
-                    <CardTitle className="text-2xl sm:text-3xl break-words">{decodedTitle}</CardTitle>
+                    <CardTitle className="text-2xl sm:text-3xl break-words flex flex-wrap items-center gap-2">
+                      <span>{titleToShow}</span>
+                      {course && (
+                        <Badge variant={isPaidCourse ? "secondary" : "outline"} className="text-xs">
+                          {isPaidCourse ? "Paid" : "Free"}
+                        </Badge>
+                      )}
+                    </CardTitle>
                     <CardDescription className="text-base mt-2">
-                      Professional intelligence and security training
+                      {course?.description || "Professional intelligence and security training"}
                     </CardDescription>
                   </div>
                 </div>
@@ -146,6 +275,32 @@ const CourseDetail = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
+                  <Clock className="h-5 w-5 text-primary" />
+                  <div>
+                    <p className="font-semibold">Estimated Duration</p>
+                    <p className="text-sm text-muted-foreground">
+                      {course?.duration_weeks
+                        ? `${course.duration_weeks} weeks`
+                        : "8-12 weeks"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <CreditCard className="h-5 w-5 text-primary" />
+                  <div>
+                    <p className="font-semibold">Pricing</p>
+                    <p className="text-sm text-muted-foreground">
+                      {isPaidCourse && course?.price_cents
+                        ? (course.price_cents / 100).toLocaleString(undefined, {
+                            style: "currency",
+                            currency: course.currency || "NGN",
+                            maximumFractionDigits: 0,
+                          })
+                        : "Free"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
                   <Award className="h-5 w-5 text-primary" />
                   <div>
                     <p className="font-semibold">Certification</p>
@@ -157,29 +312,45 @@ const CourseDetail = () => {
 
             <Card className="shadow-elevated bg-gradient-accent">
               <CardContent className="pt-6">
-                {loading ? (
+                {showLoadingState ? (
                   <Button className="w-full" disabled>
                     Loading...
                   </Button>
                 ) : isEnrolled ? (
                   <div className="text-center">
                     <p className="text-primary-foreground font-semibold mb-4">
-                      You are enrolled in this course
+                      {hasActiveAccess
+                        ? "You are enrolled in this course"
+                        : "Your access to this course is currently revoked"}
                     </p>
-                    <Button variant="secondary" className="w-full">
-                      Go to Course Dashboard
-                    </Button>
+                    {hasActiveAccess && (
+                      <Button
+                        variant="secondary"
+                        className="w-full min-h-[44px]"
+                        onClick={() => navigate("/dashboard")}
+                      >
+                        Go to Course Dashboard
+                      </Button>
+                    )}
                   </div>
                 ) : (
                   <>
                     <p className="text-primary-foreground text-center mb-4">
-                      Ready to advance your career?
+                      {isPaidCourse
+                        ? "Complete your enrollment to unlock course content."
+                        : "Ready to advance your career?"}
                     </p>
                     <Button 
                       onClick={handleEnroll} 
                       className="w-full bg-white text-primary hover:bg-white/90 min-h-[44px]"
                     >
-                      Enroll Now
+                      {isPaidCourse && course?.price_cents
+                        ? `Enroll for ${(course.price_cents / 100).toLocaleString(undefined, {
+                            style: "currency",
+                            currency: course.currency || "NGN",
+                            maximumFractionDigits: 0,
+                          })}`
+                        : "Enroll Now"}
                     </Button>
                   </>
                 )}

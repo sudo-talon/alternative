@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { supabaseClient as supabase } from "@/lib/supabase";
+import { supabaseClient } from "@/lib/supabase";
 import { Newspaper, Trash2, Plus, Users, GraduationCap, Edit, BarChart3, Shield, BookOpen, UserCog, Crown, FileText, Database as DatabaseIcon, Image as ImageIcon, Video } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -18,9 +18,10 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { MagazineUploadDialog } from "@/components/MagazineUploadDialog";
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, LineChart, Line, XAxis, YAxis, BarChart, Bar } from "recharts";
+import { Tooltip, Legend, ResponsiveContainer, LineChart, Line, XAxis, YAxis, PieChart, Pie, Cell } from "recharts";
+import dicLogo from "@/assets/dic-logo.png";
 
-const COLORS = ['hsl(85, 25%, 35%)', 'hsl(85, 25%, 45%)', 'hsl(85, 25%, 55%)', 'hsl(85, 25%, 65%)'];
+const supabase = supabaseClient;
 
 const categoryClasses = (name?: string) => {
   const n = String(name || "").toLowerCase();
@@ -29,6 +30,23 @@ const categoryClasses = (name?: string) => {
   if (/post|graduate|pg/.test(n)) return "bg-purple-600 text-white";
   if (/diploma|certificate|short/.test(n)) return "bg-amber-500 text-black";
   return "bg-slate-600 text-white";
+};
+
+const normalizePersonnelCategory = (raw?: string | null) => {
+  const value = String(raw || "").toLowerCase().trim();
+  if (!value) return "civilian";
+  if (value === "military" || value === "civilian") return value;
+  if (
+    value.includes("dia") ||
+    value.includes("navy") ||
+    value.includes("army") ||
+    value.includes("air") ||
+    value.includes("forces")
+  ) {
+    return "military";
+  }
+  if (value.includes("civil")) return "civilian";
+  return "civilian";
 };
 
 const AdminDashboard = () => {
@@ -42,8 +60,11 @@ const AdminDashboard = () => {
   const [newsTitle, setNewsTitle] = useState("");
   const [newsContent, setNewsContent] = useState("");
   const [newsFeaturedImage, setNewsFeaturedImage] = useState("");
+  const [newsImageFile, setNewsImageFile] = useState<File | null>(null);
+  const [newsImagePreview, setNewsImagePreview] = useState<string | null>(null);
   const [editingNewsId, setEditingNewsId] = useState<string | null>(null);
   const [newsDialogOpen, setNewsDialogOpen] = useState(false);
+  const [newsCategory, setNewsCategory] = useState<string>("");
   
   // Category state
   const [newCategoryName, setNewCategoryName] = useState("");
@@ -59,43 +80,165 @@ const AdminDashboard = () => {
   const [pictureForm, setPictureForm] = useState({ title: "", image_url: "" });
   type GalleryVideo = { id: string; title: string; url: string };
   type GalleryPicture = { id: string; title: string; image_url: string };
-  const [galleryVideos, setGalleryVideos] = useState<GalleryVideo[]>(() => {
-    try { return JSON.parse(localStorage.getItem("dic_gallery_videos") || "[]"); } catch { return []; }
-  });
-  const [galleryPictures, setGalleryPictures] = useState<GalleryPicture[]>(() => {
-    try { return JSON.parse(localStorage.getItem("dic_gallery_pictures") || "[]"); } catch { return []; }
-  });
-  const persistVideos = (list: GalleryVideo[]) => {
-    setGalleryVideos(list);
-    localStorage.setItem("dic_gallery_videos", JSON.stringify(list));
+  const [galleryVideos, setGalleryVideos] = useState<GalleryVideo[]>([]);
+  const [galleryPictures, setGalleryPictures] = useState<GalleryPicture[]>([]);
+  const [editingGalleryVideoId, setEditingGalleryVideoId] = useState<string | null>(null);
+  const [editingGalleryPictureId, setEditingGalleryPictureId] = useState<string | null>(null);
+  const [homeVideoSettingId, setHomeVideoSettingId] = useState<string | null>(null);
+  const [homeVideoUrlSetting, setHomeVideoUrlSetting] = useState("");
+  const [homeVideoSaving, setHomeVideoSaving] = useState(false);
+  const [gallerySaving, setGallerySaving] = useState(false);
+  const saveGalleryVideo = async () => {
+    if (!videoForm.url) return;
+    try {
+      setGallerySaving(true);
+      if (editingGalleryVideoId) {
+        const { error } = await supabase
+          .from("gallery_videos")
+          .update({ title: videoForm.title || "Untitled", url: videoForm.url })
+          .eq("id", editingGalleryVideoId);
+        if (error) throw error;
+        setGalleryVideos(list =>
+          list.map(v =>
+            v.id === editingGalleryVideoId ? { ...v, title: videoForm.title || "Untitled", url: videoForm.url } : v,
+          ),
+        );
+        toast({ title: "Saved", description: "Video updated" });
+      } else {
+        const { data, error } = await supabase
+          .from("gallery_videos")
+          .insert([{ title: videoForm.title || "Untitled", url: videoForm.url }])
+          .select("id, title, url")
+          .single();
+        if (error) throw error;
+        const newVideo: GalleryVideo = {
+          id: data.id,
+          title: data.title || "Untitled",
+          url: data.url,
+        };
+        setGalleryVideos(list => [newVideo, ...list]);
+        toast({ title: "Saved", description: "Video added to gallery" });
+      }
+      setVideoForm({ title: "", url: "" });
+      setEditingGalleryVideoId(null);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      toast({ title: "Error", description: message, variant: "destructive" });
+    } finally {
+      setGallerySaving(false);
+    }
   };
-  const persistPictures = (list: GalleryPicture[]) => {
-    setGalleryPictures(list);
-    localStorage.setItem("dic_gallery_pictures", JSON.stringify(list));
+  const deleteVideo = async (id: string) => {
+    try {
+      setGallerySaving(true);
+      const { error } = await supabase
+        .from("gallery_videos")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+      setGalleryVideos(list => list.filter(v => v.id !== id));
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      toast({ title: "Error", description: message, variant: "destructive" });
+    } finally {
+      setGallerySaving(false);
+    }
   };
-  const addVideo = () => {
-    const v: GalleryVideo = { id: crypto.randomUUID(), title: videoForm.title || "Untitled", url: videoForm.url };
-    const list = [v, ...galleryVideos];
-    persistVideos(list);
-    setVideoForm({ title: "", url: "" });
-    toast({ title: "Saved", description: "Video added to gallery" });
+  const saveGalleryPicture = async () => {
+    if (!pictureForm.image_url) return;
+    try {
+      setGallerySaving(true);
+      if (editingGalleryPictureId) {
+        const { error } = await supabase
+          .from("gallery_pictures")
+          .update({ title: pictureForm.title || "Untitled", image_url: pictureForm.image_url })
+          .eq("id", editingGalleryPictureId);
+        if (error) throw error;
+        setGalleryPictures(list =>
+          list.map(p =>
+            p.id === editingGalleryPictureId
+              ? { ...p, title: pictureForm.title || "Untitled", image_url: pictureForm.image_url }
+              : p,
+          ),
+        );
+        toast({ title: "Saved", description: "Picture updated" });
+      } else {
+        const { data, error } = await supabase
+          .from("gallery_pictures")
+          .insert([{ title: pictureForm.title || "Untitled", image_url: pictureForm.image_url }])
+          .select("id, title, image_url")
+          .single();
+        if (error) throw error;
+        const newPicture: GalleryPicture = {
+          id: data.id,
+          title: data.title || "Untitled",
+          image_url: data.image_url,
+        };
+        setGalleryPictures(list => [newPicture, ...list]);
+        toast({ title: "Saved", description: "Picture added to gallery" });
+      }
+      setPictureForm({ title: "", image_url: "" });
+      setEditingGalleryPictureId(null);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      toast({ title: "Error", description: message, variant: "destructive" });
+    } finally {
+      setGallerySaving(false);
+    }
   };
-  const deleteVideo = (id: string) => {
-    const list = galleryVideos.filter(v => v.id !== id);
-    persistVideos(list);
+  const deletePicture = async (id: string) => {
+    try {
+      setGallerySaving(true);
+      const { error } = await supabase
+        .from("gallery_pictures")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+      setGalleryPictures(list => list.filter(p => p.id !== id));
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      toast({ title: "Error", description: message, variant: "destructive" });
+    } finally {
+      setGallerySaving(false);
+    }
   };
-  const addPicture = () => {
-    const p: GalleryPicture = { id: crypto.randomUUID(), title: pictureForm.title || "Untitled", image_url: pictureForm.image_url };
-    const list = [p, ...galleryPictures];
-    persistPictures(list);
-    setPictureForm({ title: "", image_url: "" });
-    toast({ title: "Saved", description: "Picture added to gallery" });
-  };
-  const deletePicture = (id: string) => {
-    const list = galleryPictures.filter(p => p.id !== id);
-    persistPictures(list);
-  };
-  
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    const loadGallery = async () => {
+      try {
+        const { data: videos, error: videosError } = await supabase
+          .from("gallery_videos")
+          .select("*")
+          .order("created_at", { ascending: false });
+        if (!videosError && videos) {
+          setGalleryVideos(
+            (videos as { id: string; title: string | null; url: string }[]).map(v => ({
+              id: v.id,
+              title: v.title || "",
+              url: v.url,
+            })),
+          );
+        }
+        const { data: pictures, error: picturesError } = await supabase
+          .from("gallery_pictures")
+          .select("*")
+          .order("created_at", { ascending: false });
+        if (!picturesError && pictures) {
+          setGalleryPictures(
+            (pictures as { id: string; title: string | null; image_url: string }[]).map(p => ({
+              id: p.id,
+              title: p.title || "",
+              image_url: p.image_url,
+            })),
+          );
+        }
+      } catch {
+        return;
+      }
+    };
+    loadGallery();
+  }, [isAdmin]);
 
   // Personnel state
   const [personnelForm, setPersonnelForm] = useState({
@@ -132,6 +275,15 @@ const AdminDashboard = () => {
     description: "",
     published_at: "",
   });
+  type CertificateRow = {
+    id: string;
+    student_id: string;
+    course_id: string;
+    certificate_code: string;
+    issued_at: string;
+    profiles?: { full_name?: string | null } | null;
+    courses?: { title?: string | null } | null;
+  };
 
   const uploadAvatarImage = async (file: File, folder: "personnel" | "leadership") => {
     const timestamp = Date.now();
@@ -144,6 +296,16 @@ const AdminDashboard = () => {
       .from(bucketName)
       .getPublicUrl(path);
     return publicUrl;
+  };
+
+  const handleNewsImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setNewsImageFile(file);
+      const reader = new FileReader();
+      reader.onload = () => setNewsImagePreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
   };
 
   const handlePersonnelPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -168,24 +330,142 @@ const AdminDashboard = () => {
 
   // Courses state
   const [courseForm, setCourseForm] = useState({
-    title: "", description: "", full_description: "", category: "Generic Courses"
+    title: "",
+    description: "",
+    full_description: "",
+    category: "Generic Courses",
+    is_paid: false,
+    price: "",
+    currency: "NGN",
+    duration_weeks: "",
+    instructor_id: "",
   });
   const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
   const [courseDialogOpen, setCourseDialogOpen] = useState(false);
-  const [documentsDialogOpen, setDocumentsDialogOpen] = useState(false);
   type PersonnelRow = Database["public"]["Tables"]["personnel"]["Row"];
   type LeadershipRow = Database["public"]["Tables"]["leadership"]["Row"];
-  const [documentsOwner, setDocumentsOwner] = useState<PersonnelRow | null>(null);
-  const [documentsList, setDocumentsList] = useState<Array<{ name: string }>>([]);
-  const [docVolumeByDept, setDocVolumeByDept] = useState<Array<{ department: string; count: number }>>([]);
   const [populatingAll, setPopulatingAll] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [bucketName, setBucketName] = useState<string>(import.meta.env.VITE_SUPABASE_STORAGE_BUCKET ?? "magazines");
   const mapStorageError = (msg: string) => (/bucket\s*not\s*found/i.test(msg) ? `Storage bucket '${bucketName}' not found. Create it in Supabase Storage or set VITE_SUPABASE_STORAGE_BUCKET.` : msg);
+  const [certificateDialogOpen, setCertificateDialogOpen] = useState(false);
+  const [certificateUserId, setCertificateUserId] = useState<string | null>(null);
+  const [certificateCourseId, setCertificateCourseId] = useState<string>("");
+  const [certificateFilterCourseId, setCertificateFilterCourseId] = useState<string>("all");
+  const [certificateFilterUserId, setCertificateFilterUserId] = useState<string>("all");
+  const [certificatePreviewOpen, setCertificatePreviewOpen] = useState(false);
+  const [commandantSignatureUrl, setCommandantSignatureUrl] = useState<string>("");
+  const [directorSignatureUrl, setDirectorSignatureUrl] = useState<string>("");
+  const [watermarkUrl, setWatermarkUrl] = useState<string>("/certificate-seal.png");
+  const generateCertificateCode = (title?: string) => {
+    const words = String(title || "COURSE").split(/\s+/).filter(Boolean);
+    const abbr = words.map((w) => w.replace(/[^A-Za-z]/g, "")[0] || "").join("").slice(0, 5).toUpperCase() || "COURSE";
+    const num = String(Math.floor(10000000 + Math.random() * 90000000));
+    return `DIC-${abbr}-${num}`;
+  };
+  const uploadSignatureImage = async (file: File, role: "commandant" | "director_strategic") => {
+    const path = `signatures/${role}/${Date.now()}-${file.name}`;
+    const { error } = await supabase.storage.from(bucketName).upload(path, file);
+    if (error) throw error;
+    const { data: { publicUrl } } = await supabase.storage.from(bucketName).getPublicUrl(path);
+    if (role === "commandant") setCommandantSignatureUrl(publicUrl);
+    else setDirectorSignatureUrl(publicUrl);
+  };
+  const uploadWatermarkImage = async (file: File) => {
+    const path = `signatures/watermark/${Date.now()}-${file.name}`;
+    const { error } = await supabase.storage.from(bucketName).upload(path, file);
+    if (error) throw error;
+    const { data: { publicUrl } } = await supabase.storage.from(bucketName).getPublicUrl(path);
+    setWatermarkUrl(publicUrl);
+  };
+
+  const loadLatestSignature = async (role: "commandant" | "director_strategic") => {
+    const folder = `signatures/${role}`;
+    try {
+      const { data, error } = await supabase.storage.from(bucketName).list(folder, { limit: 100 });
+      if (error || !data || data.length === 0) return;
+      const pickLatestByName = [...data].sort((a, b) => {
+        const ta = Number(String(a.name).split("-")[0]) || 0;
+        const tb = Number(String(b.name).split("-")[0]) || 0;
+        return tb - ta;
+      })[0];
+      if (!pickLatestByName?.name) return;
+      const path = `${folder}/${pickLatestByName.name}`;
+      const { data: urlData } = await supabase.storage.from(bucketName).getPublicUrl(path);
+      if (!urlData?.publicUrl) return;
+      if (role === "commandant") setCommandantSignatureUrl(urlData.publicUrl);
+      else setDirectorSignatureUrl(urlData.publicUrl);
+    } catch (_) {
+      return;
+    }
+  };
+  const loadLatestWatermark = async () => {
+    const folder = `signatures/watermark`;
+    try {
+      const { data, error } = await supabase.storage.from(bucketName).list(folder, { limit: 100 });
+      if (error || !data || data.length === 0) return;
+      const pickLatestByName = [...data].sort((a, b) => {
+        const ta = Number(String(a.name).split("-")[0]) || 0;
+        const tb = Number(String(b.name).split("-")[0]) || 0;
+        return tb - ta;
+      })[0];
+      if (!pickLatestByName?.name) return;
+      const path = `${folder}/${pickLatestByName.name}`;
+      const { data: urlData } = await supabase.storage.from(bucketName).getPublicUrl(path);
+      if (!urlData?.publicUrl) return;
+      setWatermarkUrl(urlData.publicUrl);
+    } catch (_) {
+      return;
+    }
+  };
+
+  const saveHomeVideoSetting = async (url?: string) => {
+    const targetUrl = typeof url === "string" ? url : homeVideoUrlSetting;
+    if (!targetUrl || !targetUrl.trim()) {
+      toast({ title: "Missing URL", description: "Please enter a YouTube URL before saving", variant: "destructive" });
+      return;
+    }
+    try {
+      setHomeVideoSaving(true);
+      const payload = {
+        title: "home_video_url",
+        message: targetUrl,
+        type: "setting",
+        user_id: "public",
+      };
+      // Robust update-or-insert flow
+      let targetId = homeVideoSettingId;
+      if (!targetId) {
+        const { data: existing } = await supabase
+          .from("notifications")
+          .select("id")
+          .eq("type", "setting")
+          .eq("title", "home_video_url")
+          .maybeSingle();
+        if (existing?.id) targetId = existing.id;
+      }
+      if (targetId) {
+        const { error } = await supabase.from("notifications").update(payload).eq("id", targetId);
+        if (error) throw error;
+        setHomeVideoSettingId(targetId);
+      } else {
+        const { data, error } = await supabase.from("notifications").insert([payload]).select("id").single();
+        if (error) throw error;
+        setHomeVideoSettingId(data.id);
+      }
+      setHomeVideoUrlSetting(targetUrl || "");
+      toast({ title: "Saved", description: "Home page video updated" });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to save home page video URL";
+      toast({ title: "Error", description: message, variant: "destructive" });
+    } finally {
+      setHomeVideoSaving(false);
+    }
+  };
 
   useEffect(() => {
     const detectBucket = async () => {
-      const candidates = [bucketName, "magazines", "public", "documents", "files", "uploads", "avatars"];
+      const candidates = [bucketName, "magazines", "public", "files", "uploads", "avatars"];
       for (const name of candidates) {
         try {
           const { error } = await supabase.storage.from(name).list("", { limit: 1 });
@@ -195,6 +475,38 @@ const AdminDashboard = () => {
     };
     detectBucket();
   }, [bucketName]);
+
+  useEffect(() => {
+    loadLatestSignature("commandant");
+    loadLatestSignature("director_strategic");
+    loadLatestWatermark();
+  }, [bucketName]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    const loadHomeVideoSetting = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("notifications")
+          .select("id, message")
+          .eq("type", "setting")
+          .eq("title", "home_video_url")
+          .maybeSingle();
+        if (error) return;
+        if (data) {
+          setHomeVideoSettingId(data.id);
+          if (typeof data.message === "string") {
+            setHomeVideoUrlSetting(data.message || "");
+          } else {
+            setHomeVideoUrlSetting("");
+          }
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    loadHomeVideoSetting();
+  }, [isAdmin]);
 
   const courseCategories = [
     "Generic Courses",
@@ -288,16 +600,31 @@ const AdminDashboard = () => {
   // Queries and mutations
   const createNewsMutation = useMutation({
     mutationFn: async () => {
+      let featuredImageUrl: string | null = newsFeaturedImage || null;
+      if (newsImageFile) {
+        const timestamp = Date.now();
+        const path = `news/${timestamp}-${newsImageFile.name}`;
+        const { error } = await supabase.storage
+          .from(bucketName)
+          .upload(path, newsImageFile);
+        if (error) throw new Error(mapStorageError(error.message));
+        const { data: { publicUrl } } = await supabase.storage
+          .from(bucketName)
+          .getPublicUrl(path);
+        featuredImageUrl = publicUrl;
+      }
       const payloadWithImage: { title: string; content: string; featured_image_url?: string | null } = {
         title: newsTitle,
         content: newsContent,
       };
-      if (newsFeaturedImage) payloadWithImage.featured_image_url = newsFeaturedImage;
+      const categoriesAllowed = ["Promotions", "Events", "Interviews", "Announcements"];
+      const categoryValue = categoriesAllowed.includes(newsCategory) ? newsCategory : null;
+      if (featuredImageUrl) payloadWithImage.featured_image_url = featuredImageUrl;
       if (editingNewsId) {
         try {
           const { error } = await supabase
             .from("news")
-            .update(payloadWithImage)
+            .update(categoryValue ? { ...payloadWithImage, category: categoryValue } : payloadWithImage)
             .eq("id", editingNewsId);
           if (error) throw error;
         } catch {
@@ -311,7 +638,7 @@ const AdminDashboard = () => {
         try {
           const { error } = await supabase
             .from("news")
-            .insert([payloadWithImage]);
+            .insert([categoryValue ? { ...payloadWithImage, category: categoryValue } : payloadWithImage]);
           if (error) throw error;
         } catch {
           const { error } = await supabase
@@ -325,8 +652,11 @@ const AdminDashboard = () => {
       queryClient.invalidateQueries({ queryKey: ["admin-news"] });
       setNewsTitle("");
       setNewsContent("");
+      setNewsCategory("");
       setEditingNewsId(null);
       setNewsFeaturedImage("");
+      setNewsImageFile(null);
+      setNewsImagePreview(null);
       setNewsDialogOpen(false);
       toast({ title: "Success", description: editingNewsId ? "News updated successfully" : "News created successfully" });
     },
@@ -385,67 +715,7 @@ const AdminDashboard = () => {
     },
   });
 
-  const refreshDocumentsList = async (ownerId?: string) => {
-    try {
-      const id = ownerId || documentsOwner?.id;
-      if (!id) return;
-      const folder = `personnel/${id}`;
-      const { data, error } = await supabase.storage.from(bucketName).list(folder, { limit: 100 });
-      if (error) throw error;
-      setDocumentsList(((data || []) as unknown as Array<{ name: string }>).map((d) => ({ name: d.name })));
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : String(e);
-      toast({ title: "Error", description: mapStorageError(message), variant: "destructive" });
-    }
-  };
-
-  const handleDocumentsUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    try {
-      const files = Array.from(e.target.files || []);
-      if (!documentsOwner?.id || files.length === 0) return;
-      const folder = `personnel/${documentsOwner.id}`;
-      for (const file of files) {
-        const path = `${folder}/${Date.now()}-${file.name}`;
-        const { error } = await supabase.storage.from(bucketName).upload(path, file, { upsert: false });
-        if (error) throw error;
-      }
-      await refreshDocumentsList(documentsOwner.id);
-      toast({ title: "Success", description: "Documents uploaded" });
-      e.currentTarget.value = "";
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      toast({ title: "Error", description: mapStorageError(message), variant: "destructive" });
-    }
-  };
-
-  const previewDocument = async (ownerId?: string, name?: string) => {
-    try {
-      const id = ownerId || documentsOwner?.id;
-      if (!id || !name) return;
-      const path = `personnel/${id}/${name}`;
-      const { data, error } = await supabase.storage.from(bucketName).createSignedUrl(path, 60);
-      if (error) throw error;
-      if (data?.signedUrl) window.open(data.signedUrl, "_blank");
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : String(e);
-      toast({ title: "Error", description: mapStorageError(message), variant: "destructive" });
-    }
-  };
-
-  const deleteDocument = async (ownerId?: string, name?: string) => {
-    try {
-      const id = ownerId || documentsOwner?.id;
-      if (!id || !name) return;
-      const path = `personnel/${id}/${name}`;
-      const { error } = await supabase.storage.from(bucketName).remove([path]);
-      if (error) throw error;
-      await refreshDocumentsList(id);
-      toast({ title: "Success", description: "Document deleted" });
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : String(e);
-      toast({ title: "Error", description: mapStorageError(message), variant: "destructive" });
-    }
-  };
+  // Documents feature removed
 
   const updateUserRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: "student" | "instructor" | "admin" }) => {
@@ -512,7 +782,7 @@ const AdminDashboard = () => {
     enabled: isAdmin,
   });
 
-  const { data: personnel } = useQuery({
+  const { data: personnel } = useQuery<PersonnelRow[]>({
     queryKey: ["admin-personnel"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -520,7 +790,7 @@ const AdminDashboard = () => {
         .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data;
+      return data as PersonnelRow[];
     },
     enabled: isAdmin,
   });
@@ -546,6 +816,7 @@ const AdminDashboard = () => {
     published_at: string;
     created_at: string;
     featured_image_url?: string | null;
+    category?: string | null;
   };
 
   const { data: news } = useQuery<NewsItem[]>({
@@ -563,7 +834,8 @@ const AdminDashboard = () => {
 
   
 
-  const { data: categories } = useQuery({
+  type CategoryRow = Database["public"]["Tables"]["student_categories"]["Row"];
+  const { data: categories } = useQuery<CategoryRow[]>({
     queryKey: ["student-categories"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -571,20 +843,7 @@ const AdminDashboard = () => {
         .select("*")
         .order("name");
       if (error) throw error;
-      return data;
-    },
-    enabled: isAdmin,
-  });
-
-  const { data: analyticsData } = useQuery({
-    queryKey: ["analytics"],
-    queryFn: async () => {
-      const { data: categoryAnalytics, error: catError } = await supabase
-        .from("category_analytics")
-        .select("*");
-      
-      if (catError) throw catError;
-      return categoryAnalytics;
+      return data as CategoryRow[];
     },
     enabled: isAdmin,
   });
@@ -599,6 +858,18 @@ const AdminDashboard = () => {
       return data;
     },
     enabled: isAdmin,
+  });
+  const { data: certificates } = useQuery<CertificateRow[]>({
+    queryKey: ["admin-certificates"],
+    queryFn: async () => {
+      return [] as CertificateRow[];
+    },
+    enabled: isAdmin,
+  });
+  const filteredCertificates = (certificates || []).filter((c) => {
+    const byCourse = certificateFilterCourseId === "all" ? true : c.course_id === certificateFilterCourseId;
+    const byUser = certificateFilterUserId === "all" ? true : c.student_id === certificateFilterUserId;
+    return byCourse && byUser;
   });
 
   const monthKey = (d: string) => {
@@ -632,33 +903,10 @@ const AdminDashboard = () => {
   });
 
   useEffect(() => {
-    const computeDocVolume = async () => {
-      try {
-        if (!isAdmin || !personnel || personnel.length === 0) return;
-        const counts = new Map<string, number>();
-        for (const p of (personnel || [])) {
-          const dept = p.department || "Unknown";
-          const folder = `personnel/${p.id}`;
-          const { data, error } = await supabase.storage.from(bucketName).list(folder, { limit: 100 });
-          if (error) continue;
-          counts.set(dept, (counts.get(dept) || 0) + (data?.length || 0));
-        }
-        setDocVolumeByDept(Array.from(counts.entries()).map(([department, count]) => ({ department, count })));
-      } catch (e) {
-        // silent fail for analytics
-      }
-    };
-    computeDocVolume();
+    // Documents analytics removed
   }, [isAdmin, personnel, bucketName]);
 
-  const personnelCategoryCounts = (() => {
-    const civ = (personnel || []).filter((p) => (p.category || "").toLowerCase() === "civilian").length;
-    const mil = (personnel || []).filter((p) => (p.category || "").toLowerCase() === "military").length;
-    return [
-      { name: "Civilian", value: civ },
-      { name: "Military", value: mil },
-    ];
-  })();
+
 
   const { data: pgPrograms } = useQuery({
     queryKey: ["admin-pg-programs"],
@@ -690,6 +938,11 @@ const AdminDashboard = () => {
     mutationFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
+      const priceNumber = courseForm.price ? Number(courseForm.price) : NaN;
+      const priceCents = Number.isFinite(priceNumber) && priceNumber > 0 ? Math.round(priceNumber * 100) : null;
+      const durationNumber = courseForm.duration_weeks ? Number(courseForm.duration_weeks) : NaN;
+      const durationWeeks = Number.isFinite(durationNumber) && durationNumber > 0 ? durationNumber : null;
+      const instructorId = courseForm.instructor_id || user.id;
       
       if (editingCourseId) {
         const { error } = await supabase
@@ -698,7 +951,11 @@ const AdminDashboard = () => {
             title: courseForm.title,
             description: courseForm.description,
             full_description: courseForm.full_description,
-            category: courseForm.category
+            category: courseForm.category,
+            is_paid: courseForm.is_paid,
+            price_cents: priceCents,
+            duration_weeks: durationWeeks,
+            instructor_id: instructorId,
           })
           .eq("id", editingCourseId);
         if (error) throw error;
@@ -710,14 +967,27 @@ const AdminDashboard = () => {
             description: courseForm.description,
             full_description: courseForm.full_description,
             category: courseForm.category,
-            instructor_id: user.id
+            is_paid: courseForm.is_paid,
+            price_cents: priceCents,
+            duration_weeks: durationWeeks,
+            instructor_id: instructorId,
           }]);
         if (error) throw error;
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-courses"] });
-      setCourseForm({ title: "", description: "", full_description: "", category: "Generic Courses" });
+      setCourseForm({
+        title: "",
+        description: "",
+        full_description: "",
+        category: "Generic Courses",
+        is_paid: false,
+        price: "",
+        currency: "NGN",
+        duration_weeks: "",
+        instructor_id: "",
+      });
       setEditingCourseId(null);
       setCourseDialogOpen(false);
       toast({ title: "Success", description: editingCourseId ? "Course updated successfully" : "Course created successfully" });
@@ -744,15 +1014,22 @@ const AdminDashboard = () => {
       if (personnelPhotoFile) {
         photoUrl = await uploadAvatarImage(personnelPhotoFile, "personnel");
       }
-      const payload = { ...personnelForm, photo_url: photoUrl };
+      const now = new Date().toISOString();
+      const payload = {
+        ...personnelForm,
+        category: normalizePersonnelCategory(personnelForm.category),
+        photo_url: photoUrl,
+      };
       if (editingPersonnelId) {
         const { error } = await supabase
           .from("personnel")
-          .update(payload)
+          .update({ ...payload, updated_at: now })
           .eq("id", editingPersonnelId);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("personnel").insert([payload]);
+        const { error } = await supabase
+          .from("personnel")
+          .insert([{ ...payload, created_at: now, updated_at: now }]);
         if (error) throw error;
       }
     },
@@ -766,7 +1043,12 @@ const AdminDashboard = () => {
       toast({ title: "Success", description: editingPersonnelId ? "Personnel updated" : "Personnel created" });
     },
     onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : "Failed to save personnel";
+      const message =
+        typeof (error as { message?: unknown })?.message === "string"
+          ? String((error as { message?: unknown }).message)
+          : error instanceof Error
+          ? error.message
+          : "Failed to save personnel";
       toast({ title: "Error", description: message, variant: "destructive" });
     },
   });
@@ -884,6 +1166,143 @@ const AdminDashboard = () => {
     },
   });
 
+  const toReadableError = (err: unknown): string => {
+    if (err instanceof Error) return err.message;
+    if (typeof err === "string") return err;
+    if (err && typeof err === "object") {
+      const obj = err as Record<string, unknown>;
+      const directMsg = obj.message;
+      if (typeof directMsg === "string") return directMsg;
+      const nestedErr = obj.error as { message?: unknown } | undefined;
+      if (nestedErr && typeof nestedErr.message === "string") return nestedErr.message as string;
+      let json = "";
+      try {
+        json = JSON.stringify(err);
+      } catch (_e) {
+        json = "";
+      }
+      if (json && json !== "{}") return json;
+    }
+    return "Unknown error";
+  };
+  const manualEnrollMutation = useMutation<unknown, unknown, { studentId: string; courseId: string }>({
+    mutationFn: async ({ studentId, courseId }) => {
+      const { data: course, error: courseError } = await supabase
+        .from("courses")
+        .select("*")
+        .eq("id", courseId)
+        .maybeSingle();
+      if (courseError) throw courseError;
+      if (!course) throw new Error("Course not found");
+
+      if (course.is_paid && course.price_cents && course.price_cents > 0) {
+        const { error: paymentError } = await supabase.from("payments").insert([
+          {
+            student_id: studentId,
+            course_id: courseId,
+            amount_cents: course.price_cents,
+            currency: "NGN",
+            status: "succeeded",
+            provider: "admin",
+            reference: crypto.randomUUID(),
+          },
+        ]);
+        if (paymentError) throw paymentError;
+
+        try {
+          const { error: enrollmentError } = await supabase.from("enrollments").insert([
+            {
+              student_id: studentId,
+              course_id: courseId,
+              payment_status: "succeeded",
+              access_state: "active",
+            },
+          ]);
+          if (enrollmentError) throw enrollmentError;
+        } catch (e: unknown) {
+          const msg = toReadableError(e);
+          if (msg.includes("access_state") || msg.includes("payment_status") || msg.includes("schema cache")) {
+            const { error: retryError } = await supabase.from("enrollments").insert([
+              {
+                student_id: studentId,
+                course_id: courseId,
+              },
+            ]);
+            if (retryError) throw retryError;
+          } else {
+            throw e;
+          }
+        }
+      } else {
+        try {
+          const { error: enrollmentError } = await supabase.from("enrollments").insert([
+            {
+              student_id: studentId,
+              course_id: courseId,
+              payment_status: "free",
+              access_state: "active",
+            },
+          ]);
+          if (enrollmentError) throw enrollmentError;
+        } catch (e: unknown) {
+          const msg = toReadableError(e);
+          if (msg.includes("access_state") || msg.includes("payment_status") || msg.includes("schema cache")) {
+            const { error: retryError } = await supabase.from("enrollments").insert([
+              {
+                student_id: studentId,
+                course_id: courseId,
+              },
+            ]);
+            if (retryError) throw retryError;
+          } else {
+            throw e;
+          }
+        }
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-enrollments"] });
+      toast({ title: "Success", description: "User enrolled in course" });
+    },
+    onError: (error: unknown) => {
+      const message = toReadableError(error);
+      toast({
+        title: "Enrollment failed",
+        description: message.includes("duplicate key") ? "User is already enrolled in this course" : message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const [enrollmentDialogOpen, setEnrollmentDialogOpen] = useState(false);
+  const [enrollmentUserId, setEnrollmentUserId] = useState<string | null>(null);
+  const [enrollmentCourseId, setEnrollmentCourseId] = useState<string>("");
+  const issueCertificateMutation = useMutation<unknown, unknown, { studentId: string; courseId: string }>({
+    mutationFn: async () => {},
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-certificates"] });
+      toast({ title: "Success", description: "Certificate issued" });
+      setCertificateDialogOpen(false);
+      setCertificateUserId(null);
+      setCertificateCourseId("");
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : String(error);
+      toast({ title: "Error", description: message.includes("duplicate key") ? "Certificate already exists" : message, variant: "destructive" });
+    },
+  });
+  const revokeCertificateMutation = useMutation<unknown, unknown, { studentId: string; courseId: string }>({
+    mutationFn: async () => {},
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-certificates"] });
+      toast({ title: "Success", description: "Certificate revoked" });
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : String(error);
+      toast({ title: "Error", description: message, variant: "destructive" });
+    },
+  });
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -925,9 +1344,9 @@ const AdminDashboard = () => {
             <TabsTrigger value="users" className="h-full whitespace-normal min-h-[44px]"><Users className="mr-1 h-4 w-4" />Users</TabsTrigger>
             <TabsTrigger value="categories" className="h-full whitespace-normal min-h-[44px]"><Shield className="mr-1 h-4 w-4" />Categories</TabsTrigger>
             <TabsTrigger value="analytics" className="h-full whitespace-normal min-h-[44px]"><BarChart3 className="mr-1 h-4 w-4" />Analytics</TabsTrigger>
-            <TabsTrigger value="documents" className="h-full whitespace-normal min-h-[44px]"><FileText className="mr-1 h-4 w-4" />Documents</TabsTrigger>
-            <TabsTrigger value="about-management" className="h-full whitespace-normal min-h-[44px]"><Crown className="mr-1 h-4 w-4" />About Management</TabsTrigger>
+            <TabsTrigger value="about-management" className="h-full whitespace-normal min-h-[44px]"><Crown className="mr-1 h-4 w-4" />Members of Faculty</TabsTrigger>
             <TabsTrigger value="gallery" className="h-full whitespace-normal min-h-[44px]"><ImageIcon className="mr-1 h-4 w-4" />Gallery</TabsTrigger>
+            <TabsTrigger value="certificates" className="h-full whitespace-normal min-h-[44px]"><GraduationCap className="mr-1 h-4 w-4" />Certificates</TabsTrigger>
           </TabsList>
 
           <TabsContent value="courses">
@@ -939,7 +1358,17 @@ const AdminDashboard = () => {
               <CardContent className="space-y-6">
                 <div className="flex gap-2 flex-wrap">
                   <Button onClick={() => {
-                    setCourseForm({ title: "", description: "", full_description: "", category: "Generic Courses" });
+                    setCourseForm({
+                      title: "",
+                      description: "",
+                      full_description: "",
+                      category: "Generic Courses",
+                      is_paid: false,
+                      price: "",
+                      currency: "NGN",
+                      duration_weeks: "",
+                      instructor_id: "",
+                    });
                     setEditingCourseId(null);
                     setCourseDialogOpen(true);
                   }}>
@@ -999,6 +1428,79 @@ const AdminDashboard = () => {
                         <Label htmlFor="c_full_description">Full Description</Label>
                         <Textarea id="c_full_description" value={courseForm.full_description} onChange={(e) => setCourseForm({...courseForm, full_description: e.target.value})} rows={5} />
                       </div>
+                      <div className="grid gap-2">
+                        <Label>Instructor</Label>
+                        <Select
+                          value={courseForm.instructor_id}
+                          onValueChange={(value) => setCourseForm({ ...courseForm, instructor_id: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Assign instructor" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(users || [])
+                              .filter((u) => u.role === "instructor")
+                              .map((u) => (
+                                <SelectItem key={u.id} value={u.id}>
+                                  {u.full_name}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Course Type</Label>
+                        <div className="flex items-center justify-between gap-4">
+                          <span className="text-sm text-muted-foreground">
+                            {courseForm.is_paid ? "Paid course" : "Free course"}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">Free</span>
+                            <Switch
+                              checked={courseForm.is_paid}
+                              onCheckedChange={(checked) => setCourseForm({ ...courseForm, is_paid: checked })}
+                            />
+                            <span className="text-xs text-muted-foreground">Paid</span>
+                          </div>
+                        </div>
+                      </div>
+                      {courseForm.is_paid && (
+                        <div className="grid gap-2">
+                          <Label>Pricing</Label>
+                          <div className="flex flex-col sm:flex-row gap-2">
+                            <Select
+                              value={courseForm.currency}
+                              onValueChange={(value) => setCourseForm({ ...courseForm, currency: value })}
+                            >
+                              <SelectTrigger className="w-full sm:w-32">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="NGN">NGN</SelectItem>
+                                <SelectItem value="USD">USD</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="1"
+                              value={courseForm.price}
+                              onChange={(e) => setCourseForm({ ...courseForm, price: e.target.value })}
+                              placeholder="Amount"
+                            />
+                          </div>
+                        </div>
+                      )}
+                      <div className="grid gap-2">
+                        <Label>Duration (weeks)</Label>
+                        <Input
+                          type="number"
+                          min="1"
+                          value={courseForm.duration_weeks}
+                          onChange={(e) => setCourseForm({ ...courseForm, duration_weeks: e.target.value })}
+                          placeholder="e.g. 8"
+                        />
+                      </div>
                       <Button onClick={() => createCourseMutation.mutate()} disabled={!courseForm.title}>
                         {editingCourseId ? "Update" : "Create"} Course
                       </Button>
@@ -1028,10 +1530,15 @@ const AdminDashboard = () => {
                           <div className="flex gap-2">
                             <Button variant="outline" size="sm" onClick={() => {
                               setCourseForm({
-                                title: course.title,
+                                title: course.title || "",
                                 description: course.description || "",
                                 full_description: course.full_description || "",
-                                category: course.category || "Generic Courses"
+                                category: course.category || "Generic Courses",
+                                is_paid: !!course.is_paid,
+                                price: course.price_cents ? String(course.price_cents / 100) : "",
+                                currency: "NGN",
+                                duration_weeks: course.duration_weeks ? String(course.duration_weeks) : "",
+                                instructor_id: course.instructor_id || "",
                               });
                               setEditingCourseId(course.id);
                               setCourseDialogOpen(true);
@@ -1090,11 +1597,26 @@ const AdminDashboard = () => {
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="p_category">Category</Label>
-                        <Select value={personnelForm.category} onValueChange={(value) => setPersonnelForm({...personnelForm, category: value})}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
+                        <Select
+                          value={personnelForm.category}
+                          onValueChange={(value) => setPersonnelForm({ ...personnelForm, category: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="civilian">Civilian</SelectItem>
-                            <SelectItem value="military">Military</SelectItem>
+                            {categories && categories.length > 0 ? (
+                              categories.map((cat) => (
+                                <SelectItem key={cat.id} value={cat.name}>
+                                  {cat.name}
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <>
+                                <SelectItem value="civilian">Civilian</SelectItem>
+                                <SelectItem value="military">Military</SelectItem>
+                              </>
+                            )}
                           </SelectContent>
                         </Select>
                       </div>
@@ -1201,6 +1723,50 @@ const AdminDashboard = () => {
                 }}>
                   <Plus className="mr-2 h-4 w-4" />Add Leader
                 </Button>
+                <Button
+                  variant="outline"
+                  className="ml-2"
+                  onClick={async () => {
+                    try {
+                      const excludedNames = new Set([
+                        "Dir Keneth Iheasirim",
+                        "Lt Coll John Doe 3",
+                        "Lt Commander John Doe 2",
+                        "Dir John Doe 1",
+                        "SDIO John Doe 4",
+                      ]);
+                      const personnelList = (personnel || []) as PersonnelRow[];
+                        const targets = ((leadership || []) as LeadershipRow[]).filter((l) => excludedNames.has(String(l.full_name)));
+                      for (const l of targets) {
+                        const match = personnelList.find(p => p.full_name === l.full_name);
+                        if (match && match.position && match.position !== l.position) {
+                          const { error } = await supabase
+                            .from("leadership")
+                            .update({ position: match.position })
+                            .eq("id", l.id);
+                          if (error) throw error;
+                        }
+                      }
+                        queryClient.setQueryData(["admin-leadership"], (old: unknown) => {
+                          const list = (old as LeadershipRow[] | undefined) || [];
+                          return list.map((row) => {
+                            if (excludedNames.has(String(row.full_name))) {
+                              const match = personnelList.find(p => p.full_name === row.full_name);
+                              if (match?.position) return { ...row, position: match.position };
+                            }
+                            return row;
+                          });
+                        });
+                      queryClient.invalidateQueries({ queryKey: ["admin-leadership"] });
+                      toast({ title: "Synced", description: "Positions updated from Personnel" });
+                    } catch (error: unknown) {
+                      const message = error instanceof Error ? error.message : String(error);
+                      toast({ title: "Error", description: message, variant: "destructive" });
+                    }
+                  }}
+                >
+                  Sync Positions from Personnel
+                </Button>
 
                 <Dialog open={leadershipDialogOpen} onOpenChange={setLeadershipDialogOpen}>
                   <DialogContent>
@@ -1281,16 +1847,36 @@ const AdminDashboard = () => {
                     </TableRow>
                   </TableHeader>
                     <TableBody>
-                      {leadership?.map((leader) => (
+                      {(() => {
+                        const excludedNames = new Set([
+                          "Dir Keneth Iheasirim",
+                          "Lt Coll John Doe 3",
+                          "Lt Commander John Doe 2",
+                          "Dir John Doe 1",
+                          "SDIO John Doe 4",
+                        ]);
+                        return (leadership || []).filter((l) => !excludedNames.has(l.full_name));
+                      })().map((leader) => (
                         <TableRow key={leader.id}>
                           <TableCell>{leader.display_order}</TableCell>
                           <TableCell className="font-medium">{leader.full_name}</TableCell>
                           <TableCell>
                             <Select
                             value={leader.position || ""}
-                            onValueChange={(value) =>
-                              updateLeadershipStatusMutation.mutate({ id: leader.id, is_active: !!leader.is_active, position: value })
-                            }
+                            onValueChange={(value) => {
+                              const excluded = new Set([
+                                "Dir Keneth Iheasirim",
+                                "Lt Coll John Doe 3",
+                                "Lt Commander John Doe 2",
+                                "Dir John Doe 1",
+                                "SDIO John Doe 4",
+                              ]);
+                              if (value === "Commandant DIC" && excluded.has(leader.full_name)) {
+                                toast({ title: "Blocked", description: "This profile cannot be set as Commandant DIC", variant: "destructive" });
+                                return;
+                              }
+                              updateLeadershipStatusMutation.mutate({ id: leader.id, is_active: !!leader.is_active, position: value });
+                            }}
                           >
                             <SelectTrigger className="w-48">
                               <SelectValue placeholder="Select position" />
@@ -1350,6 +1936,8 @@ const AdminDashboard = () => {
                   setNewsTitle("");
                   setNewsContent("");
                   setNewsFeaturedImage("");
+                  setNewsImageFile(null);
+                  setNewsImagePreview(null);
                   setEditingNewsId(null);
                   setNewsDialogOpen(true);
                 }}>
@@ -1367,12 +1955,46 @@ const AdminDashboard = () => {
                         <Input id="news_title" placeholder="News title" value={newsTitle} onChange={(e) => setNewsTitle(e.target.value)} />
                       </div>
                       <div className="grid gap-2">
+                        <Label htmlFor="news_category">Category</Label>
+                        <Select value={newsCategory} onValueChange={setNewsCategory}>
+                          <SelectTrigger id="news_category">
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Promotions">Promotions</SelectItem>
+                            <SelectItem value="Events">Events</SelectItem>
+                            <SelectItem value="Interviews">Interviews</SelectItem>
+                            <SelectItem value="Announcements">Announcements</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid gap-2">
                         <Label htmlFor="news_content">Content</Label>
                         <Textarea id="news_content" placeholder="News content" value={newsContent} onChange={(e) => setNewsContent(e.target.value)} rows={4} />
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="news_image">Featured Image URL</Label>
-                        <Input id="news_image" placeholder="https://..." value={newsFeaturedImage} onChange={(e) => setNewsFeaturedImage(e.target.value)} />
+                        <Label>Featured Image (optional)</Label>
+                        <div className="flex items-start gap-4">
+                          <label className="flex-1 flex flex-col items-center justify-center p-4 border-2 border-dashed border-muted-foreground/30 rounded-lg cursor-pointer hover:border-primary/50 transition-colors">
+                            <ImageIcon className="h-8 w-8 text-muted-foreground mb-2" />
+                            <span className="text-sm text-muted-foreground">
+                              {newsImageFile ? newsImageFile.name : "Click to upload featured image"}
+                            </span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleNewsImageChange}
+                              className="hidden"
+                            />
+                          </label>
+                          {(newsImagePreview || newsFeaturedImage) && (
+                            <img
+                              src={newsImagePreview || newsFeaturedImage}
+                              alt="Featured preview"
+                              className="w-20 h-20 object-cover rounded border"
+                            />
+                          )}
+                        </div>
                       </div>
                       <Button onClick={() => createNewsMutation.mutate()} disabled={!newsTitle || !newsContent}>
                         {editingNewsId ? "Update" : "Create"} News
@@ -1401,7 +2023,10 @@ const AdminDashboard = () => {
                               setNewsTitle(item.title);
                               setNewsContent(item.content);
                               setNewsFeaturedImage(item.featured_image_url || "");
+                                    setNewsImageFile(null);
+                                    setNewsImagePreview(item.featured_image_url || null);
                               setEditingNewsId(item.id);
+                              setNewsCategory(item.category || "");
                               setNewsDialogOpen(true);
                             }}>
                               <Edit className="h-4 w-4" />
@@ -1569,54 +2194,119 @@ const AdminDashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {users?.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell className="font-medium">{user.full_name}</TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>
-                          <Select value={user.role} onValueChange={(value) => updateUserRoleMutation.mutate({ userId: user.id, role: value as "student" | "instructor" | "admin" })}>
-                            <SelectTrigger className="w-32">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="student">Student</SelectItem>
-                              <SelectItem value="instructor">Instructor</SelectItem>
-                              <SelectItem value="admin">Admin</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell>
-                          <Select value={user.category_id ?? "none"} onValueChange={(value) => updateUserCategoryMutation.mutate({ userId: user.id, categoryId: value === "none" ? null : value })}>
-                            <SelectTrigger className="w-40">
-                              <SelectValue placeholder="Select category" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">None</SelectItem>
-                              {categories?.map((cat) => (
-                                <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>{user.role}</Badge>
-                        </TableCell>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {users?.map((user) => (
+                        <TableRow key={user.id}>
+                          <TableCell className="font-medium">{user.full_name}</TableCell>
+                          <TableCell>{user.email}</TableCell>
+                          <TableCell>
+                            <Select value={user.role} onValueChange={(value) => updateUserRoleMutation.mutate({ userId: user.id, role: value as "student" | "instructor" | "admin" })}>
+                              <SelectTrigger className="w-32">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="student">Student</SelectItem>
+                                <SelectItem value="instructor">Instructor</SelectItem>
+                                <SelectItem value="admin">Admin</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell>
+                            <Select value={user.category_id ?? "none"} onValueChange={(value) => updateUserCategoryMutation.mutate({ userId: user.id, categoryId: value === "none" ? null : value })}>
+                              <SelectTrigger className="w-40">
+                                <SelectValue placeholder="Select category" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">None</SelectItem>
+                                {categories?.map((cat) => (
+                                  <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col sm:flex-row gap-2">
+                              <Badge variant={user.role === "admin" ? "default" : "secondary"} className="w-fit">
+                                {user.role}
+                              </Badge>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="min-h-[32px]"
+                                onClick={() => {
+                                  setEnrollmentUserId(user.id);
+                                  setEnrollmentCourseId("");
+                                  setEnrollmentDialogOpen(true);
+                                }}
+                              >
+                                Enroll in Course
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
+                <Dialog open={enrollmentDialogOpen} onOpenChange={setEnrollmentDialogOpen}>
+                  <DialogContent className="max-w-md w-full">
+                    <DialogHeader>
+                      <DialogTitle>Enroll User in Course</DialogTitle>
+                      <DialogDescription>
+                        Select a course to enroll this user. Paid courses will record a successful payment.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label>User</Label>
+                        <Input
+                          value={users?.find((u) => u.id === enrollmentUserId)?.full_name || ""}
+                          disabled
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Course</Label>
+                        <Select
+                          value={enrollmentCourseId}
+                          onValueChange={setEnrollmentCourseId}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select course" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {courses?.map((course) => (
+                              <SelectItem key={course.id} value={course.id}>
+                                {course.title}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button
+                        disabled={!enrollmentUserId || !enrollmentCourseId || manualEnrollMutation.isPending}
+                        onClick={() => {
+                          if (!enrollmentUserId || !enrollmentCourseId) return;
+                          manualEnrollMutation.mutate({
+                            studentId: enrollmentUserId as string,
+                            courseId: enrollmentCourseId,
+                          });
+                        }}
+                      >
+                        {manualEnrollMutation.isPending ? "Enrolling..." : "Confirm Enrollment"}
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </CardContent>
             </Card>
           </TabsContent>
@@ -1625,7 +2315,7 @@ const AdminDashboard = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Category Management</CardTitle>
-                <CardDescription>Manage student categories</CardDescription>
+                <CardDescription>Manage student and personnel categories</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <Button onClick={() => {
@@ -1691,6 +2381,70 @@ const AdminDashboard = () => {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle>Personnel Categories</CardTitle>
+                <CardDescription>Update personnel category assignments</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Position</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Update</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(personnel || []).map((p: PersonnelRow) => (
+                        <TableRow key={p.id}>
+                          <TableCell className="font-medium">{p.full_name}</TableCell>
+                          <TableCell>{p.position}</TableCell>
+                          <TableCell>
+                            <Select
+                              value={normalizePersonnelCategory(p.category)}
+                              onValueChange={async (value) => {
+                                const normalized = normalizePersonnelCategory(value);
+                                const { error } = await supabase
+                                  .from("personnel")
+                                  .update({ category: normalized })
+                                  .eq("id", p.id);
+                                if (error) {
+                                  toast({ title: "Error", description: error.message, variant: "destructive" });
+                                } else {
+                                  queryClient.setQueryData(["admin-personnel"], (old: unknown) => {
+                                    const list = (old as PersonnelRow[] | undefined) || [];
+                                    return list.map((row) => (row.id === p.id ? { ...row, category: normalized } : row));
+                                  });
+                                  queryClient.invalidateQueries({ queryKey: ["admin-personnel"] });
+                                  toast({ title: "Saved", description: "Personnel category updated" });
+                                }
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select category" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="military">Military</SelectItem>
+                                <SelectItem value="military">DIA</SelectItem>
+                                <SelectItem value="civilian">NYSC Members</SelectItem>
+                                <SelectItem value="civilian">Civilians</SelectItem>
+                                <SelectItem value="civilian">Casual Staff</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell>
+                            
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
               </CardContent>
             </Card>
@@ -1950,202 +2704,54 @@ const AdminDashboard = () => {
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
-                  <div className="border rounded-md p-4 lg:col-span-2">
-                    <div className="font-semibold mb-2">Student Categories</div>
-                    <ResponsiveContainer width="100%" height={300}>
-                      <PieChart>
-                        <Pie data={analyticsData?.map(d => ({ name: d.category_name, value: d.student_count }))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={110} label>
-                          {analyticsData?.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                        </Pie>
-                        <Tooltip />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
+
+                </div>
+                <div className="grid md:grid-cols-2 gap-6 mt-6">
                   <div className="border rounded-md p-4">
-                    <div className="font-semibold mb-2">Personnel Category Distribution</div>
-                    <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={personnelCategoryCounts}>
-                        <XAxis dataKey="name" />
-                        <YAxis />
-                        <Tooltip />
-                        <Legend />
-                        <Bar dataKey="value" name="Count" fill="#6366f1" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="border rounded-md p-4 lg:col-span-2">
-                    <div className="font-semibold mb-2">Document Upload Volume by Department</div>
-                    <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={docVolumeByDept}>
-                        <XAxis dataKey="department" tick={{ fontSize: 12 }} />
-                        <YAxis />
-                        <Tooltip />
-                        <Legend />
-                        <Bar dataKey="count" name="Uploads" fill="#3b82f6" />
-                      </BarChart>
-                    </ResponsiveContainer>
+                    <div className="font-semibold mb-2">Personnel Categories</div>
+                    {(() => {
+                      const totals = { military: 0, civilian: 0 };
+                      (personnel || []).forEach((p) => {
+                        const v = normalizePersonnelCategory(p.category);
+                        if (v === "military") totals.military += 1;
+                        else totals.civilian += 1;
+                      });
+                      const pieData = [
+                        { name: "Military", value: totals.military },
+                        { name: "Civilian", value: totals.civilian },
+                      ];
+                      const colors = ["#16a34a", "#3b82f6"];
+                      return (
+                        <ResponsiveContainer width="100%" height={300}>
+                          <PieChart>
+                            <Tooltip />
+                            <Legend />
+                            <Pie data={pieData} dataKey="value" nameKey="name" outerRadius={100} label>
+                              {pieData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+                              ))}
+                            </Pie>
+                          </PieChart>
+                        </ResponsiveContainer>
+                      );
+                    })()}
                   </div>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value="documents">
-            <Card>
-              <CardHeader>
-                <CardTitle>Document Management</CardTitle>
-                <CardDescription>Support paperless policy among registered personnel</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Department</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {personnel?.map((p) => (
-                      <TableRow key={p.id}>
-                        <TableCell className="font-medium">{p.full_name}</TableCell>
-                        <TableCell>{p.department}</TableCell>
-                        <TableCell><Badge variant="outline">{p.category}</Badge></TableCell>
-                        <TableCell>
-                          <Button variant="outline" size="sm" onClick={() => {
-                            setDocumentsOwner(p);
-                            setDocumentsDialogOpen(true);
-                            refreshDocumentsList(p.id);
-                          }}>Manage Docs</Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-
-                <div className="grid gap-4 md:hidden">
-                  {(pgPrograms || []).map((program) => (
-                    <div key={program.id} className="border rounded-md p-4 space-y-2">
-                      <div className="font-semibold">{program.department}</div>
-                      <div className="text-sm text-muted-foreground">{program.degree_types}</div>
-                      {program.specializations && program.specializations.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {program.specializations.slice(0, 3).map((spec: string, i: number) => (
-                            <Badge key={i} variant="secondary" className="text-xs">{spec}</Badge>
-                          ))}
-                          {program.specializations.length > 3 && (
-                            <Badge variant="outline" className="text-xs">+{program.specializations.length - 3}</Badge>
-                          )}
-                        </div>
-                      )}
-                      <div className="pt-2 flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setPgProgramForm({
-                              department: program.department,
-                              degree_types: program.degree_types,
-                              specializations: program.specializations?.join(', ') || '',
-                              requirements: program.requirements,
-                              display_order: program.display_order,
-                            });
-                            setEditingPgProgramId(program.id);
-                            setPgProgramDialogOpen(true);
-                          }}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={async () => {
-                            const { error } = await supabase
-                              .from("pg_programs")
-                              .delete()
-                              .eq("id", program.id);
-                            if (error) {
-                              toast({ title: "Error", description: error.message, variant: "destructive" });
-                            } else {
-                              toast({ title: "Success", description: "PG program deleted" });
-                              queryClient.invalidateQueries({ queryKey: ["admin-pg-programs"] });
-                            }
-                          }}
-                        >
-                          Delete
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="grid gap-4 md:hidden">
-                  {(personnel || []).map((p) => (
-                    <div key={p.id} className="border rounded-md p-4 space-y-2">
-                      <div className="font-semibold">{p.full_name}</div>
-                      <div className="text-sm text-muted-foreground">{p.department}</div>
-                      <div>
-                        <Badge variant="outline">{p.category}</Badge>
-                      </div>
-                      <div className="pt-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setDocumentsOwner(p);
-                            setDocumentsDialogOpen(true);
-                            refreshDocumentsList(p.id);
-                          }}
-                        >
-                          Manage Docs
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <Dialog open={documentsDialogOpen} onOpenChange={setDocumentsDialogOpen}>
-                  <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-                    <DialogHeader>
-                      <DialogTitle>{documentsOwner?.full_name || "Documents"}</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-3">
-                        <Input type="file" multiple onChange={(e) => handleDocumentsUpload(e)} />
-                        <Button onClick={() => refreshDocumentsList(documentsOwner?.id)} disabled={!documentsOwner}>Refresh</Button>
-                      </div>
-                      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {documentsList.map((doc) => (
-                          <div key={doc.name} className="border rounded-md p-3 space-y-2">
-                            <div className="text-sm font-semibold break-all">{doc.name}</div>
-                            <div className="flex gap-2">
-                              <Button variant="outline" size="sm" onClick={() => previewDocument(documentsOwner?.id, doc.name)}>Preview</Button>
-                              <Button variant="destructive" size="sm" onClick={() => deleteDocument(documentsOwner?.id, doc.name)}>Delete</Button>
-                            </div>
-                          </div>
-                        ))}
-                        {documentsList.length === 0 && (
-                          <div className="text-muted-foreground">No documents found.</div>
-                        )}
-                      </div>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              </CardContent>
-            </Card>
-          </TabsContent>
+          
           <TabsContent value="about-management">
             <Card>
               <CardHeader>
-                <CardTitle>About Page Management Section</CardTitle>
-                <CardDescription>Select and order management profiles shown on the About page</CardDescription>
+                <CardTitle>Members of Faculty</CardTitle>
+                <CardDescription>Select and order faculty members shown on the About page</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid md:grid-cols-2 gap-6">
                   <div>
-                    <div className="font-semibold mb-2">Personnel Candidates</div>
+                    <div className="font-semibold mb-2">Faculty Candidates</div>
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -2200,7 +2806,7 @@ const AdminDashboard = () => {
                     </Table>
                   </div>
                   <div>
-                    <div className="font-semibold mb-2">Current Management (About)</div>
+                    <div className="font-semibold mb-2">Current Members of Faculty</div>
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -2255,6 +2861,37 @@ const AdminDashboard = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid gap-2">
+                    <Label htmlFor="home_video_url">Home Page Video URL</Label>
+                    <Input
+                      id="home_video_url"
+                      placeholder="https://www.youtube.com/watch?v=..."
+                      value={homeVideoUrlSetting}
+                      onChange={(e) => setHomeVideoUrlSetting(e.target.value)}
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        className="min-h-[40px]"
+                        onClick={() => saveHomeVideoSetting()}
+                        disabled={homeVideoSaving}
+                      >
+                        Save Home Video
+                      </Button>
+                      {galleryVideos.length > 0 && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="min-h-[40px]"
+                          onClick={() => saveHomeVideoSetting(galleryVideos[0].url)}
+                          disabled={homeVideoSaving}
+                        >
+                          Use First Gallery Video
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="grid gap-2">
                     <Label htmlFor="v_title">Title</Label>
                     <Input id="v_title" value={videoForm.title} onChange={(e) => setVideoForm({ ...videoForm, title: e.target.value })} />
                   </div>
@@ -2263,8 +2900,32 @@ const AdminDashboard = () => {
                     <Input id="v_url" value={videoForm.url} onChange={(e) => setVideoForm({ ...videoForm, url: e.target.value })} />
                   </div>
                   <div className="flex gap-2">
-                    <Button onClick={addVideo} disabled={!videoForm.url}><Plus className="mr-2 h-4 w-4" />Add Video</Button>
-                    <Button variant="outline" onClick={() => { persistVideos([]); toast({ title: "Cleared", description: "All videos removed" }); }}>Clear Videos</Button>
+                    <Button onClick={saveGalleryVideo} disabled={!videoForm.url || gallerySaving}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      {editingGalleryVideoId ? "Update Video" : "Add Video"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      disabled={gallerySaving}
+                      onClick={async () => {
+                        try {
+                          setGallerySaving(true);
+                          const { error } = await supabase
+                            .from("gallery_videos")
+                            .delete();
+                          if (error) throw error;
+                          setGalleryVideos([]);
+                          toast({ title: "Cleared", description: "All videos removed" });
+                        } catch (error: unknown) {
+                          const message = error instanceof Error ? error.message : String(error);
+                          toast({ title: "Error", description: message, variant: "destructive" });
+                        } finally {
+                          setGallerySaving(false);
+                        }
+                      }}
+                    >
+                      Clear Videos
+                    </Button>
                   </div>
                   <Table>
                     <TableHeader>
@@ -2279,7 +2940,7 @@ const AdminDashboard = () => {
                         const idMatch = String(v.url || "").match(/[?&]v=([^&]+)/) || String(v.url || "").match(/youtu\.be\/([^?]+)/);
                         const id = idMatch ? idMatch[1] : "";
                         return (
-                          <TableRow key={v.id}>
+                          <TableRow key={v.id} className={homeVideoUrlSetting && v.url === homeVideoUrlSetting ? "bg-muted/60" : ""}>
                             <TableCell>
                               {id ? (
                                 <img src={`https://img.youtube.com/vi/${id}/hqdefault.jpg`} alt={v.title || "Video"} className="w-24 h-16 object-cover rounded" />
@@ -2287,9 +2948,39 @@ const AdminDashboard = () => {
                                 <span className="text-muted-foreground">Invalid URL</span>
                               )}
                             </TableCell>
-                            <TableCell className="font-medium">{v.title || "Untitled"}</TableCell>
+                            <TableCell className="font-medium">
+                              <div className="flex flex-col gap-1">
+                                <span>{v.title || "Untitled"}</span>
+                                {homeVideoUrlSetting && v.url === homeVideoUrlSetting && (
+                                  <span className="text-xs text-primary font-medium">Home page video</span>
+                                )}
+                              </div>
+                            </TableCell>
                             <TableCell>
-                              <Button variant="destructive" size="sm" onClick={() => deleteVideo(v.id)}><Trash2 className="h-4 w-4" /></Button>
+                              <div className="flex flex-wrap gap-2">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setVideoForm({ title: v.title, url: v.url });
+                                    setEditingGalleryVideoId(v.id);
+                                  }}
+                                >
+                                  Edit
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => saveHomeVideoSetting(v.url)}
+                                >
+                                  Make Home Video
+                                </Button>
+                                <Button variant="destructive" size="sm" onClick={() => deleteVideo(v.id)}>
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </TableCell>
                           </TableRow>
                         );
@@ -2301,8 +2992,8 @@ const AdminDashboard = () => {
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><ImageIcon className="h-4 w-4" />Picture Gallery</CardTitle>
-                  <CardDescription>Add image URLs</CardDescription>
+                  <CardTitle className="flex items-center gap-2"><ImageIcon className="h-4 w-4" />Events Gallery</CardTitle>
+                  <CardDescription>Manage images that appear on News page Events Gallery</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid gap-2">
@@ -2314,8 +3005,65 @@ const AdminDashboard = () => {
                     <Input id="p_url" value={pictureForm.image_url} onChange={(e) => setPictureForm({ ...pictureForm, image_url: e.target.value })} />
                   </div>
                   <div className="flex gap-2 flex-wrap">
-                    <Button onClick={addPicture} disabled={!pictureForm.image_url}><Plus className="mr-2 h-4 w-4" />Add Picture</Button>
-                  <Button variant="outline" onClick={() => { persistPictures([]); toast({ title: "Cleared", description: "All pictures removed" }); }}>Clear Pictures</Button>
+                    <Button onClick={saveGalleryPicture} disabled={!pictureForm.image_url || gallerySaving}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      {editingGalleryPictureId ? "Update Picture" : "Add Picture"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={gallerySaving}
+                      onClick={async () => {
+                        try {
+                          setGallerySaving(true);
+                          const demos = [
+                            { title: "Matriculation Ceremony", image_url: "https://picsum.photos/seed/dic-event-1/800/600" },
+                            { title: "Guest Lecture", image_url: "https://picsum.photos/seed/dic-event-2/800/600" },
+                            { title: "Training Session", image_url: "https://picsum.photos/seed/dic-event-3/800/600" },
+                            { title: "Graduation Day", image_url: "https://picsum.photos/seed/dic-event-4/800/600" },
+                            { title: "Campus Walkthrough", image_url: "https://picsum.photos/seed/dic-event-5/800/600" },
+                            { title: "Awards Night", image_url: "https://picsum.photos/seed/dic-event-6/800/600" },
+                          ];
+                          const { data, error } = await supabase
+                            .from("gallery_pictures")
+                            .insert(demos)
+                            .select("id, title, image_url");
+                          if (error) throw error;
+                          const inserted = ((data || []) as { id: string; title: string; image_url: string }[]).map((r) => ({ id: r.id, title: r.title, image_url: r.image_url })) as GalleryPicture[];
+                          setGalleryPictures(list => [...inserted, ...list]);
+                          toast({ title: "Seeded", description: "Demo pictures added to Events Gallery" });
+                        } catch (error: unknown) {
+                          const message = error instanceof Error ? error.message : String(error);
+                          toast({ title: "Error", description: message, variant: "destructive" });
+                        } finally {
+                          setGallerySaving(false);
+                        }
+                      }}
+                    >
+                      Seed Demo Pictures
+                    </Button>
+                  <Button
+                    variant="outline"
+                    disabled={gallerySaving}
+                    onClick={async () => {
+                      try {
+                        setGallerySaving(true);
+                        const { error } = await supabase
+                          .from("gallery_pictures")
+                          .delete();
+                        if (error) throw error;
+                        setGalleryPictures([]);
+                        toast({ title: "Cleared", description: "All pictures removed" });
+                      } catch (error: unknown) {
+                        const message = error instanceof Error ? error.message : String(error);
+                        toast({ title: "Error", description: message, variant: "destructive" });
+                      } finally {
+                        setGallerySaving(false);
+                      }
+                    }}
+                  >
+                    Clear Pictures
+                  </Button>
                   </div>
                   <Table>
                     <TableHeader>
@@ -2333,7 +3081,22 @@ const AdminDashboard = () => {
                           </TableCell>
                           <TableCell className="font-medium">{p.title || "Untitled"}</TableCell>
                           <TableCell>
-                            <Button variant="destructive" size="sm" onClick={() => deletePicture(p.id)}><Trash2 className="h-4 w-4" /></Button>
+                            <div className="flex flex-wrap gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setPictureForm({ title: p.title, image_url: p.image_url });
+                                  setEditingGalleryPictureId(p.id);
+                                }}
+                              >
+                                Edit
+                              </Button>
+                              <Button variant="destructive" size="sm" onClick={() => deletePicture(p.id)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -2346,9 +3109,23 @@ const AdminDashboard = () => {
                         <img src={p.image_url} alt={p.title || "Picture"} className="w-full h-48 object-cover rounded" />
                         <div className="font-semibold">{p.title || "Untitled"}</div>
                         <div className="pt-2">
-                          <Button variant="destructive" size="sm" onClick={() => deletePicture(p.id)} className="w-full">
-                            <Trash2 className="mr-2 h-4 w-4" /> Delete
-                          </Button>
+                          <div className="flex gap-2 flex-wrap">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="flex-1"
+                              onClick={() => {
+                                setPictureForm({ title: p.title, image_url: p.image_url });
+                                setEditingGalleryPictureId(p.id);
+                              }}
+                            >
+                              Edit
+                            </Button>
+                            <Button variant="destructive" size="sm" onClick={() => deletePicture(p.id)} className="flex-1">
+                              <Trash2 className="mr-2 h-4 w-4" /> Delete
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -2356,6 +3133,396 @@ const AdminDashboard = () => {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+          <TabsContent value="certificates">
+            <Card>
+              <CardHeader>
+                <CardTitle>Certificates</CardTitle>
+                <CardDescription>Issue and revoke course completion certificates</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    onClick={() => {
+                      setCertificateUserId(null);
+                      setCertificateCourseId("");
+                      setCertificateDialogOpen(true);
+                    }}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />Issue Certificate
+                  </Button>
+                  <Select value={certificateFilterCourseId} onValueChange={setCertificateFilterCourseId}>
+                    <SelectTrigger className="w-[220px]">
+                      <SelectValue placeholder="Filter by course" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Courses</SelectItem>
+                      {(courses || []).map((c) => (
+                        <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={certificateFilterUserId} onValueChange={setCertificateFilterUserId}>
+                    <SelectTrigger className="w-[220px]">
+                      <SelectValue placeholder="Filter by user" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Users</SelectItem>
+                      {(users || []).map((u) => (
+                        <SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Dialog open={certificateDialogOpen} onOpenChange={setCertificateDialogOpen}>
+                  <DialogContent className="max-w-md w-full">
+                    <DialogHeader>
+                      <DialogTitle>Issue Certificate</DialogTitle>
+                      <DialogDescription>Select a user and course</DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label>User</Label>
+                        <Select
+                          value={certificateUserId ?? ""}
+                          onValueChange={(v) => setCertificateUserId(v)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select user" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(users || []).map((u) => (
+                              <SelectItem key={u.id} value={u.id}>
+                                {u.full_name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Course</Label>
+                        <Select
+                          value={certificateCourseId}
+                          onValueChange={setCertificateCourseId}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select course" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(courses || []).map((c) => (
+                              <SelectItem key={c.id} value={c.id}>
+                                {c.title}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Status</Label>
+                        <div className="flex items-center gap-2">
+                          {(() => {
+                            const e = (enrollments || []).find((x) => x.student_id === certificateUserId && x.course_id === certificateCourseId);
+                            const enrolled = !!e;
+                            const completed = !!e && ((e.payment_status && String(e.payment_status).toLowerCase() === "succeeded") || (e.access_state && String(e.access_state).toLowerCase() === "active"));
+                            return (
+                              <>
+                                <Badge variant={enrolled ? "default" : "outline"}>{enrolled ? "Enrolled" : "Not enrolled"}</Badge>
+                                <Badge variant={completed ? "default" : "outline"}>{completed ? "Access granted" : "Access pending"}</Badge>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    <div className="grid gap-2">
+                      <Label>Template</Label>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCertificatePreviewOpen(true)}
+                          disabled={!certificateUserId || !certificateCourseId}
+                        >
+                          Preview Template
+                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="file"
+                            accept="image/*"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                try {
+                                  await uploadWatermarkImage(file);
+                                  toast({ title: "Uploaded", description: "Watermark updated" });
+                                } catch (error: unknown) {
+                                  const message = error instanceof Error ? error.message : String(error);
+                                  toast({ title: "Error", description: message, variant: "destructive" });
+                                }
+                              }
+                            }}
+                          />
+                          {watermarkUrl && (
+                            <img src={watermarkUrl} alt="Watermark" className="h-8 w-8 object-contain rounded border" />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Signatures</Label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <div className="text-sm font-semibold">Commandant</div>
+                          <Input type="file" accept="image/*" onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              try {
+                                await uploadSignatureImage(file, "commandant");
+                                toast({ title: "Uploaded", description: "Commandant signature saved" });
+                              } catch (error: unknown) {
+                                const message = error instanceof Error ? error.message : String(error);
+                                toast({ title: "Error", description: message, variant: "destructive" });
+                              }
+                            }
+                          }} />
+                          {commandantSignatureUrl && (
+                            <div className="h-20 border rounded flex items-center justify-center bg-muted/40">
+                              <img src={commandantSignatureUrl} alt="Commandant Signature" className="max-h-full max-w-full object-contain" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <div className="text-sm font-semibold">Dir of Strategic Studies</div>
+                          <Input type="file" accept="image/*" onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              try {
+                                await uploadSignatureImage(file, "director_strategic");
+                                toast({ title: "Uploaded", description: "Director signature saved" });
+                              } catch (error: unknown) {
+                                const message = error instanceof Error ? error.message : String(error);
+                                toast({ title: "Error", description: message, variant: "destructive" });
+                              }
+                            }
+                          }} />
+                          {directorSignatureUrl && (
+                            <div className="h-20 border rounded flex items-center justify-center bg-muted/40">
+                              <img src={directorSignatureUrl} alt="Director Signature" className="max-h-full max-w-full object-contain" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                      <Button
+                        disabled={
+                          !certificateUserId ||
+                          !certificateCourseId ||
+                          issueCertificateMutation.isPending ||
+                          !(() => {
+                            const e = (enrollments || []).find((x) => x.student_id === certificateUserId && x.course_id === certificateCourseId);
+                            return !!e && ((e.payment_status && String(e.payment_status).toLowerCase() === "succeeded") || (e.access_state && String(e.access_state).toLowerCase() === "active"));
+                          })()
+                        }
+                        onClick={() => {
+                          if (!certificateUserId || !certificateCourseId) return;
+                          issueCertificateMutation.mutate({ studentId: certificateUserId, courseId: certificateCourseId });
+                        }}
+                      >
+                        {issueCertificateMutation.isPending ? "Issuing..." : "Confirm Issue"}
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+                <Dialog open={certificatePreviewOpen} onOpenChange={setCertificatePreviewOpen}>
+                  <DialogContent className="max-w-3xl">
+                    <DialogHeader>
+                      <DialogTitle>Certificate Template</DialogTitle>
+                      <DialogDescription>Preview</DialogDescription>
+                    </DialogHeader>
+                    <div className="flex justify-end mb-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const el = document.getElementById("certificate-print");
+                          const w = window.open("", "_blank");
+                          if (!w || !el) return;
+                          const html = `
+                            <html>
+                              <head>
+                                <title>Certificate</title>
+                                <style>
+                                  @page { size: A4; margin: 10mm; }
+                                  html, body { margin: 0; padding: 0; }
+                                  body { font-family: 'Stencil Std', Impact, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, 'Apple Color Emoji', 'Segoe UI Emoji'; }
+                                  #certificate-print { width: 190mm; height: 270mm; margin: 0 auto; overflow: hidden; }
+                                  img { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                                </style>
+                              </head>
+                              <body>${el.outerHTML}</body>
+                            </html>
+                          `;
+                          w.document.open();
+                          w.document.write(html);
+                          w.document.close();
+                          w.focus();
+                          setTimeout(() => {
+                            w.print();
+                            w.close();
+                          }, 100);
+                        }}
+                      >
+                        Download PDF
+                      </Button>
+                    </div>
+                    {(() => {
+                      const user = (users || []).find((u) => u.id === certificateUserId);
+                      const course = (courses || []).find((c) => c.id === certificateCourseId);
+                      const code = generateCertificateCode(course?.title);
+                      const today = (() => {
+                        const d = new Date();
+                        const dd = String(d.getDate()).padStart(2, "0");
+                        const mm = String(d.getMonth() + 1).padStart(2, "0");
+                        const yyyy = d.getFullYear();
+                        return `${dd}/${mm}/${yyyy}`;
+                      })();
+                      return (
+                        <div
+                          id="certificate-print"
+                          className="relative"
+                          style={{ fontFamily: "'Stencil Std', Impact, 'Segoe UI', system-ui, sans-serif" }}
+                        >
+                          <div className="p-[6px] rounded-3xl bg-gradient-to-r from-red-800 via-sky-400 to-blue-900">
+                            <div className="relative bg-white rounded-2xl p-8 md:p-12 border-[6px] border-blue-900 shadow-[0_0_40px_rgba(0,0,0,0.35)] overflow-hidden">
+                              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                                <img
+                                  src={watermarkUrl}
+                                  alt="Certificate Watermark"
+                                  className="w-64 h-64 md:w-80 md:h-80 opacity-10"
+                                />
+                              </div>
+                              <div className="relative z-10 flex flex-col items-center gap-2">
+                                <img src={dicLogo} alt="College Logo" className="h-16 w-16 object-contain" />
+                                <div className="flex items-center gap-3">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#DAA520" viewBox="0 0 24 24"><path d="M12 .587l3.668 7.431 8.2 1.193-5.934 5.787 1.402 8.162L12 18.896l-7.336 3.964 1.402-8.162L.132 9.211l8.2-1.193z"/></svg>
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#DAA520" viewBox="0 0 24 24"><path d="M12 .587l3.668 7.431 8.2 1.193-5.934 5.787 1.402 8.162L12 18.896l-7.336 3.964 1.402-8.162L.132 9.211l8.2-1.193z"/></svg>
+                                </div>
+                                <div className="text-2xl md:text-3xl font-extrabold tracking-[0.25em] uppercase text-slate-900 text-center">
+                                  Defence Intelligence College
+                                </div>
+                                <div className="text-sm text-muted-foreground tracking-[0.25em] uppercase">Karu, Abuja</div>
+                              </div>
+                              <div className="relative z-10 mt-8 text-center">
+                                <div className="text-3xl md:text-4xl font-extrabold tracking-[0.3em] uppercase text-[#b38653]">
+                                  Certificate of Completion
+                                </div>
+                                <div className="mt-4 text-sm text-[#b38653]">This is to certify that</div>
+                                <div className="mt-2 text-2xl font-semibold text-[#b38653]">{user?.full_name || "Student"}</div>
+                                <div className="mt-2 text-sm text-[#b38653]">has successfully completed</div>
+                                <div className="mt-2 text-xl font-semibold text-[#b38653]">{course?.title || "Selected Course"}</div>
+                                <div className="mt-1 text-xs italic text-[#b38653]">
+                                  As part of DIC prerequisite  to traning program
+                                </div>
+                                <div className="mt-4 text-muted-foreground">Awarded on {today}</div>
+                              </div>
+                              <div className="relative z-10 mt-8 flex items-center justify-between">
+                                <div className="text-sm">
+                                  Code: <span className="font-mono">{code}</span>
+                                </div>
+                                <div className="text-sm font-semibold tracking-[0.2em] uppercase">Authorized by DIC</div>
+                              </div>
+                              <div className="relative z-10 mt-12 grid grid-cols-2 gap-8">
+                                <div className="flex flex-col items-start">
+                                  <div className="h-16 w-full max-w-[220px] flex items-center justify-start">
+                                    {commandantSignatureUrl ? (
+                                      <img src={commandantSignatureUrl} alt="Commandant Signature" className="max-h-full max-w-full object-contain" />
+                                    ) : (
+                                      <div className="w-full h-px bg-slate-400" />
+                                    )}
+                                  </div>
+                                  <div className="mt-2 text-lg font-bold">
+                                    {(() => {
+                                      const list = (leadership || []) as LeadershipRow[] | undefined;
+                                      const pick =
+                                        (list || []).find(l => {
+                                          const pos = String(l.position || "").toLowerCase();
+                                          return !!l.is_active && /commandant\s*dic/.test(pos);
+                                        }) ||
+                                        (list || []).find(l => {
+                                          const pos = String(l.position || "").toLowerCase();
+                                          return /commandant/.test(pos);
+                                        });
+                                      if (pick?.full_name) {
+                                        return pick.rank ? `${pick.rank} ${pick.full_name}` : pick.full_name;
+                                      }
+                                      return "Commandant DIC";
+                                    })()}
+                                  </div>
+                                  <div className="text-xs font-bold text-[#b38653]">Commandant DIC</div>
+                                </div>
+                                <div className="flex flex-col items-end">
+                                  <div className="h-16 w-full max-w-[220px] flex items-center justify-end">
+                                    {directorSignatureUrl ? (
+                                      <img src={directorSignatureUrl} alt="Director Signature" className="max-h-full max-w-full object-contain" />
+                                    ) : (
+                                      <div className="w-full h-px bg-slate-400" />
+                                    )}
+                                  </div>
+                                  <div className="mt-2 text-lg font-bold text-right">
+                                    {(() => {
+                                      const list = (leadership || []) as LeadershipRow[] | undefined;
+                                      const target = (list || []).find(l => String(l.full_name || "").toLowerCase().includes("keneth iheasirim"));
+                                      if (target?.full_name) {
+                                        return target.rank ? `${target.rank} ${target.full_name}` : target.full_name;
+                                      }
+                                      return "Dir Keneth Iheasirim";
+                                    })()}
+                                  </div>
+                                  <div className="text-xs font-bold text-[#b38653] text-right">Dir of Strategic Studies</div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </DialogContent>
+                </Dialog>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Student</TableHead>
+                        <TableHead>Course</TableHead>
+                        <TableHead>Code</TableHead>
+                        <TableHead>Issued</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredCertificates.map((cert: CertificateRow) => (
+                        <TableRow key={cert.id}>
+                          <TableCell className="font-medium">{cert.profiles?.full_name}</TableCell>
+                          <TableCell>{cert.courses?.title}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{cert.certificate_code}</Badge>
+                          </TableCell>
+                          <TableCell>{new Date(cert.issued_at).toLocaleDateString()}</TableCell>
+                          <TableCell>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => revokeCertificateMutation.mutate({ studentId: cert.student_id, courseId: cert.course_id })}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

@@ -2,14 +2,49 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { BookOpen, GraduationCap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabaseClient as supabase } from "@/lib/supabase";
 import departmentsHero from "@/assets/departments-hero.webp";
+import type { Database } from "@/integrations/supabase/types";
+
+type CourseRow = Database["public"]["Tables"]["courses"]["Row"];
+
+type UICourse = {
+  id?: string;
+  title: string;
+  description?: string | null;
+  category?: string | null;
+  is_paid?: boolean;
+  price_cents?: number | null;
+  currency?: string;
+};
+
+type UICategory = {
+  category: string;
+  courses: UICourse[];
+};
 
 const Courses = () => {
   const navigate = useNavigate();
-  
-  const courseCategories = [
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["public-courses"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("courses")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const courses = (data || []) as CourseRow[];
+
+  const staticCategories: UICategory[] = [
     {
       category: "Generic Courses",
       courses: [
@@ -19,7 +54,7 @@ const Courses = () => {
         { title: "Junior Defence Intelligence Basic Course", description: "Entry-level training for junior personnel" },
         { title: "Junior Defence Intelligence Intermediate Course", description: "Intermediate skills development" },
         { title: "Junior Defence Intelligence Advanced Course", description: "Advanced training for junior officers" },
-      ]
+      ],
     },
     {
       category: "Specialized Courses",
@@ -30,7 +65,7 @@ const Courses = () => {
         { title: "Document Security Course", description: "Document classification and protection" },
         { title: "Joint Military Attache / Advisers Course", description: "Diplomatic and advisory training" },
         { title: "Special Intelligence and Security Course", description: "Specialized intelligence operations" },
-      ]
+      ],
     },
     {
       category: "Language Courses",
@@ -38,7 +73,7 @@ const Courses = () => {
         { title: "Basic French Course", description: "Foundation French language training" },
         { title: "Intermediate French Language Course", description: "Intermediate French proficiency" },
         { title: "Basic German Language Course", description: "Foundation German language training" },
-      ]
+      ],
     },
     {
       category: "Strategic Courses",
@@ -47,9 +82,32 @@ const Courses = () => {
         { title: "Intelligence Analysis Course", description: "Strategic intelligence assessment" },
         { title: "Peace and Conflict Studies", description: "Peace operations and conflict resolution" },
         { title: "Strategic Security Course", description: "Strategic security planning and management" },
-      ]
-    }
+      ],
+    },
   ];
+
+  const dynamicCategories: UICategory[] | null = courses && courses.length > 0
+    ? Object.values(
+        courses.reduce((acc, course) => {
+          const catKey = course.category || "All Courses";
+          if (!acc[catKey]) {
+            acc[catKey] = { category: catKey, courses: [] as UICourse[] };
+          }
+          acc[catKey].courses.push({
+            id: course.id,
+            title: course.title,
+            description: course.description,
+            category: course.category,
+            is_paid: course.is_paid,
+            price_cents: course.price_cents ?? null,
+            currency: course.currency,
+          });
+          return acc;
+        }, {} as Record<string, UICategory>)
+      )
+    : null;
+
+  const courseCategories = dynamicCategories && dynamicCategories.length > 0 ? dynamicCategories : staticCategories;
 
   return (
     <div className="min-h-screen bg-background">
@@ -78,7 +136,11 @@ const Courses = () => {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-12">{courseCategories.map((category, idx) => (
+      <div className="container mx-auto px-4 py-12">
+        {isLoading && (
+          <div className="mb-6 text-center text-muted-foreground">Loading courses...</div>
+        )}
+        {courseCategories.map((category, idx) => (
           <div key={idx} className="mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-primary">{category.category}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -86,7 +148,10 @@ const Courses = () => {
                 <Card 
                   key={courseIdx} 
                   className="shadow-elevated hover:shadow-xl transition-all duration-300 cursor-pointer hover:-translate-y-1"
-                  onClick={() => navigate(`/course/${encodeURIComponent(course.title)}`)}
+                  onClick={() => {
+                    const identifier = course.id || encodeURIComponent(course.title);
+                    navigate(`/course/${identifier}`);
+                  }}
                 >
                   <CardHeader>
                     <div className="flex items-center gap-2 mb-2">
@@ -94,10 +159,26 @@ const Courses = () => {
                         <BookOpen className="h-5 w-5 text-primary-foreground" />
                       </div>
                     </div>
-                    <CardTitle className="text-lg leading-tight">{course.title}</CardTitle>
-                    <CardDescription>
-                      {category.category}
-                    </CardDescription>
+                    <CardTitle className="text-lg leading-tight break-words">{course.title}</CardTitle>
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      <CardDescription>
+                        {category.category}
+                      </CardDescription>
+                      {course.is_paid && course.price_cents != null && (
+                        <Badge variant="secondary" className="text-xs">
+                          Paid • {(course.price_cents / 100).toLocaleString(undefined, {
+                            style: "currency",
+                            currency: course.currency || "NGN",
+                            maximumFractionDigits: 0,
+                          })}
+                        </Badge>
+                      )}
+                      {course.is_paid === false && (
+                        <Badge variant="outline" className="text-xs">
+                          Free
+                        </Badge>
+                      )}
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-muted-foreground mb-4">

@@ -62,12 +62,21 @@ export const CommandantsMarquee = () => {
     staleTime: 300000,
   });
 
+  const exclude = new Set([
+    normalize("Dir Keneth Iheasirim"),
+    normalize("Lt Coll John Doe 3"),
+    normalize("Lt Commander John Doe 2"),
+    normalize("Dir John Doe 1"),
+    normalize("SDIO John Doe 4"),
+  ]);
+  const filtered = (commandants || []).filter((c) => !exclude.has(normalize(c.full_name)));
+
   const handlePrevious = () => {
-    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : commandants.length - 1));
+    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : filtered.length - 1));
   };
 
   const handleNext = () => {
-    setCurrentIndex((prev) => (prev < commandants.length - 1 ? prev + 1 : 0));
+    setCurrentIndex((prev) => (prev < filtered.length - 1 ? prev + 1 : 0));
   };
 
   if (isLoading) {
@@ -79,7 +88,7 @@ export const CommandantsMarquee = () => {
     );
   }
 
-  if (error || !commandants.length) {
+  if (error || !filtered.length) {
     return (
       <div className="gradient-subtle py-8 sm:py-12">
         <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-center mb-4 sm:mb-6 md:mb-8">{t('pastPresentCommandants')}</h2>
@@ -90,7 +99,7 @@ export const CommandantsMarquee = () => {
     );
   }
 
-  const currentCommandant = commandants[currentIndex];
+  const currentCommandant = filtered[currentIndex];
   const formatPosition = (p?: string) => {
     const s = (p || "").toLowerCase();
     if (s.includes("former commandant")) return "Former Commandant DIC";
@@ -164,7 +173,7 @@ export const CommandantsMarquee = () => {
 
           {/* Pagination Dots */}
           <div className="flex justify-center gap-1 mt-4 flex-wrap">
-            {commandants.map((_, index) => (
+            {filtered.map((_, index) => (
               <button
                 key={index}
                 onClick={() => setCurrentIndex(index)}

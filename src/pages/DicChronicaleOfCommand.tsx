@@ -74,7 +74,18 @@ const DicChronicaleOfCommand = () => {
           </CardHeader>
           <CardContent>
             <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-              {leadership?.map((leader) => {
+              {leadership
+                ?.filter((leader) => {
+                  const exclude = new Set([
+                    normalize("Dir Keneth Iheasirim"),
+                    normalize("Lt Coll John Doe 3"),
+                    normalize("Lt Commander John Doe 2"),
+                    normalize("Dir John Doe 1"),
+                    normalize("SDIO John Doe 4"),
+                  ]);
+                  return !exclude.has(normalize(leader.full_name));
+                })
+                .map((leader) => {
                 const photo = overrides[normalize(leader.full_name)] || leader.photo_url || "";
                 return (
                   <div key={leader.id} className="rounded-lg border bg-card text-card-foreground overflow-hidden">

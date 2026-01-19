@@ -1,7 +1,7 @@
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
-import { Shield, Target, BookOpen, Cog, Users, GraduationCap, Lock } from "lucide-react";
+import { Shield, Target, BookOpen, Cog, Users, GraduationCap } from "lucide-react";
 import dicBg from "@/assets/dic-bg.png";
 import dicGroupPhoto from "@/assets/dic-group-photo.webp";
 import departmentsHero from "@/assets/departments-hero.webp";
@@ -10,23 +10,13 @@ import { supabaseClient as supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import type { Database } from "@/integrations/supabase/types";
 
 const About = () => {
-  const navigate = useNavigate();
   type PersonnelRow = Database["public"]["Tables"]["personnel"]["Row"];
   type LeadershipRow = Database["public"]["Tables"]["leadership"]["Row"];
   const [selectedPerson, setSelectedPerson] = useState<PersonnelRow | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-
-  // Check authentication status
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsAuthenticated(!!session);
-    });
-  }, []);
 
   const { data: personnel, isLoading: personnelLoading } = useQuery<PersonnelRow[]>({
     queryKey: ["about-personnel"],
@@ -40,7 +30,6 @@ const About = () => {
     },
     retry: false,
     refetchOnWindowFocus: false,
-    enabled: isAuthenticated === true,
   });
   const { data: leadership, isLoading: leadershipLoading } = useQuery<LeadershipRow[]>({
     queryKey: ["about-leadership"],
@@ -55,28 +44,45 @@ const About = () => {
     retry: false,
     refetchOnWindowFocus: false,
   });
-  const heads = (personnel || []).filter(p => {
-    const dep = String(p.department || "").toLowerCase();
-    const pos = String(p.position || "").toLowerCase();
-    return dep === "leadership" || /head|hod|director|chief|commandant|coordinator/.test(pos);
-  });
-  const sourceList = heads;
-  const firstPreferred = sourceList.find(p => /bugaje/i.test(String(p.full_name || "")));
-  const secondPreferred = sourceList.find(p => /borgu/i.test(String(p.full_name || "")));
-  const orderedTopThree: PersonnelRow[] = [];
-  if (firstPreferred) orderedTopThree.push(firstPreferred);
-  if (secondPreferred && secondPreferred !== firstPreferred) orderedTopThree.push(secondPreferred);
-  if (orderedTopThree.length < 3) {
-    for (const p of sourceList) {
-      if (!orderedTopThree.includes(p)) {
-        orderedTopThree.push(p);
-        if (orderedTopThree.length >= 3) break;
+  const leadershipOrdered = (() => {
+    const filtered = (leadership || []).filter(l => {
+      const pos = String(l.position || "").toLowerCase();
+      const isCommandant =
+        /commandant\s*dic/.test(pos) ||
+        /^commandant(\s|$)/.test(pos) ||
+        (/commandant/.test(pos) && /defence|defense|intelligence|college|dic/.test(pos));
+      if (isCommandant && l.is_active === false) {
+        return false;
       }
-    }
-  }
-  const topThree = orderedTopThree;
-  const restHeads = sourceList.filter(p => !orderedTopThree.includes(p));
-  const secondRowList = [...restHeads];
+      return true;
+    });
+    const list = filtered.slice().sort((a, b) => {
+      const aOrder = typeof a.display_order === "number" ? a.display_order : 0;
+      const bOrder = typeof b.display_order === "number" ? b.display_order : 0;
+      return aOrder - bOrder;
+    });
+    const remaining = [...list];
+    const prioritized: LeadershipRow[] = [];
+    const pullByMatch = (matcher: (pos: string) => boolean) => {
+      const index = remaining.findIndex(l => matcher(String(l.position || "").toLowerCase()));
+      if (index !== -1) {
+        prioritized.push(remaining[index]);
+        remaining.splice(index, 1);
+      }
+    };
+    pullByMatch(pos => /commandant\s*dic/.test(pos) || /^commandant(\s|$)/.test(pos));
+    pullByMatch(pos => /deputy\s+commandant/.test(pos));
+    pullByMatch(pos => /(dir(ector)?\s+of\s+strategic\s+studies|director\s+strategic\s+studies)/.test(pos));
+    return [...prioritized, ...remaining];
+  })();
+  const topThree = leadershipOrdered.slice(0, 3);
+  const secondRowList = leadershipOrdered.slice(3);
+  const findPersonnelByName = (fullName: string | null | undefined): PersonnelRow | null => {
+    const target = String(fullName || "").toLowerCase();
+    if (!target) return null;
+    const match = (personnel || []).find(p => String(p.full_name || "").toLowerCase() === target);
+    return match || null;
+  };
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -160,30 +166,30 @@ const About = () => {
                     <h2 className="text-3xl font-bold">College Leadership</h2>
                   </div>
                 </div>
-                {isAuthenticated === false ? (
-                  <div className="text-center py-8 space-y-4">
-                    <Lock className="h-12 w-12 text-muted-foreground mx-auto" />
-                    <p className="text-muted-foreground">Please sign in to view staff profiles and contact information.</p>
-                    <Button onClick={() => navigate("/auth")}>Sign In</Button>
-                  </div>
-                ) : personnelLoading ? (
+                {leadershipLoading ? (
                   <div className="text-center py-8 text-muted-foreground">Loading leadership...</div>
-                ) : topThree.length === 0 ? (
+                ) : leadershipOrdered.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">No leadership profiles available.</div>
                 ) : (
                   <>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                      {topThree.map((p, idx) => (
-                        <div key={p.id} className="rounded-lg border bg-card text-card-foreground overflow-hidden animate-in fade-in-50 slide-in-from-bottom-6" style={{ animationDelay: `${idx * 120}ms` }}>
+                      {topThree.map((leader, idx) => (
+                        <div key={leader.id} className="rounded-lg border bg-card text-card-foreground overflow-hidden animate-in fade-in-50 slide-in-from-bottom-6" style={{ animationDelay: `${idx * 120}ms` }}>
                           <div className="relative aspect-square bg-muted group">
-                            <img src={p.photo_url || ""} alt={p.full_name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                            <img src={leader.photo_url || ""} alt={leader.full_name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                             <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Button variant="secondary" size="sm" onClick={() => setSelectedPerson(p)}>Preview Résumé</Button>
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => setSelectedPerson(findPersonnelByName(leader.full_name))}
+                              >
+                                Preview Résumé
+                              </Button>
                             </div>
                           </div>
                           <div className="p-4 space-y-2">
-                            <div className="text-center font-semibold">{p.rank ? `${p.rank} ${p.full_name}` : p.full_name}</div>
-                            <div className="text-sm text-muted-foreground text-center">{p.position}</div>
+                            <div className="text-center font-semibold">{leader.rank ? `${leader.rank} ${leader.full_name}` : leader.full_name}</div>
+                            <div className="text-sm text-muted-foreground text-center">{leader.position}</div>
                           </div>
                         </div>
                       ))}
@@ -192,19 +198,30 @@ const About = () => {
                       <div className="mt-6 relative">
                         <Carousel opts={{ align: "start", loop: false }}>
                           <CarouselContent>
-                            {secondRowList.map((p, index) => (
-                              <CarouselItem key={p.id} className="basis-[70%] sm:basis-[50%] md:basis-[33.33%] lg:basis-[25%]">
+                            {secondRowList.map((leader, index) => (
+                              <CarouselItem key={leader.id} className="basis-[70%] sm:basis-[50%] md:basis-[33.33%] lg:basis-[25%]">
                                 <div className="rounded-lg border bg-card text-card-foreground overflow-hidden animate-in fade-in-50 slide-in-from-bottom-6" style={{ animationDelay: `${index * 80}ms` }}>
                                   <div className="relative aspect-square bg-muted group">
-                                    <img src={p.photo_url || ""} alt={p.full_name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                                    <img src={leader.photo_url || ""} alt={leader.full_name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                                     <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex">
-                                      <Button variant="secondary" size="sm" onClick={() => setSelectedPerson(p)}>Preview Résumé</Button>
+                                      <Button
+                                        variant="secondary"
+                                        size="sm"
+                                        onClick={() => setSelectedPerson(findPersonnelByName(leader.full_name))}
+                                      >
+                                        Preview Résumé
+                                      </Button>
                                     </div>
                                   </div>
                                   <div className="p-4 space-y-2">
-                                    <div className="text-center font-semibold">{p.rank ? `${p.rank} ${p.full_name}` : p.full_name}</div>
-                                    <div className="text-sm text-muted-foreground text-center">{p.position}</div>
-                                    <Button variant="outline" size="sm" className="w-full sm:hidden mt-2 min-h-[44px]" onClick={() => setSelectedPerson(p)}>
+                                    <div className="text-center font-semibold">{leader.rank ? `${leader.rank} ${leader.full_name}` : leader.full_name}</div>
+                                    <div className="text-sm text-muted-foreground text-center">{leader.position}</div>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="w-full sm:hidden mt-2 min-h-[44px]"
+                                      onClick={() => setSelectedPerson(findPersonnelByName(leader.full_name))}
+                                    >
                                       Preview Résumé
                                     </Button>
                                   </div>
@@ -230,7 +247,7 @@ const About = () => {
                     Vision Statement
                   </h2>
                   <p className="text-muted-foreground leading-relaxed text-base md:text-lg">
-                    To produce well trained, patriotic and highly motivated manpower working with cutting edge technology under an effective leadership in collaboration with friendly forces that will provide comprehensive and timely defence intelligence in support of national security strategy.
+                    To be a world-class centre in intelligence and security education, fostersing collaboration and innovation for global stability
                   </p>
                 </CardContent>
               </Card>
@@ -242,7 +259,7 @@ const About = () => {
                     Mission Statement
                   </h2>
                   <p className="text-muted-foreground leading-relaxed text-base md:text-lg">
-                    To provide security and intelligence training for all categories of DIA staff, personnel of the Nigerian Armed Forces and other security agencies, in order to enable them perform optimally wherever they may be deployed.
+                    Building capacity for intelligence and security excellence among national and international professionals.
                   </p>
                 </CardContent>
               </Card>

@@ -68,17 +68,59 @@ const News = () => {
     created_at: string;
     featured_image_url?: string | null;
   };
-
-  const { data: newsItems, isLoading } = useQuery<NewsItem[]>({
-    queryKey: ["news"],
+  const [newsPage, setNewsPage] = useState(1);
+  const newsPageSize = 10;
+  const { data: newsCount } = useQuery<number>({
+    queryKey: ["news-count"],
     queryFn: async () => {
+      const { count, error } = await supabase
+        .from("news")
+        .select("*", { count: "exact", head: true });
+      if (error) throw error;
+      return count || 0;
+    },
+  });
+  const totalNewsPages = Math.max(1, Math.ceil((newsCount || 0) / newsPageSize));
+  const { data: newsItems, isLoading } = useQuery<NewsItem[]>({
+    queryKey: ["news-page", newsPage],
+    queryFn: async () => {
+      const from = (newsPage - 1) * newsPageSize;
+      const to = from + newsPageSize - 1;
       const { data, error } = await supabase
         .from("news")
         .select("*")
-        .order("published_at", { ascending: false });
-      
+        .order("published_at", { ascending: false })
+        .range(from, to);
       if (error) throw error;
-      return data as NewsItem[];
+      return (data as NewsItem[]) || [];
+    },
+  });
+  type GalleryPictureRow = Database["public"]["Tables"]["gallery_pictures"]["Row"];
+  const [eventPage, setEventPage] = useState(1);
+  const eventPageSize = 6;
+  const { data: eventsCount } = useQuery<number>({
+    queryKey: ["events-count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("gallery_pictures")
+        .select("*", { count: "exact", head: true });
+      if (error) throw error;
+      return count || 0;
+    },
+  });
+  const totalEventPages = Math.max(1, Math.ceil((eventsCount || 0) / eventPageSize));
+  const { data: eventPictures } = useQuery<GalleryPictureRow[]>({
+    queryKey: ["gallery-pictures-page", eventPage],
+    queryFn: async () => {
+      const from = (eventPage - 1) * eventPageSize;
+      const to = from + eventPageSize - 1;
+      const { data, error } = await supabase
+        .from("gallery_pictures")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .range(from, to);
+      if (error) throw error;
+      return (data as GalleryPictureRow[]) || [];
     },
   });
 
@@ -86,13 +128,24 @@ const News = () => {
     queryKey: ["current-commandant"],
     queryFn: async () => {
       try {
+        const excludedNames = new Set([
+          "Dir Keneth Iheasirim",
+          "Lt Coll John Doe 3",
+          "Lt Commander John Doe 2",
+          "Dir John Doe 1",
+          "SDIO John Doe 4",
+        ]);
         const { data, error } = await supabase
           .from("leadership")
           .select("*")
           .eq("is_active", true)
-          .limit(1);
+          .ilike("position", "%commandant%")
+          .ilike("position", "%dic%")
+          .order("display_order", { ascending: true })
+          .limit(5);
         if (error) throw error;
-        return data && data.length ? data[0] : null;
+        const list = (data || []).filter((l: LeadershipRow) => !excludedNames.has(String(l.full_name)));
+        return list.length ? list[0] : null;
       } catch (e) {
         return null;
       }
@@ -151,7 +204,6 @@ const News = () => {
               <Newspaper className="h-8 w-8 text-primary" />
               Latest News
             </h2>
-            
             {isLoading ? (
               <div className="space-y-6">
                 {[1, 2, 3].map((i) => (
@@ -167,53 +219,167 @@ const News = () => {
                 ))}
               </div>
             ) : newsItems && newsItems.length > 0 ? (
-              <div className="space-y-6">
-                {newsItems.map((item, index) => (
-                  <Card 
-                    key={item.id} 
-                    className="shadow-elevated hover:shadow-xl transition-all cursor-pointer opacity-0 animate-fly-in-left"
-                    style={{ animationDelay: `${index * 0.1}s` }}
+              <>
+                {/* Featured + Right List */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div
+                    className="md:col-span-2 relative rounded-lg overflow-hidden shadow-elevated cursor-pointer"
                     onClick={() => {
-                      // Create a modal or navigate to detail view
-                      const modal = document.createElement('div');
-                      modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
-                      modal.innerHTML = `
-                        <div class="bg-background rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto p-4 md:p-6 relative">
-                          <button class="absolute top-4 right-4 text-muted-foreground hover:text-foreground" onclick="this.parentElement.parentElement.remove()">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                          </button>
-                          ${item.featured_image_url ? `<img src="${item.featured_image_url}" alt="${item.title}" class="w-full h-auto rounded mb-4" />` : ''}
-                          <h2 class="text-3xl font-bold mb-4">${item.title}</h2>
-                          <p class="text-sm text-muted-foreground mb-6">${formatDistanceToNow(new Date(item.published_at), { addSuffix: true })}</p>
-                          <p class="text-muted-foreground leading-relaxed whitespace-pre-wrap">${item.content}</p>
-                        </div>
-                      `;
-                      modal.onclick = (e) => {
-                        if (e.target === modal) modal.remove();
-                      };
-                      document.body.appendChild(modal);
+                      if (newsItems && newsItems[0]) navigate(`/news/${newsItems[0].id}`);
                     }}
                   >
-                    {index === 0 && item.featured_image_url && (
-                      <div className="aspect-video w-full overflow-hidden">
-                        <img src={item.featured_image_url} alt={item.title} className="w-full h-full object-cover" />
-                      </div>
+                    {newsItems[0]?.featured_image_url ? (
+                      <img src={newsItems[0].featured_image_url || ""} alt={newsItems[0].title} className="w-full h-full object-cover aspect-video" />
+                    ) : (
+                      <div className="aspect-video bg-muted" />
                     )}
-                    <CardHeader>
-                      <CardTitle className="text-2xl">{item.title}</CardTitle>
-                      <p className="text-sm text-muted-foreground">
-                        {formatDistanceToNow(new Date(item.published_at), { addSuffix: true })}
-                      </p>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-muted-foreground leading-relaxed line-clamp-3">
-                        {item.content}
-                      </p>
-                      <p className="text-primary font-semibold mt-4">Click to read more →</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                    <div className="absolute bottom-0 left-0 right-0 p-6">
+                      <div className="text-white text-xs mb-1">Featured Story</div>
+                      <div className="text-white text-2xl sm:text-3xl font-bold">{newsItems[0]?.title}</div>
+                      <div className="text-white/80 text-xs sm:text-sm mt-1">{newsItems[0] ? formatDistanceToNow(new Date(newsItems[0].published_at), { addSuffix: true }) : ""}</div>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    {[newsItems[1], newsItems[2], newsItems[3], newsItems[4]].filter(Boolean).map((item) => (
+                      <button
+                        key={item!.id}
+                        className="flex items-start gap-3 border-b pb-4 last:border-b-0 w-full text-left hover:bg-muted/40 rounded"
+                        onClick={() => navigate(`/news/${item!.id}`)}
+                      >
+                        {item!.featured_image_url ? (
+                          <img src={item!.featured_image_url || ""} alt={item!.title} className="h-16 w-24 object-cover rounded" />
+                        ) : (
+                          <div className="h-16 w-24 bg-muted rounded" />
+                        )}
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold line-clamp-2">{item!.title}</div>
+                          <div className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(item!.published_at), { addSuffix: true })}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {/* Top Stories row */}
+                <div className="mt-8">
+                  <h3 className="text-xl font-bold mb-4">Top Stories</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    {newsItems.slice(5, 10).map((item) => (
+                      <button
+                        key={item.id}
+                        className="rounded-lg overflow-hidden shadow-elevated border text-left hover:shadow-md transition-shadow"
+                        onClick={() => navigate(`/news/${item.id}`)}
+                      >
+                        {item.featured_image_url ? (
+                          <img src={item.featured_image_url} alt={item.title} className="w-full aspect-video object-cover" />
+                        ) : (
+                          <div className="w-full aspect-video bg-muted" />
+                        )}
+                        <div className="p-3">
+                          <div className="text-sm font-semibold line-clamp-2">{item.title}</div>
+                          <div className="text-xs text-muted-foreground mt-1">{formatDistanceToNow(new Date(item.published_at), { addSuffix: true })}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <Pagination className="mt-6">
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setNewsPage((p) => Math.max(1, p - 1));
+                        }}
+                      />
+                    </PaginationItem>
+                    {Array.from({ length: totalNewsPages }).map((_, pageIdx) => (
+                      <PaginationItem key={pageIdx}>
+                        <PaginationLink
+                          href="#"
+                          isActive={newsPage === pageIdx + 1}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setNewsPage(pageIdx + 1);
+                          }}
+                        >
+                          {pageIdx + 1}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+                    <PaginationItem>
+                      <PaginationNext
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setNewsPage((p) => Math.min(totalNewsPages, p + 1));
+                        }}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+                {/* Events Gallery */}
+                <div className="mt-10">
+                  <h3 className="text-xl font-bold mb-4">Events Gallery</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {(eventPictures || []).map((p) => (
+                      <div key={p.id} className="relative rounded-lg overflow-hidden shadow-elevated border group">
+                        <img src={p.image_url} alt={p.title || "Event"} className="w-full h-full object-cover aspect-square" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                        <div className="absolute bottom-0 left-0 right-0 p-3">
+                          <div className="text-white text-sm">{p.title || "Event"}</div>
+                        </div>
+                      </div>
+                    ))}
+                    {(eventPictures || []).length === 0 && (
+                      <>
+                        {Array.from({ length: 6 }).map((_, i) => (
+                          <div key={i} className="relative rounded-lg overflow-hidden shadow-elevated border">
+                            <div className="w-full h-full aspect-square bg-muted" />
+                          </div>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                  <Pagination className="mt-4">
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setEventPage((p) => Math.max(1, p - 1));
+                          }}
+                        />
+                      </PaginationItem>
+                      {Array.from({ length: totalEventPages }).map((_, pageIdx) => (
+                        <PaginationItem key={pageIdx}>
+                          <PaginationLink
+                            href="#"
+                            isActive={eventPage === pageIdx + 1}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setEventPage(pageIdx + 1);
+                            }}
+                          >
+                            {pageIdx + 1}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ))}
+                      <PaginationItem>
+                        <PaginationNext
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setEventPage((p) => Math.min(totalEventPages, p + 1));
+                          }}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              </>
             ) : (
               <Card className="shadow-elevated">
                 <CardContent className="p-12 text-center">
