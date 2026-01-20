@@ -22,6 +22,13 @@ const DicChronicaleOfCommand = () => {
     [normalize("Rear Admiral P. E. Effah")]: effahImg,
     [normalize("Patrick Effah")]: effahImg,
   };
+  const isCommandantPosition = (pos?: string | null) => {
+    const s = String(pos || "").toLowerCase();
+    const hasCommandant = /commandant/.test(s);
+    const hasDic = /dic|defence\s*intelligence\s*college/.test(s);
+    const isFormer = /former/.test(s);
+    return (hasCommandant && hasDic) || (isFormer && hasCommandant && hasDic);
+  };
   const [selectedLeader, setSelectedLeader] = useState<LeadershipRow | null>(null);
   const { data: leadership } = useQuery<LeadershipRow[]>({
     queryKey: ["chronicale-leadership"],
@@ -75,16 +82,7 @@ const DicChronicaleOfCommand = () => {
           <CardContent>
             <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
               {leadership
-                ?.filter((leader) => {
-                  const exclude = new Set([
-                    normalize("Dir Keneth Iheasirim"),
-                    normalize("Lt Coll John Doe 3"),
-                    normalize("Lt Commander John Doe 2"),
-                    normalize("Dir John Doe 1"),
-                    normalize("SDIO John Doe 4"),
-                  ]);
-                  return !exclude.has(normalize(leader.full_name));
-                })
+                ?.filter((leader) => isCommandantPosition(leader.position) && !leader.is_faculty)
                 .map((leader) => {
                 const photo = overrides[normalize(leader.full_name)] || leader.photo_url || "";
                 return (
@@ -108,7 +106,7 @@ const DicChronicaleOfCommand = () => {
                           <Button size="sm" className="bg-blue-600 text-white hover:bg-blue-700">Former</Button>
                         )}
                       </div>
-                      <div className="text-sm text-muted-foreground text-center">Commandant DIC</div>
+                      <div className="text-sm text-muted-foreground text-center">{leader.position}</div>
                       <Button variant="outline" size="sm" className="w-full sm:hidden min-h-[44px]" onClick={() => setSelectedLeader(leader)}>
                         Preview Résumé
                       </Button>

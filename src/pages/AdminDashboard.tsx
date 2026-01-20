@@ -9,13 +9,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { supabaseClient } from "@/lib/supabase";
-import { Newspaper, Trash2, Plus, Users, GraduationCap, Edit, BarChart3, Shield, BookOpen, UserCog, Crown, FileText, Database as DatabaseIcon, Image as ImageIcon, Video } from "lucide-react";
+import { Newspaper, Trash2, Plus, Users, GraduationCap, Edit, BarChart3, Shield, BookOpen, UserCog, Crown, FileText, Image as ImageIcon, Video } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { MagazineUploadDialog } from "@/components/MagazineUploadDialog";
 import { Tooltip, Legend, ResponsiveContainer, LineChart, Line, XAxis, YAxis, PieChart, Pie, Cell } from "recharts";
@@ -25,6 +25,7 @@ const supabase = supabaseClient;
 
 const categoryClasses = (name?: string) => {
   const n = String(name || "").toLowerCase();
+  if (/dia/.test(n)) return "bg-green-600 text-white";
   if (/military/.test(n)) return "bg-green-600 text-white";
   if (/civilian/.test(n)) return "bg-blue-600 text-white";
   if (/post|graduate|pg/.test(n)) return "bg-purple-600 text-white";
@@ -35,9 +36,8 @@ const categoryClasses = (name?: string) => {
 const normalizePersonnelCategory = (raw?: string | null) => {
   const value = String(raw || "").toLowerCase().trim();
   if (!value) return "civilian";
-  if (value === "military" || value === "civilian") return value;
+  if (value === "military" || value === "civilian" || value === "dia") return value;
   if (
-    value.includes("dia") ||
     value.includes("navy") ||
     value.includes("army") ||
     value.includes("air") ||
@@ -45,8 +45,17 @@ const normalizePersonnelCategory = (raw?: string | null) => {
   ) {
     return "military";
   }
+  if (value.includes("dia")) return "dia";
   if (value.includes("civil")) return "civilian";
   return "civilian";
+};
+
+const isCommandantPosition = (pos?: string | null) => {
+  const s = String(pos || "").toLowerCase();
+  const hasCommandant = /commandant/.test(s);
+  const hasDic = /dic|defence\s*intelligence\s*college/.test(s);
+  const isFormer = /former/.test(s);
+  return (hasCommandant && hasDic) || (isFormer && hasCommandant && hasDic);
 };
 
 const AdminDashboard = () => {
@@ -78,6 +87,21 @@ const AdminDashboard = () => {
   const [selectedUserCategory, setSelectedUserCategory] = useState("");
   const [videoForm, setVideoForm] = useState({ title: "", url: "" });
   const [pictureForm, setPictureForm] = useState({ title: "", image_url: "" });
+  const [galleryUploadFile, setGalleryUploadFile] = useState<File | null>(null);
+  const [galleryUploadPreview, setGalleryUploadPreview] = useState<string | null>(null);
+
+  const handleGalleryUploadChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setGalleryUploadFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setGalleryUploadPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   type GalleryVideo = { id: string; title: string; url: string };
   type GalleryPicture = { id: string; title: string; image_url: string };
   const [galleryVideos, setGalleryVideos] = useState<GalleryVideo[]>([]);
@@ -88,175 +112,34 @@ const AdminDashboard = () => {
   const [homeVideoUrlSetting, setHomeVideoUrlSetting] = useState("");
   const [homeVideoSaving, setHomeVideoSaving] = useState(false);
   const [gallerySaving, setGallerySaving] = useState(false);
-  const saveGalleryVideo = async () => {
-    if (!videoForm.url) return;
-    try {
-      setGallerySaving(true);
-      if (editingGalleryVideoId) {
-        const { error } = await supabase
-          .from("gallery_videos")
-          .update({ title: videoForm.title || "Untitled", url: videoForm.url })
-          .eq("id", editingGalleryVideoId);
-        if (error) throw error;
-        setGalleryVideos(list =>
-          list.map(v =>
-            v.id === editingGalleryVideoId ? { ...v, title: videoForm.title || "Untitled", url: videoForm.url } : v,
-          ),
-        );
-        toast({ title: "Saved", description: "Video updated" });
-      } else {
-        const { data, error } = await supabase
-          .from("gallery_videos")
-          .insert([{ title: videoForm.title || "Untitled", url: videoForm.url }])
-          .select("id, title, url")
-          .single();
-        if (error) throw error;
-        const newVideo: GalleryVideo = {
-          id: data.id,
-          title: data.title || "Untitled",
-          url: data.url,
-        };
-        setGalleryVideos(list => [newVideo, ...list]);
-        toast({ title: "Saved", description: "Video added to gallery" });
-      }
-      setVideoForm({ title: "", url: "" });
-      setEditingGalleryVideoId(null);
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
-      toast({ title: "Error", description: message, variant: "destructive" });
-    } finally {
-      setGallerySaving(false);
-    }
-  };
-  const deleteVideo = async (id: string) => {
-    try {
-      setGallerySaving(true);
-      const { error } = await supabase
-        .from("gallery_videos")
-        .delete()
-        .eq("id", id);
-      if (error) throw error;
-      setGalleryVideos(list => list.filter(v => v.id !== id));
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
-      toast({ title: "Error", description: message, variant: "destructive" });
-    } finally {
-      setGallerySaving(false);
-    }
-  };
-  const saveGalleryPicture = async () => {
-    if (!pictureForm.image_url) return;
-    try {
-      setGallerySaving(true);
-      if (editingGalleryPictureId) {
-        const { error } = await supabase
-          .from("gallery_pictures")
-          .update({ title: pictureForm.title || "Untitled", image_url: pictureForm.image_url })
-          .eq("id", editingGalleryPictureId);
-        if (error) throw error;
-        setGalleryPictures(list =>
-          list.map(p =>
-            p.id === editingGalleryPictureId
-              ? { ...p, title: pictureForm.title || "Untitled", image_url: pictureForm.image_url }
-              : p,
-          ),
-        );
-        toast({ title: "Saved", description: "Picture updated" });
-      } else {
-        const { data, error } = await supabase
-          .from("gallery_pictures")
-          .insert([{ title: pictureForm.title || "Untitled", image_url: pictureForm.image_url }])
-          .select("id, title, image_url")
-          .single();
-        if (error) throw error;
-        const newPicture: GalleryPicture = {
-          id: data.id,
-          title: data.title || "Untitled",
-          image_url: data.image_url,
-        };
-        setGalleryPictures(list => [newPicture, ...list]);
-        toast({ title: "Saved", description: "Picture added to gallery" });
-      }
-      setPictureForm({ title: "", image_url: "" });
-      setEditingGalleryPictureId(null);
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
-      toast({ title: "Error", description: message, variant: "destructive" });
-    } finally {
-      setGallerySaving(false);
-    }
-  };
-  const deletePicture = async (id: string) => {
-    try {
-      setGallerySaving(true);
-      const { error } = await supabase
-        .from("gallery_pictures")
-        .delete()
-        .eq("id", id);
-      if (error) throw error;
-      setGalleryPictures(list => list.filter(p => p.id !== id));
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
-      toast({ title: "Error", description: message, variant: "destructive" });
-    } finally {
-      setGallerySaving(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!isAdmin) return;
-    const loadGallery = async () => {
-      try {
-        const { data: videos, error: videosError } = await supabase
-          .from("gallery_videos")
-          .select("*")
-          .order("created_at", { ascending: false });
-        if (!videosError && videos) {
-          setGalleryVideos(
-            (videos as { id: string; title: string | null; url: string }[]).map(v => ({
-              id: v.id,
-              title: v.title || "",
-              url: v.url,
-            })),
-          );
-        }
-        const { data: pictures, error: picturesError } = await supabase
-          .from("gallery_pictures")
-          .select("*")
-          .order("created_at", { ascending: false });
-        if (!picturesError && pictures) {
-          setGalleryPictures(
-            (pictures as { id: string; title: string | null; image_url: string }[]).map(p => ({
-              id: p.id,
-              title: p.title || "",
-              image_url: p.image_url,
-            })),
-          );
-        }
-      } catch {
-        return;
-      }
-    };
-    loadGallery();
-  }, [isAdmin]);
 
   // Personnel state
   const [personnelForm, setPersonnelForm] = useState({
-    full_name: "", email: "", phone: "", category: "civilian", position: "", department: "", rank: "", bio: "", photo_url: ""
+    full_name: "", email: "", phone: "", category: "civilian", position: "", department: "", rank: "", bio: "", photo_url: "", is_faculty: false, display_order: 0
   });
   const [editingPersonnelId, setEditingPersonnelId] = useState<string | null>(null);
   const [personnelPhotoFile, setPersonnelPhotoFile] = useState<File | null>(null);
   const [personnelPhotoPreview, setPersonnelPhotoPreview] = useState<string | null>(null);
   const [personnelDialogOpen, setPersonnelDialogOpen] = useState(false);
+  const [personnelCategoryUi, setPersonnelCategoryUi] = useState<"military" | "dia" | "civilian">("civilian");
 
-  // Leadership state
   const [leadershipForm, setLeadershipForm] = useState({
-    full_name: "", position: "", rank: "", bio: "", photo_url: "", display_order: 0
+    full_name: "",
+    position: "",
+    role: "",
+    rank: "",
+    bio: "",
+    photo_url: "",
+    is_active: true,
+    is_faculty: false,
+    display_order: 0,
   });
   const [editingLeadershipId, setEditingLeadershipId] = useState<string | null>(null);
   const [leadershipPhotoFile, setLeadershipPhotoFile] = useState<File | null>(null);
   const [leadershipPhotoPreview, setLeadershipPhotoPreview] = useState<string | null>(null);
   const [leadershipDialogOpen, setLeadershipDialogOpen] = useState(false);
+
+
 
   // PG Programs state
   const [pgProgramForm, setPgProgramForm] = useState({
@@ -275,6 +158,341 @@ const AdminDashboard = () => {
     description: "",
     published_at: "",
   });
+
+  // Courses state
+  const [courseForm, setCourseForm] = useState({
+    title: "",
+    description: "",
+    full_description: "",
+    category: "Generic Courses",
+    is_paid: false,
+    price: "",
+    currency: "NGN",
+    duration_weeks: "",
+    instructor_id: "",
+  });
+  const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
+  const [courseDialogOpen, setCourseDialogOpen] = useState(false);
+  type PersonnelRow = Database["public"]["Tables"]["personnel"]["Row"];
+  type LeadershipRow = Database["public"]["Tables"]["leadership"]["Row"];
+
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [bucketName, setBucketName] = useState<string>(import.meta.env.VITE_SUPABASE_STORAGE_BUCKET ?? "magazines");
+  const mapStorageError = (msg: string) => (/bucket\s*not\s*found/i.test(msg) ? `Storage bucket '${bucketName}' not found. Create it in Supabase Storage or set VITE_SUPABASE_STORAGE_BUCKET.` : msg);
+  const [certificateDialogOpen, setCertificateDialogOpen] = useState(false);
+  const [certificateUserId, setCertificateUserId] = useState<string | null>(null);
+  const [certificateCourseId, setCertificateCourseId] = useState<string>("");
+  const [certificateFilterCourseId, setCertificateFilterCourseId] = useState<string>("all");
+  const [certificateFilterUserId, setCertificateFilterUserId] = useState<string>("all");
+  const [certificatePreviewOpen, setCertificatePreviewOpen] = useState(false);
+  const [commandantSignatureUrl, setCommandantSignatureUrl] = useState<string>("");
+  const [directorSignatureUrl, setDirectorSignatureUrl] = useState<string>("");
+  const [watermarkUrl, setWatermarkUrl] = useState<string>("/certificate-seal.png");
+  const [activeTab, setActiveTab] = useState<string>("courses");
+  const ensureGalleryPicturesAvailable = useCallback(async (): Promise<boolean> => {
+    try {
+      const probe = async () => {
+        const { error } = await supabase.from("gallery_pictures").select("id").limit(1);
+        if (!error) return true;
+        const message = toReadableError(error);
+        const cacheIssue = /schema\s*cache|not\s*find\s*table|relation.*does\s*not\s*exist/i.test(message);
+        if (!cacheIssue) {
+          toast({ title: "Error", description: message, variant: "destructive" });
+          return false;
+        }
+        return "retry";
+      };
+      for (let i = 0; i < 5; i++) {
+        const res = await probe();
+        if (res === true) return true;
+        await new Promise(r => setTimeout(r, 800 + i * 600));
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }, [toast]);
+  const ensureGalleryVideosAvailable = useCallback(async (): Promise<boolean> => {
+    try {
+      const probe = async () => {
+        const { error } = await supabase.from("gallery_videos").select("id").limit(1);
+        if (!error) return true;
+        const message = toReadableError(error);
+        const cacheIssue = /schema\s*cache|not\s*find\s*table|relation.*does\s*not\s*exist/i.test(message);
+        if (!cacheIssue) {
+          toast({ title: "Error", description: message, variant: "destructive" });
+          return false;
+        }
+        return "retry";
+      };
+      for (let i = 0; i < 5; i++) {
+        const res = await probe();
+        if (res === true) return true;
+        await new Promise(r => setTimeout(r, 800 + i * 600));
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }, [toast]);
+  const saveGalleryVideo = async () => {
+    if (!videoForm.url) return;
+    try {
+      setGallerySaving(true);
+      const url = String(videoForm.url).trim();
+      const idMatch = url.match(/[?&]v=([^&]+)/) || url.match(/youtu\.be\/([^?]+)/);
+      if (!idMatch) {
+        toast({ title: "Invalid URL", description: "Please enter a valid YouTube URL (watch?v=... or youtu.be/...).", variant: "destructive" });
+        return;
+      }
+      if (!(await ensureGalleryVideosAvailable())) throw new Error("Video gallery is temporarily unavailable");
+      if (editingGalleryVideoId) {
+        const doUpdate = async () => {
+          const { error } = await supabase
+            .from("gallery_videos")
+            .update({ title: videoForm.title || "Untitled", url })
+            .eq("id", editingGalleryVideoId);
+          if (error) throw error;
+        };
+        for (let i = 0; i < 3; i++) {
+          try { await doUpdate(); break; } catch (e) {
+            const msg = toReadableError(e);
+            if (/schema\s*cache|not\s*find\s*table|relation.*does\s*not\s*exist/i.test(msg)) {
+              await new Promise(r => setTimeout(r, 700));
+              continue;
+            }
+            throw e;
+          }
+        }
+        setGalleryVideos(list =>
+          list.map(v =>
+            v.id === editingGalleryVideoId ? { ...v, title: videoForm.title || "Untitled", url } : v,
+          ),
+        );
+        toast({ title: "Saved", description: "Video updated" });
+      } else {
+        const insertOnce = async () => {
+          const { data, error } = await supabase
+            .from("gallery_videos")
+            .insert([{ title: videoForm.title || "Untitled", url }])
+            .select("id, title, url")
+            .single();
+          if (error) throw error;
+          return data;
+        };
+        let data;
+        for (let i = 0; i < 3; i++) {
+          try { data = await insertOnce(); break; } catch (e) {
+            const msg = toReadableError(e);
+            if (/schema\s*cache|not\s*find\s*table|relation.*does\s*not\s*exist/i.test(msg)) {
+              await new Promise(r => setTimeout(r, 700));
+              continue;
+            }
+            throw e;
+          }
+        }
+        const newVideo: GalleryVideo = {
+          id: data!.id,
+          title: data!.title || "Untitled",
+          url: data!.url,
+        };
+        setGalleryVideos(list => [newVideo, ...list]);
+        toast({ title: "Saved", description: "Video added to gallery" });
+      }
+      setVideoForm({ title: "", url: "" });
+      setEditingGalleryVideoId(null);
+    } catch (error: unknown) {
+      const message = toReadableError(error);
+      toast({ title: "Error", description: message, variant: "destructive" });
+    } finally {
+      setGallerySaving(false);
+    }
+  };
+  const deleteVideo = async (id: string) => {
+    try {
+      setGallerySaving(true);
+      const doDelete = async () => {
+        const { error } = await supabase
+          .from("gallery_videos")
+          .delete()
+          .eq("id", id);
+        if (error) throw error;
+      };
+      for (let i = 0; i < 3; i++) {
+        try { await doDelete(); break; } catch (e) {
+          const msg = toReadableError(e);
+          if (/schema\s*cache|not\s*find\s*table|relation.*does\s*not\s*exist/i.test(msg)) {
+            await new Promise(r => setTimeout(r, 700));
+            continue;
+          }
+          throw e;
+        }
+      }
+      setGalleryVideos(list => list.filter(v => v.id !== id));
+    } catch (error: unknown) {
+      const message = toReadableError(error);
+      toast({ title: "Error", description: message, variant: "destructive" });
+    } finally {
+      setGallerySaving(false);
+    }
+  };
+  const saveGalleryPicture = async () => {
+    if (!pictureForm.image_url && !galleryUploadFile) return;
+    try {
+      const ok = await ensureGalleryPicturesAvailable();
+      if (!ok) {
+        toast({ title: "Error", description: "Picture gallery is temporarily unavailable. Please retry shortly.", variant: "destructive" });
+        return;
+      }
+      let imageUrl = pictureForm.image_url;
+      if (galleryUploadFile) {
+        imageUrl = await uploadGalleryImage(galleryUploadFile);
+      }
+
+      if (editingGalleryPictureId) {
+        const doUpdate = async () => {
+          const { error } = await supabase
+            .from("gallery_pictures")
+            .update({ title: pictureForm.title || "Untitled", image_url: imageUrl })
+            .eq("id", editingGalleryPictureId);
+          if (error) throw error;
+        };
+        for (let i = 0; i < 3; i++) {
+          try { await doUpdate(); break; } catch (e) {
+            const msg = toReadableError(e);
+            if (/schema\s*cache|not\s*find\s*table|relation.*does\s*not\s*exist/i.test(msg)) {
+              await new Promise(r => setTimeout(r, 700));
+              continue;
+            }
+            throw e;
+          }
+        }
+        setGalleryPictures(list =>
+          list.map(p =>
+            p.id === editingGalleryPictureId
+              ? { ...p, title: pictureForm.title || "Untitled", image_url: imageUrl }
+              : p,
+          ),
+        );
+        toast({ title: "Saved", description: "Picture updated" });
+      } else {
+        const insertOnce = async () => {
+          const { data, error } = await supabase
+            .from("gallery_pictures")
+            .insert([{ title: pictureForm.title || "Untitled", image_url: imageUrl }])
+            .select("id, title, image_url")
+            .single();
+          if (error) throw error;
+          return data;
+        };
+        let data;
+        for (let i = 0; i < 3; i++) {
+          try { data = await insertOnce(); break; } catch (e) {
+            const msg = toReadableError(e);
+            if (/schema\s*cache|not\s*find\s*table|relation.*does\s*not\s*exist/i.test(msg)) {
+              await new Promise(r => setTimeout(r, 700));
+              continue;
+            }
+            throw e;
+          }
+        }
+        if (!data) {
+          throw new Error("Failed to insert picture. Please retry.");
+        }
+        const newPicture: GalleryPicture = {
+          id: data!.id,
+          title: data!.title || "Untitled",
+          image_url: data!.image_url,
+        };
+        setGalleryPictures(list => [newPicture, ...list]);
+        toast({ title: "Saved", description: "Picture added to gallery" });
+      }
+      setPictureForm({ title: "", image_url: "" });
+      setGalleryUploadFile(null);
+      setGalleryUploadPreview(null);
+      setEditingGalleryPictureId(null);
+    } catch (error: unknown) {
+      const message = toReadableError(error);
+      toast({ title: "Error", description: message, variant: "destructive" });
+    } finally {
+      setGallerySaving(false);
+    }
+  };
+  const deletePicture = async (id: string) => {
+    try {
+      setGallerySaving(true);
+      const doDelete = async () => {
+        const { error } = await supabase
+          .from("gallery_pictures")
+          .delete()
+          .eq("id", id);
+        if (error) throw error;
+      };
+      for (let i = 0; i < 3; i++) {
+        try { await doDelete(); break; } catch (e) {
+          const msg = toReadableError(e);
+          if (/schema\s*cache|not\s*find\s*table|relation.*does\s*not\s*exist/i.test(msg)) {
+            await new Promise(r => setTimeout(r, 700));
+            continue;
+          }
+          throw e;
+        }
+      }
+      setGalleryPictures(list => list.filter(p => p.id !== id));
+    } catch (error: unknown) {
+      const message = toReadableError(error);
+      toast({ title: "Error", description: message, variant: "destructive" });
+    } finally {
+      setGallerySaving(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    const loadGallery = async () => {
+      try {
+        if (activeTab === "gallery") {
+          const okVideos = await ensureGalleryVideosAvailable();
+          if (okVideos) {
+            const { data: videos, error: videosError } = await supabase
+              .from("gallery_videos")
+              .select("*")
+              .order("created_at", { ascending: false });
+            if (!videosError && videos) {
+              setGalleryVideos(
+                (videos as { id: string; title: string | null; url: string }[]).map(v => ({
+                  id: v.id,
+                  title: v.title || "",
+                  url: v.url,
+                })),
+              );
+            }
+          }
+          const ok = await ensureGalleryPicturesAvailable();
+          if (ok) {
+            const { data: pictures, error: picturesError } = await supabase
+              .from("gallery_pictures")
+              .select("*")
+              .order("created_at", { ascending: false });
+            if (!picturesError && pictures) {
+              setGalleryPictures(
+                (pictures as { id: string; title: string | null; image_url: string }[]).map(p => ({
+                  id: p.id,
+                  title: p.title || "",
+                  image_url: p.image_url,
+                })),
+              );
+            }
+          }
+        }
+      } catch {
+        return;
+      }
+    };
+    loadGallery();
+  }, [isAdmin, ensureGalleryPicturesAvailable, ensureGalleryVideosAvailable, activeTab]);
+
+
   type CertificateRow = {
     id: string;
     student_id: string;
@@ -288,6 +506,18 @@ const AdminDashboard = () => {
   const uploadAvatarImage = async (file: File, folder: "personnel" | "leadership") => {
     const timestamp = Date.now();
     const path = `avatars/${folder}/${timestamp}-${file.name}`;
+    const { error } = await supabase.storage
+      .from(bucketName)
+      .upload(path, file);
+    if (error) throw error;
+    const { data: { publicUrl } } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(path);
+    return publicUrl;
+  };
+  const uploadGalleryImage = async (file: File) => {
+    const timestamp = Date.now();
+    const path = `gallery/pictures/${timestamp}-${file.name}`;
     const { error } = await supabase.storage
       .from(bucketName)
       .upload(path, file);
@@ -328,35 +558,9 @@ const AdminDashboard = () => {
     }
   };
 
-  // Courses state
-  const [courseForm, setCourseForm] = useState({
-    title: "",
-    description: "",
-    full_description: "",
-    category: "Generic Courses",
-    is_paid: false,
-    price: "",
-    currency: "NGN",
-    duration_weeks: "",
-    instructor_id: "",
-  });
-  const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
-  const [courseDialogOpen, setCourseDialogOpen] = useState(false);
-  type PersonnelRow = Database["public"]["Tables"]["personnel"]["Row"];
-  type LeadershipRow = Database["public"]["Tables"]["leadership"]["Row"];
-  const [populatingAll, setPopulatingAll] = useState(false);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [bucketName, setBucketName] = useState<string>(import.meta.env.VITE_SUPABASE_STORAGE_BUCKET ?? "magazines");
-  const mapStorageError = (msg: string) => (/bucket\s*not\s*found/i.test(msg) ? `Storage bucket '${bucketName}' not found. Create it in Supabase Storage or set VITE_SUPABASE_STORAGE_BUCKET.` : msg);
-  const [certificateDialogOpen, setCertificateDialogOpen] = useState(false);
-  const [certificateUserId, setCertificateUserId] = useState<string | null>(null);
-  const [certificateCourseId, setCertificateCourseId] = useState<string>("");
-  const [certificateFilterCourseId, setCertificateFilterCourseId] = useState<string>("all");
-  const [certificateFilterUserId, setCertificateFilterUserId] = useState<string>("all");
-  const [certificatePreviewOpen, setCertificatePreviewOpen] = useState(false);
-  const [commandantSignatureUrl, setCommandantSignatureUrl] = useState<string>("");
-  const [directorSignatureUrl, setDirectorSignatureUrl] = useState<string>("");
-  const [watermarkUrl, setWatermarkUrl] = useState<string>("/certificate-seal.png");
+
+
+
   const generateCertificateCode = (title?: string) => {
     const words = String(title || "COURSE").split(/\s+/).filter(Boolean);
     const abbr = words.map((w) => w.replace(/[^A-Za-z]/g, "")[0] || "").join("").slice(0, 5).toUpperCase() || "COURSE";
@@ -379,7 +583,7 @@ const AdminDashboard = () => {
     setWatermarkUrl(publicUrl);
   };
 
-  const loadLatestSignature = async (role: "commandant" | "director_strategic") => {
+  const loadLatestSignature = useCallback(async (role: "commandant" | "director_strategic") => {
     const folder = `signatures/${role}`;
     try {
       const { data, error } = await supabase.storage.from(bucketName).list(folder, { limit: 100 });
@@ -398,8 +602,8 @@ const AdminDashboard = () => {
     } catch (_) {
       return;
     }
-  };
-  const loadLatestWatermark = async () => {
+  }, [bucketName]);
+  const loadLatestWatermark = useCallback(async () => {
     const folder = `signatures/watermark`;
     try {
       const { data, error } = await supabase.storage.from(bucketName).list(folder, { limit: 100 });
@@ -417,7 +621,7 @@ const AdminDashboard = () => {
     } catch (_) {
       return;
     }
-  };
+  }, [bucketName]);
 
   const saveHomeVideoSetting = async (url?: string) => {
     const targetUrl = typeof url === "string" ? url : homeVideoUrlSetting;
@@ -431,8 +635,8 @@ const AdminDashboard = () => {
         title: "home_video_url",
         message: targetUrl,
         type: "setting",
-        user_id: "public",
-      };
+        user_id: (currentUserId || ""),
+      } as Database["public"]["Tables"]["notifications"]["Insert"];
       // Robust update-or-insert flow
       let targetId = homeVideoSettingId;
       if (!targetId) {
@@ -456,7 +660,7 @@ const AdminDashboard = () => {
       setHomeVideoUrlSetting(targetUrl || "");
       toast({ title: "Saved", description: "Home page video updated" });
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Failed to save home page video URL";
+      const message = toReadableError(error);
       toast({ title: "Error", description: message, variant: "destructive" });
     } finally {
       setHomeVideoSaving(false);
@@ -480,7 +684,7 @@ const AdminDashboard = () => {
     loadLatestSignature("commandant");
     loadLatestSignature("director_strategic");
     loadLatestWatermark();
-  }, [bucketName]);
+  }, [bucketName, loadLatestSignature, loadLatestWatermark]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -495,11 +699,39 @@ const AdminDashboard = () => {
         if (error) return;
         if (data) {
           setHomeVideoSettingId(data.id);
-          if (typeof data.message === "string") {
-            setHomeVideoUrlSetting(data.message || "");
+          const m = data.message as unknown;
+          let urlStr = "";
+          if (typeof m === "string") {
+            const s = m.trim();
+            if (s.startsWith("{") || s.startsWith("[")) {
+              try {
+                const parsed = JSON.parse(s);
+                if (parsed && typeof parsed === "object") {
+                  if (typeof (parsed as { url?: string }).url === "string") urlStr = (parsed as { url?: string }).url;
+                  else if (typeof (parsed as { message?: string }).message === "string") urlStr = (parsed as { message?: string }).message;
+                  else urlStr = "";
+                } else {
+                  urlStr = s;
+                }
+              } catch {
+                urlStr = s;
+              }
+            } else if (s === "[object Object]") {
+              urlStr = "";
+            } else {
+              urlStr = s;
+            }
+          } else if (m && typeof m === "object") {
+            const obj = m as { url?: unknown; message?: unknown };
+            if (typeof obj.url === "string") urlStr = obj.url;
+            else if (typeof obj.message === "string") urlStr = obj.message;
+            else urlStr = "";
+          } else if (typeof m === "number") {
+            urlStr = String(m);
           } else {
-            setHomeVideoUrlSetting("");
+            urlStr = "";
           }
+          setHomeVideoUrlSetting(urlStr);
         }
       } catch (error) {
         console.error(error);
@@ -717,16 +949,27 @@ const AdminDashboard = () => {
 
   // Documents feature removed
 
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const { error } = await supabase.from("profiles").delete().eq("id", userId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      toast({ title: "Success", description: "User deleted" });
+    },
+    onError: (error) => {
+      const message = (error as unknown) instanceof Error ? (error as Error).message : String(error);
+      toast({ title: "Error", description: message, variant: "destructive" });
+    },
+  });
+
   const updateUserRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: "student" | "instructor" | "admin" }) => {
-      // First delete existing role
       await supabase.from("user_roles").delete().eq("user_id", userId);
-      
-      // Then insert new role
-      const { error } = await supabase
-        .from("user_roles")
-        .insert([{ user_id: userId, role }]);
+      const { error } = await supabase.from("user_roles").insert([{ user_id: userId, role }]);
       if (error) throw error;
+      await supabase.from("profiles").update({ role }).eq("id", userId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
@@ -749,6 +992,21 @@ const AdminDashboard = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
       toast({ title: "Success", description: "User category updated successfully" });
+    },
+    onError: (error) => {
+      const message = (error as unknown) instanceof Error ? (error as Error).message : String(error);
+      toast({ title: "Error", description: message, variant: "destructive" });
+    },
+  });
+
+  const suspendUserMutation = useMutation({
+    mutationFn: async ({ userId, suspended }: { userId: string; suspended: boolean }) => {
+      const { error } = await supabase.from("profiles").update({ is_suspended: suspended }).eq("id", userId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      toast({ title: "Success", description: "User suspension status updated" });
     },
     onError: (error) => {
       const message = (error as unknown) instanceof Error ? (error as Error).message : String(error);
@@ -795,18 +1053,83 @@ const AdminDashboard = () => {
     enabled: isAdmin,
   });
 
-  const { data: leadership } = useQuery({
+  const { data: leadership } = useQuery<LeadershipRow[]>({
     queryKey: ["admin-leadership"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("leadership")
         .select("*")
-        .order("display_order", { ascending: true });
+        .order("display_order", { ascending: true })
+        .order("created_at", { ascending: true });
       if (error) throw error;
-      return data;
+      return data as LeadershipRow[];
     },
     enabled: isAdmin,
   });
+
+
+  
+  const { data: personnelSettings } = useQuery({
+    queryKey: ["admin-personnel-settings"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("notifications")
+        .select("title, message")
+        .eq("type", "setting")
+        .ilike("title", "personnel:%");
+      if (error) throw error;
+      const map = new Map<string, string>();
+      (data || []).forEach((row: { title: string; message: string }) => map.set(row.title, row.message));
+      return map;
+    },
+    enabled: isAdmin,
+    staleTime: 300000,
+    refetchOnWindowFocus: false,
+  });
+  const readIsFaculty = (p: PersonnelRow): boolean => {
+    const fallback = personnelSettings?.get(`personnel:is_faculty:${p.id}`);
+    if (typeof (p as unknown as { is_faculty?: boolean }).is_faculty === "boolean") return !!(p as unknown as { is_faculty?: boolean }).is_faculty;
+    if (typeof fallback === "string") return /true|1|yes/i.test(fallback);
+    return false;
+  };
+  const readDisplayOrder = (p: PersonnelRow): number => {
+    const val = (p as unknown as { display_order?: number }).display_order;
+    if (typeof val === "number") return val;
+    const fallback = personnelSettings?.get(`personnel:display_order:${p.id}`);
+    return typeof fallback === "string" ? Number(fallback) || 0 : 0;
+  };
+  const writeIsFaculty = async (p: PersonnelRow, value: boolean) => {
+    const payload = { is_faculty: value } as unknown as Database["public"]["Tables"]["personnel"]["Update"];
+    const { error } = await supabase.from("personnel").update(payload).eq("id", p.id);
+    if (error) {
+      const columnMissing = /is[_-]faculty|schema\s*cache|column/i.test(String(error.message || ""));
+      if (!columnMissing) throw error;
+      const { error: nerr } = await supabase
+        .from("notifications")
+        .upsert([{ title: `personnel:is_faculty:${p.id}`, message: String(value), type: "setting", user_id: (currentUserId || "") }] as Database["public"]["Tables"]["notifications"]["Insert"][])
+        .select("title")
+        .maybeSingle();
+      if (nerr) throw nerr;
+    }
+    queryClient.invalidateQueries({ queryKey: ["admin-personnel"] });
+    queryClient.invalidateQueries({ queryKey: ["admin-personnel-settings"] });
+  };
+  const writeDisplayOrder = async (p: PersonnelRow, order: number) => {
+    const payload = { display_order: order } as unknown as Database["public"]["Tables"]["personnel"]["Update"];
+    const { error } = await supabase.from("personnel").update(payload).eq("id", p.id);
+    if (error) {
+      const columnMissing = /display[_-]order|schema\s*cache|column/i.test(String(error.message || ""));
+      if (!columnMissing) throw error;
+      const { error: nerr } = await supabase
+        .from("notifications")
+        .upsert([{ title: `personnel:display_order:${p.id}`, message: String(order), type: "setting", user_id: (currentUserId || "") }] as Database["public"]["Tables"]["notifications"]["Insert"][])
+        .select("title")
+        .maybeSingle();
+      if (nerr) throw nerr;
+    }
+    queryClient.invalidateQueries({ queryKey: ["admin-personnel"] });
+    queryClient.invalidateQueries({ queryKey: ["admin-personnel-settings"] });
+  };
   
 
   type NewsItem = {
@@ -1015,27 +1338,66 @@ const AdminDashboard = () => {
         photoUrl = await uploadAvatarImage(personnelPhotoFile, "personnel");
       }
       const now = new Date().toISOString();
-      const payload = {
-        ...personnelForm,
-        category: normalizePersonnelCategory(personnelForm.category),
-        photo_url: photoUrl,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { is_faculty, display_order, ...cleanForm } = personnelForm;
+      const basePayload = { ...cleanForm, photo_url: photoUrl };
+      const desiredCategory = personnelCategoryUi;
+      const attempt = async () => {
+        const payload = { ...basePayload, category: desiredCategory };
+        let targetId = editingPersonnelId;
+
+        if (editingPersonnelId) {
+          const { error } = await supabase.from("personnel").update({ ...payload, updated_at: now }).eq("id", editingPersonnelId);
+          if (error) throw error;
+        } else {
+          const { data, error } = await supabase.from("personnel").insert([{ ...payload, created_at: now, updated_at: now }]).select("id").single();
+          if (error) throw error;
+          targetId = data.id;
+        }
+
+        if (targetId) {
+          const notifs: Database["public"]["Tables"]["notifications"]["Insert"][] = [];
+          // Always save fallback fields since they are not in the personnel table
+          notifs.push({
+            title: `personnel:is_faculty:${targetId}`,
+            message: String(is_faculty),
+            type: "setting",
+            user_id: currentUserId || ""
+          });
+          notifs.push({
+            title: `personnel:display_order:${targetId}`,
+            message: String(display_order),
+            type: "setting",
+            user_id: currentUserId || ""
+          });
+          
+          if (notifs.length > 0) {
+            await supabase.from("notifications").upsert(notifs);
+          }
+        }
       };
-      if (editingPersonnelId) {
-        const { error } = await supabase
-          .from("personnel")
-          .update({ ...payload, updated_at: now })
-          .eq("id", editingPersonnelId);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("personnel")
-          .insert([{ ...payload, created_at: now, updated_at: now }]);
-        if (error) throw error;
+      try {
+        await attempt();
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        const violatesCheck = /check\s*constraint|personnel_category_check/i.test(message);
+        if (violatesCheck) {
+          const fallbackPayload = { ...basePayload, category: "military", display_category: desiredCategory === "dia" ? "DIA" : (desiredCategory.toUpperCase()) };
+          if (editingPersonnelId) {
+            const { error } = await supabase.from("personnel").update({ ...fallbackPayload, updated_at: now }).eq("id", editingPersonnelId);
+            if (error) throw error;
+          } else {
+            const { error } = await supabase.from("personnel").insert([{ ...fallbackPayload, created_at: now, updated_at: now }]);
+            if (error) throw error;
+          }
+        } else {
+          throw e;
+        }
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-personnel"] });
-      setPersonnelForm({ full_name: "", email: "", phone: "", category: "civilian", position: "", department: "", rank: "", bio: "", photo_url: "" });
+      setPersonnelForm({ full_name: "", email: "", phone: "", category: "civilian", position: "", department: "", rank: "", bio: "", photo_url: "", is_faculty: false, display_order: 0 });
       setPersonnelPhotoFile(null);
       setPersonnelPhotoPreview(null);
       setEditingPersonnelId(null);
@@ -1070,29 +1432,35 @@ const AdminDashboard = () => {
       if (leadershipPhotoFile) {
         photoUrl = await uploadAvatarImage(leadershipPhotoFile, "leadership");
       }
-      const payload = { ...leadershipForm, photo_url: photoUrl };
+      const now = new Date().toISOString();
+      const payload = {
+        full_name: leadershipForm.full_name,
+        position: leadershipForm.position,
+        rank: leadershipForm.rank,
+        bio: leadershipForm.bio,
+        photo_url: photoUrl,
+        is_active: leadershipForm.is_active,
+        display_order: leadershipForm.display_order || null,
+      };
       if (editingLeadershipId) {
-        const { error } = await supabase
-          .from("leadership")
-          .update(payload)
-          .eq("id", editingLeadershipId);
+        const { error } = await supabase.from("leadership").update({ ...payload, updated_at: now }).eq("id", editingLeadershipId);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("leadership").insert([payload]);
+        const { error } = await supabase.from("leadership").insert([{ ...payload, created_at: now, updated_at: now }]);
         if (error) throw error;
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-leadership"] });
-      setLeadershipForm({ full_name: "", position: "", rank: "", bio: "", photo_url: "", display_order: 0 });
+      setLeadershipForm({ full_name: "", position: "", role: "", rank: "", bio: "", photo_url: "", is_active: true, is_faculty: false, display_order: 0 });
       setLeadershipPhotoFile(null);
       setLeadershipPhotoPreview(null);
       setEditingLeadershipId(null);
       setLeadershipDialogOpen(false);
-      toast({ title: "Success", description: editingLeadershipId ? "Leadership updated" : "Leadership created" });
+      toast({ title: "Success", description: "Leadership saved" });
     },
-    onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : "Failed to save leadership";
+    onError: (error) => {
+      const message = (error as unknown) instanceof Error ? (error as Error).message : String(error);
       toast({ title: "Error", description: message, variant: "destructive" });
     },
   });
@@ -1108,23 +1476,7 @@ const AdminDashboard = () => {
     },
   });
 
-  const updateLeadershipStatusMutation = useMutation({
-    mutationFn: async ({ id, is_active, position }: { id: string; is_active: boolean; position: string }) => {
-      const { error } = await supabase
-        .from("leadership")
-        .update({ is_active, position })
-        .eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-leadership"] });
-      toast({ title: "Success", description: "Leadership status updated" });
-    },
-    onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : String(error);
-      toast({ title: "Error", description: message, variant: "destructive" });
-    },
-  });
+
 
   const updateMagazineMutation = useMutation({
     mutationFn: async () => {
@@ -1333,8 +1685,8 @@ const AdminDashboard = () => {
           </Badge>
         </div>
 
-        <Tabs defaultValue="courses" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 h-auto">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2 h-auto">
             <TabsTrigger value="courses" className="h-full whitespace-normal min-h-[44px]"><BookOpen className="mr-1 h-4 w-4" />Courses</TabsTrigger>
             <TabsTrigger value="personnel" className="h-full whitespace-normal min-h-[44px]"><UserCog className="mr-1 h-4 w-4" />Personnel</TabsTrigger>
             <TabsTrigger value="leadership" className="h-full whitespace-normal min-h-[44px]"><Crown className="mr-1 h-4 w-4" />Leadership</TabsTrigger>
@@ -1344,7 +1696,7 @@ const AdminDashboard = () => {
             <TabsTrigger value="users" className="h-full whitespace-normal min-h-[44px]"><Users className="mr-1 h-4 w-4" />Users</TabsTrigger>
             <TabsTrigger value="categories" className="h-full whitespace-normal min-h-[44px]"><Shield className="mr-1 h-4 w-4" />Categories</TabsTrigger>
             <TabsTrigger value="analytics" className="h-full whitespace-normal min-h-[44px]"><BarChart3 className="mr-1 h-4 w-4" />Analytics</TabsTrigger>
-            <TabsTrigger value="about-management" className="h-full whitespace-normal min-h-[44px]"><Crown className="mr-1 h-4 w-4" />Members of Faculty</TabsTrigger>
+
             <TabsTrigger value="gallery" className="h-full whitespace-normal min-h-[44px]"><ImageIcon className="mr-1 h-4 w-4" />Gallery</TabsTrigger>
             <TabsTrigger value="certificates" className="h-full whitespace-normal min-h-[44px]"><GraduationCap className="mr-1 h-4 w-4" />Certificates</TabsTrigger>
           </TabsList>
@@ -1559,6 +1911,150 @@ const AdminDashboard = () => {
             </Card>
           </TabsContent>
 
+          <TabsContent value="leadership">
+            <Card>
+              <CardHeader>
+                <CardTitle>Leadership</CardTitle>
+                <CardDescription>Manage past and present commandants</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex gap-2 flex-wrap">
+                  <Button
+                    onClick={() => {
+                      setLeadershipForm({ full_name: "", position: "", role: "", rank: "", bio: "", photo_url: "", is_active: true, is_faculty: false, display_order: 0 });
+                      setLeadershipPhotoFile(null);
+                      setLeadershipPhotoPreview(null);
+                      setEditingLeadershipId(null);
+                      setLeadershipDialogOpen(true);
+                    }}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />Add Leader
+                  </Button>
+                </div>
+                <Dialog open={leadershipDialogOpen} onOpenChange={setLeadershipDialogOpen}>
+                  <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>{editingLeadershipId ? "Edit" : "Add New"} Leader</DialogTitle>
+                      <DialogDescription>Enter leadership details</DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="l_full_name">Full Name</Label>
+                        <Input id="l_full_name" value={leadershipForm.full_name} onChange={(e) => setLeadershipForm({ ...leadershipForm, full_name: e.target.value })} />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="l_rank">Rank</Label>
+                        <Input id="l_rank" value={leadershipForm.rank} onChange={(e) => setLeadershipForm({ ...leadershipForm, rank: e.target.value })} />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="l_position">Position</Label>
+                        <Input id="l_position" value={leadershipForm.position} onChange={(e) => setLeadershipForm({ ...leadershipForm, position: e.target.value })} />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="l_bio">Bio</Label>
+                        <Textarea id="l_bio" value={leadershipForm.bio} onChange={(e) => setLeadershipForm({ ...leadershipForm, bio: e.target.value })} rows={4} />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Photo</Label>
+                        <div className="flex items-start gap-4">
+                          <label className="flex-1 flex flex-col items-center justify-center p-4 border-2 border-dashed border-muted-foreground/30 rounded-lg cursor-pointer hover:border-primary/50 transition-colors">
+                            <ImageIcon className="h-8 w-8 text-muted-foreground mb-2" />
+                            <span className="text-sm text-muted-foreground">
+                              {leadershipPhotoFile ? leadershipPhotoFile.name : "Click to upload photo"}
+                            </span>
+                            <input type="file" accept="image/*" onChange={handleLeadershipPhotoChange} className="hidden" />
+                          </label>
+                          {(leadershipPhotoPreview || leadershipForm.photo_url) && (
+                            <img src={leadershipPhotoPreview || leadershipForm.photo_url} alt="Preview" className="w-20 h-20 object-cover rounded border" />
+                          )}
+                        </div>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Active</Label>
+                        <div className="flex items-center justify-between gap-4">
+                          <span className="text-sm text-muted-foreground">
+                            {leadershipForm.is_active ? "Active Commandant" : "Former Commandant"}
+                          </span>
+                          <Switch checked={leadershipForm.is_active} onCheckedChange={(checked) => setLeadershipForm({ ...leadershipForm, is_active: checked })} />
+                        </div>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="l_display_order">Display Order</Label>
+                        <Input id="l_display_order" type="number" value={leadershipForm.display_order} onChange={(e) => setLeadershipForm({ ...leadershipForm, display_order: Number(e.target.value || 0) })} />
+                      </div>
+                      <Button onClick={() => createLeadershipMutation.mutate()} disabled={!leadershipForm.full_name}>
+                        {editingLeadershipId ? "Update" : "Create"} Leader
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Photo</TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Rank</TableHead>
+                        <TableHead>Position</TableHead>
+                        <TableHead>Active</TableHead>
+                        <TableHead>Order</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(leadership || []).map((l) => (
+                        <TableRow key={l.id}>
+                          <TableCell>
+                            {l.photo_url ? (
+                              <img src={l.photo_url} alt={l.full_name} className="w-12 h-12 rounded object-cover" />
+                            ) : (
+                              <div className="w-12 h-12 rounded bg-muted" />
+                            )}
+                          </TableCell>
+                          <TableCell className="font-medium">{l.full_name}</TableCell>
+                          <TableCell>{l.rank}</TableCell>
+                          <TableCell>{l.position}</TableCell>
+                          <TableCell>{l.is_active ? "Yes" : "No"}</TableCell>
+                          <TableCell>{l.display_order ?? "-"}</TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setLeadershipForm({
+                                    full_name: l.full_name,
+                                    position: l.position,
+                                    role: "",
+                                    rank: l.rank || "",
+                                    bio: l.bio || "",
+                                    photo_url: l.photo_url || "",
+                                    is_active: !!l.is_active,
+                                    is_faculty: false,
+                                    display_order: l.display_order ?? 0,
+                                  });
+                                  setLeadershipPhotoFile(null);
+                                  setLeadershipPhotoPreview(null);
+                                  setEditingLeadershipId(l.id);
+                                  setLeadershipDialogOpen(true);
+                                }}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="destructive" size="sm" onClick={() => deleteLeadershipMutation.mutate(l.id)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
           <TabsContent value="personnel">
             <Card>
               <CardHeader>
@@ -1567,10 +2063,11 @@ const AdminDashboard = () => {
               </CardHeader>
               <CardContent className="space-y-6">
                 <Button onClick={() => {
-                  setPersonnelForm({ full_name: "", email: "", phone: "", category: "civilian", position: "", department: "", rank: "", bio: "", photo_url: "" });
+                  setPersonnelForm({ full_name: "", email: "", phone: "", category: "civilian", position: "", department: "", rank: "", bio: "", photo_url: "", is_faculty: false, display_order: 0 });
                   setEditingPersonnelId(null);
                   setPersonnelPhotoFile(null);
                   setPersonnelPhotoPreview(null);
+                  setPersonnelCategoryUi("civilian");
                   setPersonnelDialogOpen(true);
                 }}>
                   <Plus className="mr-2 h-4 w-4" />Add Personnel
@@ -1598,25 +2095,20 @@ const AdminDashboard = () => {
                       <div className="grid gap-2">
                         <Label htmlFor="p_category">Category</Label>
                         <Select
-                          value={personnelForm.category}
-                          onValueChange={(value) => setPersonnelForm({ ...personnelForm, category: value })}
+                          value={personnelCategoryUi}
+                          onValueChange={(value) => {
+                            const v = value as "military" | "dia" | "civilian";
+                            setPersonnelCategoryUi(v);
+                            setPersonnelForm({ ...personnelForm, category: v });
+                          }}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select category" />
                           </SelectTrigger>
                           <SelectContent>
-                            {categories && categories.length > 0 ? (
-                              categories.map((cat) => (
-                                <SelectItem key={cat.id} value={cat.name}>
-                                  {cat.name}
-                                </SelectItem>
-                              ))
-                            ) : (
-                              <>
-                                <SelectItem value="civilian">Civilian</SelectItem>
-                                <SelectItem value="military">Military</SelectItem>
-                              </>
-                            )}
+                            <SelectItem value="military">Military</SelectItem>
+                            <SelectItem value="dia">DIA</SelectItem>
+                            <SelectItem value="civilian">Civilian</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -1660,6 +2152,23 @@ const AdminDashboard = () => {
                           )}
                         </div>
                       </div>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="p_is_faculty"
+                          checked={personnelForm.is_faculty}
+                          onCheckedChange={(checked) => setPersonnelForm({...personnelForm, is_faculty: checked})}
+                        />
+                        <Label htmlFor="p_is_faculty">Is Faculty Member?</Label>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="p_display_order">Display Order</Label>
+                        <Input
+                          id="p_display_order"
+                          type="number"
+                          value={personnelForm.display_order}
+                          onChange={(e) => setPersonnelForm({...personnelForm, display_order: parseInt(e.target.value) || 0})}
+                        />
+                      </div>
                       <Button onClick={() => createPersonnelMutation.mutate()}>{editingPersonnelId ? "Update" : "Create"} Personnel</Button>
                     </div>
                   </DialogContent>
@@ -1672,6 +2181,7 @@ const AdminDashboard = () => {
                       <TableHead>Category</TableHead>
                       <TableHead>Position</TableHead>
                       <TableHead>Department</TableHead>
+                      <TableHead>Faculty</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1679,16 +2189,36 @@ const AdminDashboard = () => {
                     {personnel?.map((person) => (
                       <TableRow key={person.id}>
                         <TableCell className="font-medium">{person.full_name}</TableCell>
-                        <TableCell><Badge className={categoryClasses(person.category)}>{person.category}</Badge></TableCell>
+                        <TableCell><Badge className={categoryClasses(person.display_category || person.category)}>{person.display_category || person.category}</Badge></TableCell>
                         <TableCell>{person.position}</TableCell>
                         <TableCell>{person.department}</TableCell>
+
                         <TableCell>
                           <div className="flex gap-2">
                             <Button variant="outline" size="sm" onClick={() => {
-                              setPersonnelForm(person);
+                              setPersonnelForm({ 
+                                full_name: person.full_name,
+                                email: person.email,
+                                phone: person.phone || "",
+                                category: person.category,
+                                position: person.position,
+                                department: person.department || "",
+                                rank: person.rank || "",
+                                bio: person.bio || "",
+                                photo_url: person.photo_url || "",
+                                is_faculty: readIsFaculty(person),
+                                display_order: readDisplayOrder(person)
+                              });
                               setEditingPersonnelId(person.id);
                               setPersonnelPhotoFile(null);
                               setPersonnelPhotoPreview(person.photo_url || null);
+                              setPersonnelCategoryUi(
+                                String(person.display_category || person.category || "").toLowerCase().includes("dia")
+                                  ? "dia"
+                                  : normalizePersonnelCategory(person.category) === "military"
+                                  ? "military"
+                                  : "civilian"
+                              );
                               setPersonnelDialogOpen(true);
                             }}>
                               <Edit className="h-4 w-4" />
@@ -1707,223 +2237,7 @@ const AdminDashboard = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="leadership">
-            <Card>
-              <CardHeader>
-                <CardTitle>Leadership Management</CardTitle>
-                <CardDescription>Manage leadership profiles and hierarchy</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <Button onClick={() => {
-                  setLeadershipForm({ full_name: "", position: "", rank: "", bio: "", photo_url: "", display_order: 0 });
-                  setEditingLeadershipId(null);
-                  setLeadershipPhotoFile(null);
-                  setLeadershipPhotoPreview(null);
-                  setLeadershipDialogOpen(true);
-                }}>
-                  <Plus className="mr-2 h-4 w-4" />Add Leader
-                </Button>
-                <Button
-                  variant="outline"
-                  className="ml-2"
-                  onClick={async () => {
-                    try {
-                      const excludedNames = new Set([
-                        "Dir Keneth Iheasirim",
-                        "Lt Coll John Doe 3",
-                        "Lt Commander John Doe 2",
-                        "Dir John Doe 1",
-                        "SDIO John Doe 4",
-                      ]);
-                      const personnelList = (personnel || []) as PersonnelRow[];
-                        const targets = ((leadership || []) as LeadershipRow[]).filter((l) => excludedNames.has(String(l.full_name)));
-                      for (const l of targets) {
-                        const match = personnelList.find(p => p.full_name === l.full_name);
-                        if (match && match.position && match.position !== l.position) {
-                          const { error } = await supabase
-                            .from("leadership")
-                            .update({ position: match.position })
-                            .eq("id", l.id);
-                          if (error) throw error;
-                        }
-                      }
-                        queryClient.setQueryData(["admin-leadership"], (old: unknown) => {
-                          const list = (old as LeadershipRow[] | undefined) || [];
-                          return list.map((row) => {
-                            if (excludedNames.has(String(row.full_name))) {
-                              const match = personnelList.find(p => p.full_name === row.full_name);
-                              if (match?.position) return { ...row, position: match.position };
-                            }
-                            return row;
-                          });
-                        });
-                      queryClient.invalidateQueries({ queryKey: ["admin-leadership"] });
-                      toast({ title: "Synced", description: "Positions updated from Personnel" });
-                    } catch (error: unknown) {
-                      const message = error instanceof Error ? error.message : String(error);
-                      toast({ title: "Error", description: message, variant: "destructive" });
-                    }
-                  }}
-                >
-                  Sync Positions from Personnel
-                </Button>
 
-                <Dialog open={leadershipDialogOpen} onOpenChange={setLeadershipDialogOpen}>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>{editingLeadershipId ? "Edit" : "Add New"} Leader</DialogTitle>
-                      <DialogDescription>Enter leadership details</DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                      <div className="grid gap-2">
-                        <Label htmlFor="l_name">Full Name</Label>
-                        <Input id="l_name" value={leadershipForm.full_name} onChange={(e) => setLeadershipForm({...leadershipForm, full_name: e.target.value})} />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="l_position">Position</Label>
-                        <Input id="l_position" value={leadershipForm.position} onChange={(e) => setLeadershipForm({...leadershipForm, position: e.target.value})} />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="l_rank">Rank</Label>
-                        <Input id="l_rank" value={leadershipForm.rank} onChange={(e) => setLeadershipForm({...leadershipForm, rank: e.target.value})} />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="l_bio">Bio</Label>
-                        <Textarea id="l_bio" value={leadershipForm.bio} onChange={(e) => setLeadershipForm({...leadershipForm, bio: e.target.value})} />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label>Photo (optional)</Label>
-                        <div className="flex items-start gap-4">
-                          <label className="flex-1 flex flex-col items-center justify-center p-4 border-2 border-dashed border-muted-foreground/30 rounded-lg cursor-pointer hover:border-primary/50 transition-colors">
-                            <ImageIcon className="h-8 w-8 text-muted-foreground mb-2" />
-                            <span className="text-sm text-muted-foreground">
-                              {leadershipPhotoFile ? leadershipPhotoFile.name : "Click to upload photo"}
-                            </span>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={handleLeadershipPhotoChange}
-                              className="hidden"
-                            />
-                          </label>
-                          {(leadershipPhotoPreview || leadershipForm.photo_url) && (
-                            <img
-                              src={leadershipPhotoPreview || leadershipForm.photo_url || ""}
-                              alt="Photo preview"
-                              className="w-20 h-20 object-cover rounded border"
-                            />
-                          )}
-                        </div>
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="l_order">Display Order</Label>
-                        <Input
-                          id="l_order"
-                          type="number"
-                          value={leadershipForm.display_order}
-                          onChange={(e) => {
-                            const value = parseInt(e.target.value, 10);
-                            setLeadershipForm({
-                              ...leadershipForm,
-                              display_order: Number.isNaN(value) ? 0 : value,
-                            });
-                          }}
-                        />
-                      </div>
-                      <Button onClick={() => createLeadershipMutation.mutate()}>{editingLeadershipId ? "Update" : "Create"} Leader</Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-                <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Order</TableHead>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Position</TableHead>
-                      <TableHead>Rank</TableHead>
-                      <TableHead>Active</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                    <TableBody>
-                      {(() => {
-                        const excludedNames = new Set([
-                          "Dir Keneth Iheasirim",
-                          "Lt Coll John Doe 3",
-                          "Lt Commander John Doe 2",
-                          "Dir John Doe 1",
-                          "SDIO John Doe 4",
-                        ]);
-                        return (leadership || []).filter((l) => !excludedNames.has(l.full_name));
-                      })().map((leader) => (
-                        <TableRow key={leader.id}>
-                          <TableCell>{leader.display_order}</TableCell>
-                          <TableCell className="font-medium">{leader.full_name}</TableCell>
-                          <TableCell>
-                            <Select
-                            value={leader.position || ""}
-                            onValueChange={(value) => {
-                              const excluded = new Set([
-                                "Dir Keneth Iheasirim",
-                                "Lt Coll John Doe 3",
-                                "Lt Commander John Doe 2",
-                                "Dir John Doe 1",
-                                "SDIO John Doe 4",
-                              ]);
-                              if (value === "Commandant DIC" && excluded.has(leader.full_name)) {
-                                toast({ title: "Blocked", description: "This profile cannot be set as Commandant DIC", variant: "destructive" });
-                                return;
-                              }
-                              updateLeadershipStatusMutation.mutate({ id: leader.id, is_active: !!leader.is_active, position: value });
-                            }}
-                          >
-                            <SelectTrigger className="w-48">
-                              <SelectValue placeholder="Select position" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Commandant DIC">Commandant DIC</SelectItem>
-                              <SelectItem value="Former Commandant DIC">Former Commandant DIC</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell>{leader.rank}</TableCell>
-                        <TableCell>
-                          <Switch
-                            checked={!!leader.is_active}
-                            onCheckedChange={(value) =>
-                              updateLeadershipStatusMutation.mutate({
-                                id: leader.id,
-                                is_active: !!value,
-                                position: value ? "Commandant DIC" : "Former Commandant DIC",
-                              })
-                            }
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button variant="outline" size="sm" onClick={() => {
-                              setLeadershipForm(leader);
-                              setEditingLeadershipId(leader.id);
-                              setLeadershipPhotoFile(null);
-                              setLeadershipPhotoPreview(leader.photo_url || null);
-                              setLeadershipDialogOpen(true);
-                            }}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="destructive" size="sm" onClick={() => deleteLeadershipMutation.mutate(leader.id)}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
 
           <TabsContent value="news">
             <Card>
@@ -2239,6 +2553,9 @@ const AdminDashboard = () => {
                               <Badge variant={user.role === "admin" ? "default" : "secondary"} className="w-fit">
                                 {user.role}
                               </Badge>
+                              {user.is_suspended ? (
+                                <Badge variant="destructive" className="w-fit">Suspended</Badge>
+                              ) : null}
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -2250,6 +2567,26 @@ const AdminDashboard = () => {
                                 }}
                               >
                                 Enroll in Course
+                              </Button>
+                              <Button
+                                variant={user.is_suspended ? "default" : "destructive"}
+                                size="sm"
+                                className="min-h-[32px]"
+                                onClick={() => suspendUserMutation.mutate({ userId: user.id, suspended: !user.is_suspended })}
+                              >
+                                {user.is_suspended ? "Unsuspend" : "Suspend"}
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                className="min-h-[32px]"
+                                onClick={() => {
+                                  if (confirm("Delete this account? This action cannot be undone.")) {
+                                    deleteUserMutation.mutate(user.id);
+                                  }
+                                }}
+                              >
+                                Delete
                               </Button>
                             </div>
                           </TableCell>
@@ -2390,61 +2727,8 @@ const AdminDashboard = () => {
                 <CardDescription>Update personnel category assignments</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Position</TableHead>
-                        <TableHead>Category</TableHead>
-                        <TableHead>Update</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {(personnel || []).map((p: PersonnelRow) => (
-                        <TableRow key={p.id}>
-                          <TableCell className="font-medium">{p.full_name}</TableCell>
-                          <TableCell>{p.position}</TableCell>
-                          <TableCell>
-                            <Select
-                              value={normalizePersonnelCategory(p.category)}
-                              onValueChange={async (value) => {
-                                const normalized = normalizePersonnelCategory(value);
-                                const { error } = await supabase
-                                  .from("personnel")
-                                  .update({ category: normalized })
-                                  .eq("id", p.id);
-                                if (error) {
-                                  toast({ title: "Error", description: error.message, variant: "destructive" });
-                                } else {
-                                  queryClient.setQueryData(["admin-personnel"], (old: unknown) => {
-                                    const list = (old as PersonnelRow[] | undefined) || [];
-                                    return list.map((row) => (row.id === p.id ? { ...row, category: normalized } : row));
-                                  });
-                                  queryClient.invalidateQueries({ queryKey: ["admin-personnel"] });
-                                  toast({ title: "Saved", description: "Personnel category updated" });
-                                }
-                              }}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select category" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="military">Military</SelectItem>
-                                <SelectItem value="military">DIA</SelectItem>
-                                <SelectItem value="civilian">NYSC Members</SelectItem>
-                                <SelectItem value="civilian">Civilians</SelectItem>
-                                <SelectItem value="civilian">Casual Staff</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
-                          <TableCell>
-                            
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                <div className="text-sm text-muted-foreground">
+                  Personnel category changes are managed in the Personnel section.
                 </div>
               </CardContent>
             </Card>
@@ -2670,14 +2954,7 @@ const AdminDashboard = () => {
                       <div className="text-2xl font-bold">{personnel?.length || 0}</div>
                     </CardContent>
                   </Card>
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium">Leadership</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">{leadership?.length || 0}</div>
-                    </CardContent>
-                  </Card>
+
                 </div>
                 <div className="grid gap-8 lg:grid-cols-2">
                   <div className="border rounded-md p-4">
@@ -2742,116 +3019,7 @@ const AdminDashboard = () => {
           </TabsContent>
 
           
-          <TabsContent value="about-management">
-            <Card>
-              <CardHeader>
-                <CardTitle>Members of Faculty</CardTitle>
-                <CardDescription>Select and order faculty members shown on the About page</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div>
-                    <div className="font-semibold mb-2">Faculty Candidates</div>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Department</TableHead>
-                          <TableHead>Position</TableHead>
-                          <TableHead>Action</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {(personnel || []).map((p) => {
-                          const exists = (leadership || []).some((l: LeadershipRow) => l.full_name === p.full_name);
-                          return (
-                            <TableRow key={p.id}>
-                              <TableCell className="font-medium">{p.full_name}</TableCell>
-                              <TableCell>{p.department}</TableCell>
-                              <TableCell>{p.position}</TableCell>
-                              <TableCell>
-                                {!exists ? (
-                                  <Button size="sm" onClick={async () => {
-                                    const { error } = await supabase.from("leadership").insert([{ 
-                                      full_name: p.full_name,
-                                      position: p.position || "",
-                                      rank: p.rank || "",
-                                      bio: p.bio || "",
-                                      photo_url: p.photo_url || "",
-                                      display_order: 0,
-                                    }]);
-                                    if (error) {
-                                      toast({ title: "Error", description: error.message, variant: "destructive" });
-                                    } else {
-                                      queryClient.invalidateQueries({ queryKey: ["admin-leadership"] });
-                                      toast({ title: "Added", description: "Profile added to About Management" });
-                                    }
-                                  }}>Add</Button>
-                                ) : (
-                                  <Button variant="destructive" size="sm" onClick={async () => {
-                                    const { error } = await supabase.from("leadership").delete().eq("full_name", p.full_name);
-                                    if (error) {
-                                      toast({ title: "Error", description: error.message, variant: "destructive" });
-                                    } else {
-                                      queryClient.invalidateQueries({ queryKey: ["admin-leadership"] });
-                                      toast({ title: "Removed", description: "Profile removed from About Management" });
-                                    }
-                                  }}>Remove</Button>
-                                )}
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </div>
-                  <div>
-                    <div className="font-semibold mb-2">Current Members of Faculty</div>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Position</TableHead>
-                          <TableHead>Order</TableHead>
-                          <TableHead>Update</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {(leadership || []).map((l: LeadershipRow) => (
-                          <TableRow key={l.id}>
-                            <TableCell className="font-medium">{l.full_name}</TableCell>
-                            <TableCell>{l.position}</TableCell>
-                            <TableCell>
-                              <Input className="w-20" type="number" value={l.display_order ?? 0} onChange={async (e) => {
-                                const val = Number(e.target.value || 0);
-                                const { error } = await supabase.from("leadership").update({ display_order: val }).eq("id", l.id);
-                                if (error) {
-                                  toast({ title: "Error", description: error.message, variant: "destructive" });
-                                } else {
-                                  queryClient.invalidateQueries({ queryKey: ["admin-leadership"] });
-                                }
-                              }} />
-                            </TableCell>
-                            <TableCell>
-                              <Button variant="outline" size="sm" onClick={async () => {
-                                const { error } = await supabase.from("leadership").update({ position: l.position, rank: l.rank, bio: l.bio, photo_url: l.photo_url }).eq("id", l.id);
-                                if (error) {
-                                  toast({ title: "Error", description: error.message, variant: "destructive" });
-                                } else {
-                                  queryClient.invalidateQueries({ queryKey: ["admin-leadership"] });
-                                  toast({ title: "Updated", description: "Leadership profile saved" });
-                                }
-                              }}>Save</Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+
           <TabsContent value="gallery">
             <div className="grid md:grid-cols-2 gap-6">
               <Card>
@@ -2917,7 +3085,7 @@ const AdminDashboard = () => {
                           setGalleryVideos([]);
                           toast({ title: "Cleared", description: "All videos removed" });
                         } catch (error: unknown) {
-                          const message = error instanceof Error ? error.message : String(error);
+                          const message = toReadableError(error);
                           toast({ title: "Error", description: message, variant: "destructive" });
                         } finally {
                           setGallerySaving(false);
@@ -2990,143 +3158,84 @@ const AdminDashboard = () => {
                 </CardContent>
               </Card>
 
+
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><ImageIcon className="h-4 w-4" />Events Gallery</CardTitle>
-                  <CardDescription>Manage images that appear on News page Events Gallery</CardDescription>
+                  <CardTitle className="flex items-center gap-2"><ImageIcon className="h-4 w-4" />Picture Gallery</CardTitle>
+                  <CardDescription>Upload images for the gallery</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="p_title">Caption</Label>
+                    <Label htmlFor="p_title">Title</Label>
                     <Input id="p_title" value={pictureForm.title} onChange={(e) => setPictureForm({ ...pictureForm, title: e.target.value })} />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="p_url">Image URL</Label>
-                    <Input id="p_url" value={pictureForm.image_url} onChange={(e) => setPictureForm({ ...pictureForm, image_url: e.target.value })} />
+                    <Label>Image</Label>
+                    <div className="flex items-start gap-4">
+                      <label className="flex-1 flex flex-col items-center justify-center p-4 border-2 border-dashed border-muted-foreground/30 rounded-lg cursor-pointer hover:border-primary/50 transition-colors">
+                        <ImageIcon className="h-8 w-8 text-muted-foreground mb-2" />
+                        <span className="text-sm text-muted-foreground">
+                          {galleryUploadFile ? galleryUploadFile.name : "Click to upload image"}
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleGalleryUploadChange}
+                          className="hidden"
+                        />
+                      </label>
+                      {(galleryUploadPreview || pictureForm.image_url) && (
+                        <img
+                          src={galleryUploadPreview || pictureForm.image_url}
+                          alt="Preview"
+                          className="w-20 h-20 object-cover rounded border"
+                        />
+                      )}
+                    </div>
                   </div>
-                  <div className="flex gap-2 flex-wrap">
-                    <Button onClick={saveGalleryPicture} disabled={!pictureForm.image_url || gallerySaving}>
+                  <div className="flex gap-2">
+                    <Button onClick={saveGalleryPicture} disabled={(!pictureForm.image_url && !galleryUploadFile) || gallerySaving}>
                       <Plus className="mr-2 h-4 w-4" />
                       {editingGalleryPictureId ? "Update Picture" : "Add Picture"}
                     </Button>
                     <Button
-                      type="button"
                       variant="outline"
                       disabled={gallerySaving}
-                      onClick={async () => {
-                        try {
-                          setGallerySaving(true);
-                          const demos = [
-                            { title: "Matriculation Ceremony", image_url: "https://picsum.photos/seed/dic-event-1/800/600" },
-                            { title: "Guest Lecture", image_url: "https://picsum.photos/seed/dic-event-2/800/600" },
-                            { title: "Training Session", image_url: "https://picsum.photos/seed/dic-event-3/800/600" },
-                            { title: "Graduation Day", image_url: "https://picsum.photos/seed/dic-event-4/800/600" },
-                            { title: "Campus Walkthrough", image_url: "https://picsum.photos/seed/dic-event-5/800/600" },
-                            { title: "Awards Night", image_url: "https://picsum.photos/seed/dic-event-6/800/600" },
-                          ];
-                          const { data, error } = await supabase
-                            .from("gallery_pictures")
-                            .insert(demos)
-                            .select("id, title, image_url");
-                          if (error) throw error;
-                          const inserted = ((data || []) as { id: string; title: string; image_url: string }[]).map((r) => ({ id: r.id, title: r.title, image_url: r.image_url })) as GalleryPicture[];
-                          setGalleryPictures(list => [...inserted, ...list]);
-                          toast({ title: "Seeded", description: "Demo pictures added to Events Gallery" });
-                        } catch (error: unknown) {
-                          const message = error instanceof Error ? error.message : String(error);
-                          toast({ title: "Error", description: message, variant: "destructive" });
-                        } finally {
-                          setGallerySaving(false);
-                        }
+                      onClick={() => {
+                        setPictureForm({ title: "", image_url: "" });
+                        setGalleryUploadFile(null);
+                        setGalleryUploadPreview(null);
+                        setEditingGalleryPictureId(null);
                       }}
                     >
-                      Seed Demo Pictures
+                      Reset
                     </Button>
-                  <Button
-                    variant="outline"
-                    disabled={gallerySaving}
-                    onClick={async () => {
-                      try {
-                        setGallerySaving(true);
-                        const { error } = await supabase
-                          .from("gallery_pictures")
-                          .delete();
-                        if (error) throw error;
-                        setGalleryPictures([]);
-                        toast({ title: "Cleared", description: "All pictures removed" });
-                      } catch (error: unknown) {
-                        const message = error instanceof Error ? error.message : String(error);
-                        toast({ title: "Error", description: message, variant: "destructive" });
-                      } finally {
-                        setGallerySaving(false);
-                      }
-                    }}
-                  >
-                    Clear Pictures
-                  </Button>
                   </div>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Preview</TableHead>
-                        <TableHead>Caption</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {(galleryPictures || []).map((p: GalleryPicture) => (
-                        <TableRow key={p.id}>
-                          <TableCell>
-                            <img src={p.image_url} alt={p.title || "Picture"} className="w-24 h-16 object-cover rounded" />
-                          </TableCell>
-                          <TableCell className="font-medium">{p.title || "Untitled"}</TableCell>
-                          <TableCell>
-                            <div className="flex flex-wrap gap-2">
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setPictureForm({ title: p.title, image_url: p.image_url });
-                                  setEditingGalleryPictureId(p.id);
-                                }}
-                              >
-                                Edit
-                              </Button>
-                              <Button variant="destructive" size="sm" onClick={() => deletePicture(p.id)}>
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-
-                  <div className="grid gap-4 md:hidden">
-                    {(galleryPictures || []).map((p) => (
-                      <div key={p.id} className="border rounded-md p-4 space-y-2">
-                        <img src={p.image_url} alt={p.title || "Picture"} className="w-full h-48 object-cover rounded" />
-                        <div className="font-semibold">{p.title || "Untitled"}</div>
-                        <div className="pt-2">
-                          <div className="flex gap-2 flex-wrap">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="flex-1"
-                              onClick={() => {
-                                setPictureForm({ title: p.title, image_url: p.image_url });
-                                setEditingGalleryPictureId(p.id);
-                              }}
-                            >
-                              Edit
-                            </Button>
-                            <Button variant="destructive" size="sm" onClick={() => deletePicture(p.id)} className="flex-1">
-                              <Trash2 className="mr-2 h-4 w-4" /> Delete
-                            </Button>
-                          </div>
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    {(galleryPictures || []).map((p: GalleryPicture) => (
+                      <div key={p.id} className="relative group border rounded-lg overflow-hidden">
+                        <img src={p.image_url} alt={p.title || "Picture"} className="w-full aspect-video object-cover" />
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                          <Button
+                            size="icon"
+                            variant="secondary"
+                            onClick={() => {
+                              setPictureForm({ title: p.title || "", image_url: p.image_url });
+                              setGalleryUploadPreview(p.image_url);
+                              setEditingGalleryPictureId(p.id);
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="destructive"
+                            onClick={() => deletePicture(p.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
+                        <div className="p-2 text-xs truncate font-medium">{p.title}</div>
                       </div>
                     ))}
                   </div>
@@ -3351,11 +3460,15 @@ const AdminDashboard = () => {
                               <head>
                                 <title>Certificate</title>
                                 <style>
-                                  @page { size: A4; margin: 10mm; }
-                                  html, body { margin: 0; padding: 0; }
-                                  body { font-family: 'Stencil Std', Impact, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, 'Apple Color Emoji', 'Segoe UI Emoji'; }
-                                  #certificate-print { width: 190mm; height: 270mm; margin: 0 auto; overflow: hidden; }
-                                  img { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                                  @page { size: A4 portrait; margin: 0; }
+                                  html, body { margin: 0; padding: 0; width: 210mm; height: 297mm; }
+                                  body { font-family: 'Stencil Std', Impact, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, 'Apple Color Emoji', 'Segoe UI Emoji'; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                                  #certificate-print { width: 200mm; height: 289mm; margin: 4mm auto; overflow: hidden; page-break-inside: avoid; box-sizing: border-box; }
+                                  #certificate-print img { max-width: 100%; height: auto; }
+                                  @media print {
+                                    html, body { width: 210mm; height: 297mm; }
+                                    #certificate-print { width: 200mm; height: 289mm; margin: 4mm auto; }
+                                  }
                                 </style>
                               </head>
                               <body>${el.outerHTML}</body>
@@ -3441,15 +3554,13 @@ const AdminDashboard = () => {
                                   </div>
                                   <div className="mt-2 text-lg font-bold">
                                     {(() => {
-                                      const list = (leadership || []) as LeadershipRow[] | undefined;
+                                      const list = (personnel || []) as PersonnelRow[];
                                       const pick =
-                                        (list || []).find(l => {
+                                        list.find(l => {
                                           const pos = String(l.position || "").toLowerCase();
-                                          return !!l.is_active && /commandant\s*dic/.test(pos);
-                                        }) ||
-                                        (list || []).find(l => {
-                                          const pos = String(l.position || "").toLowerCase();
-                                          return /commandant/.test(pos);
+                                          // Assuming active if they are in the list and marked as faculty/leadership equivalent
+                                          // logic: find someone with Commandant in position
+                                          return /commandant\s*dic/.test(pos) || (/commandant/.test(pos) && /dic/.test(pos));
                                         });
                                       if (pick?.full_name) {
                                         return pick.rank ? `${pick.rank} ${pick.full_name}` : pick.full_name;
@@ -3469,15 +3580,11 @@ const AdminDashboard = () => {
                                   </div>
                                   <div className="mt-2 text-lg font-bold text-right">
                                     {(() => {
-                                      const list = (leadership || []) as LeadershipRow[] | undefined;
-                                      const target = (list || []).find(l => String(l.full_name || "").toLowerCase().includes("keneth iheasirim"));
-                                      if (target?.full_name) {
-                                        return target.rank ? `${target.rank} ${target.full_name}` : target.full_name;
-                                      }
-                                      return "Dir Keneth Iheasirim";
+                                      // Override display name to a fixed label
+                                      return "Dir Jonathan Nyam";
                                     })()}
                                   </div>
-                                  <div className="text-xs font-bold text-[#b38653] text-right">Dir of Strategic Studies</div>
+                                  <div className="text-xs font-bold text-[#b38653] text-right">Director of Studies</div>
                                 </div>
                               </div>
                             </div>

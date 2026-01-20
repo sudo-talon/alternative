@@ -16,7 +16,7 @@ import type { Database } from "@/integrations/supabase/types";
 const About = () => {
   type PersonnelRow = Database["public"]["Tables"]["personnel"]["Row"];
   type LeadershipRow = Database["public"]["Tables"]["leadership"]["Row"];
-  const [selectedPerson, setSelectedPerson] = useState<PersonnelRow | null>(null);
+  const [selectedPerson, setSelectedPerson] = useState<PersonnelRow | LeadershipRow | null>(null);
 
   const { data: personnel, isLoading: personnelLoading } = useQuery<PersonnelRow[]>({
     queryKey: ["about-personnel"],
@@ -31,38 +31,40 @@ const About = () => {
     retry: false,
     refetchOnWindowFocus: false,
   });
-  const { data: leadership, isLoading: leadershipLoading } = useQuery<LeadershipRow[]>({
-    queryKey: ["about-leadership"],
+  const { data: personnelSettings } = useQuery<Map<string, string>>({
+    queryKey: ["about-personnel-settings"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("leadership")
-        .select("*")
-        .order("display_order", { ascending: true });
+        .from("notifications")
+        .select("title, message")
+        .eq("type", "setting")
+        .ilike("title", "personnel:%");
       if (error) throw error;
-      return (data as LeadershipRow[]) || [];
+      const map = new Map<string, string>();
+      (data || []).forEach((row: { title: string; message: string }) => map.set(row.title, row.message));
+      return map;
     },
     retry: false,
     refetchOnWindowFocus: false,
+    staleTime: 300000,
   });
+  const readIsFaculty = (p: PersonnelRow): boolean => {
+    const fallback = personnelSettings?.get(`personnel:is_faculty:${p.id}`);
+    if (typeof (p as unknown as { is_faculty?: boolean }).is_faculty === "boolean") return !!(p as unknown as { is_faculty?: boolean }).is_faculty;
+    if (typeof fallback === "string") return /true|1|yes/i.test(fallback);
+    return false;
+  };
+  const readDisplayOrder = (p: PersonnelRow): number => {
+    const raw = personnelSettings?.get(`personnel:display_order:${p.id}`);
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : 0;
+  };
+  const settingsLoading = personnelLoading || !personnelSettings;
   const leadershipOrdered = (() => {
-    const filtered = (leadership || []).filter(l => {
-      const pos = String(l.position || "").toLowerCase();
-      const isCommandant =
-        /commandant\s*dic/.test(pos) ||
-        /^commandant(\s|$)/.test(pos) ||
-        (/commandant/.test(pos) && /defence|defense|intelligence|college|dic/.test(pos));
-      if (isCommandant && l.is_active === false) {
-        return false;
-      }
-      return true;
-    });
-    const list = filtered.slice().sort((a, b) => {
-      const aOrder = typeof a.display_order === "number" ? a.display_order : 0;
-      const bOrder = typeof b.display_order === "number" ? b.display_order : 0;
-      return aOrder - bOrder;
-    });
+    const filtered = (personnel || []).filter(p => readIsFaculty(p));
+    const list = filtered.slice().sort((a, b) => readDisplayOrder(a) - readDisplayOrder(b));
     const remaining = [...list];
-    const prioritized: LeadershipRow[] = [];
+    const prioritized: PersonnelRow[] = [];
     const pullByMatch = (matcher: (pos: string) => boolean) => {
       const index = remaining.findIndex(l => matcher(String(l.position || "").toLowerCase()));
       if (index !== -1) {
@@ -73,16 +75,10 @@ const About = () => {
     pullByMatch(pos => /commandant\s*dic/.test(pos) || /^commandant(\s|$)/.test(pos));
     pullByMatch(pos => /deputy\s+commandant/.test(pos));
     pullByMatch(pos => /(dir(ector)?\s+of\s+strategic\s+studies|director\s+strategic\s+studies)/.test(pos));
-    return [...prioritized, ...remaining];
+    return [...(prioritized as unknown as LeadershipRow[]), ...(remaining as unknown as LeadershipRow[])];
   })();
   const topThree = leadershipOrdered.slice(0, 3);
   const secondRowList = leadershipOrdered.slice(3);
-  const findPersonnelByName = (fullName: string | null | undefined): PersonnelRow | null => {
-    const target = String(fullName || "").toLowerCase();
-    if (!target) return null;
-    const match = (personnel || []).find(p => String(p.full_name || "").toLowerCase() === target);
-    return match || null;
-  };
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -166,68 +162,78 @@ const About = () => {
                     <h2 className="text-3xl font-bold">College Leadership</h2>
                   </div>
                 </div>
-                {leadershipLoading ? (
+                {settingsLoading ? (
                   <div className="text-center py-8 text-muted-foreground">Loading leadership...</div>
                 ) : leadershipOrdered.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">No leadership profiles available.</div>
                 ) : (
                   <>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                      {topThree.map((leader, idx) => (
-                        <div key={leader.id} className="rounded-lg border bg-card text-card-foreground overflow-hidden animate-in fade-in-50 slide-in-from-bottom-6" style={{ animationDelay: `${idx * 120}ms` }}>
-                          <div className="relative aspect-square bg-muted group">
-                            <img src={leader.photo_url || ""} alt={leader.full_name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Button
-                                variant="secondary"
-                                size="sm"
-                                onClick={() => setSelectedPerson(findPersonnelByName(leader.full_name))}
-                              >
-                                Preview Résumé
-                              </Button>
+                      {topThree.map((leader, idx) => {
+                        const photo = leader.photo_url || "";
+                        const rank = leader.rank;
+                        const position = leader.position;
+                        return (
+                          <div key={leader.id} className="rounded-lg border bg-card text-card-foreground overflow-hidden animate-in fade-in-50 slide-in-from-bottom-6" style={{ animationDelay: `${idx * 120}ms` }}>
+                            <div className="relative aspect-square bg-muted group">
+                              <img src={photo} alt={leader.full_name || ""} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={() => setSelectedPerson(leader)}
+                                >
+                                  Preview Résumé
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="p-4 space-y-2">
+                              <div className="text-center font-semibold">{rank ? `${rank} ${leader.full_name}` : leader.full_name}</div>
+                              <div className="text-sm text-muted-foreground text-center">{position}</div>
                             </div>
                           </div>
-                          <div className="p-4 space-y-2">
-                            <div className="text-center font-semibold">{leader.rank ? `${leader.rank} ${leader.full_name}` : leader.full_name}</div>
-                            <div className="text-sm text-muted-foreground text-center">{leader.position}</div>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                     {secondRowList.length > 0 && (
                       <div className="mt-6 relative">
                         <Carousel opts={{ align: "start", loop: false }}>
                           <CarouselContent>
-                            {secondRowList.map((leader, index) => (
-                              <CarouselItem key={leader.id} className="basis-[70%] sm:basis-[50%] md:basis-[33.33%] lg:basis-[25%]">
-                                <div className="rounded-lg border bg-card text-card-foreground overflow-hidden animate-in fade-in-50 slide-in-from-bottom-6" style={{ animationDelay: `${index * 80}ms` }}>
-                                  <div className="relative aspect-square bg-muted group">
-                                    <img src={leader.photo_url || ""} alt={leader.full_name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex">
+                            {secondRowList.map((leader, index) => {
+                              const photo = leader.photo_url || "";
+                              const rank = leader.rank;
+                              const position = leader.position;
+                              return (
+                                <CarouselItem key={leader.id} className="basis-[70%] sm:basis-[50%] md:basis-[33.33%] lg:basis-[25%]">
+                                  <div className="rounded-lg border bg-card text-card-foreground overflow-hidden animate-in fade-in-50 slide-in-from-bottom-6" style={{ animationDelay: `${index * 80}ms` }}>
+                                    <div className="relative aspect-square bg-muted group">
+                                      <img src={photo} alt={leader.full_name || ""} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                                      <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex">
+                                        <Button
+                                          variant="secondary"
+                                          size="sm"
+                                          onClick={() => setSelectedPerson(leader)}
+                                        >
+                                          Preview Résumé
+                                        </Button>
+                                      </div>
+                                    </div>
+                                    <div className="p-4 space-y-2">
+                                      <div className="text-center font-semibold">{rank ? `${rank} ${leader.full_name}` : leader.full_name}</div>
+                                      <div className="text-sm text-muted-foreground text-center">{position}</div>
                                       <Button
-                                        variant="secondary"
+                                        variant="outline"
                                         size="sm"
-                                        onClick={() => setSelectedPerson(findPersonnelByName(leader.full_name))}
+                                        className="w-full sm:hidden mt-2 min-h-[44px]"
+                                        onClick={() => setSelectedPerson(leader)}
                                       >
                                         Preview Résumé
                                       </Button>
                                     </div>
                                   </div>
-                                  <div className="p-4 space-y-2">
-                                    <div className="text-center font-semibold">{leader.rank ? `${leader.rank} ${leader.full_name}` : leader.full_name}</div>
-                                    <div className="text-sm text-muted-foreground text-center">{leader.position}</div>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="w-full sm:hidden mt-2 min-h-[44px]"
-                                      onClick={() => setSelectedPerson(findPersonnelByName(leader.full_name))}
-                                    >
-                                      Preview Résumé
-                                    </Button>
-                                  </div>
-                                </div>
-                              </CarouselItem>
-                            ))}
+                                </CarouselItem>
+                              );
+                            })}
                           </CarouselContent>
                           <CarouselPrevious className="-left-6" />
                           <CarouselNext className="-right-6" />
@@ -313,7 +319,7 @@ const About = () => {
                 <img src={selectedPerson.photo_url} alt={selectedPerson.full_name || ""} className="max-h-full max-w-full object-contain" />
               </div>
             )}
-            <div className="text-sm text-muted-foreground">{selectedPerson?.position} • {selectedPerson?.department}</div>
+            <div className="text-sm text-muted-foreground">{selectedPerson?.position}</div>
             <div className="text-foreground leading-relaxed whitespace-pre-wrap text-sm">{selectedPerson?.bio}</div>
           </div>
         </DialogContent>

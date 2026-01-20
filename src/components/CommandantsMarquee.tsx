@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabaseClient } from "@/lib/supabase";
+import type { Database } from "@/integrations/supabase/types";
 import {
   Dialog,
   DialogContent,
@@ -36,18 +37,30 @@ export const CommandantsMarquee = () => {
   };
 
   const { data: commandants = [], isLoading, error } = useQuery({
-    queryKey: ["leadership"],
+    queryKey: ["leadership-commandants"],
     queryFn: async () => {
       try {
         const { data, error } = await supabaseClient
           .from("leadership")
           .select("*")
-          .order("display_order", { ascending: true });
+          .order("display_order", { ascending: true })
+          .order("created_at", { ascending: true });
         if (error) {
-          console.error("Leadership fetch error:", error);
+          console.error("Personnel fetch error:", error);
           throw error;
         }
-        return (data as Commandant[]) || [];
+        const list = (data as Database["public"]["Tables"]["leadership"]["Row"][]) || [];
+        return list
+          .filter(p => String(p.position || "").toLowerCase().includes("commandant"))
+          .map(p => ({
+            id: p.id,
+            full_name: p.full_name,
+            rank: p.rank,
+            position: p.position,
+            bio: p.bio,
+            photo_url: p.photo_url,
+            is_active: !!p.is_active,
+          })) as Commandant[];
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message.toLowerCase() : "";
         if (msg.includes("abort") || msg.includes("err_aborted") || msg.includes("failed to fetch")) {

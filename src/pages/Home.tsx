@@ -8,7 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { GraduationCap, Shield, Users, BookOpen, ChevronLeft, ChevronRight } from "lucide-react";
 import dicBg from "@/assets/dic-bg.png";
-import dicVideo from "@/assets/dic.mp4";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { PageWrapper } from "@/components/PageWrapper";
@@ -67,6 +66,56 @@ const Home = () => {
     { year: "2023", title: t('modernEra'), description: t('modernEraDesc') },
     { year: "2025", title: "Regional Excellence", description: "Expanding collaboration with allied nations and modernizing training across the region." },
   ]), [t]);
+
+  const [selectedVideo, setSelectedVideo] = useState(0);
+  const { data: galleryVideos } = useQuery({
+    queryKey: ["gallery-videos-home"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("gallery_videos")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data || []) as { id: string; title?: string | null; url: string }[];
+    },
+    staleTime: 300000,
+    refetchOnWindowFocus: false,
+  });
+  const defaultVideoUrl = "https://youtu.be/d-ZOEfxe_yc";
+  const extractYouTubeId = (url: string) => {
+    try {
+      const m = url.match(/[?&]v=([^&]+)/) || url.match(/youtu\.be\/([^?]+)/);
+      return m ? m[1] : "";
+    } catch {
+      return "";
+    }
+  };
+  const videoItems = useMemo(() => {
+    const fromDb = (galleryVideos || []).map((v) => {
+      const id = extractYouTubeId(v.url);
+      return {
+        title: v.title || "DIC Video",
+        poster: id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : "",
+        embed: id ? `https://www.youtube.com/embed/${id}` : v.url,
+        url: v.url,
+      };
+    });
+    const exists = fromDb.some((v) => v.url === defaultVideoUrl);
+    if (exists) return fromDb;
+    const did = extractYouTubeId(defaultVideoUrl);
+    const fallback = {
+      title: "About Defence Intelligence College",
+      poster: did ? `https://img.youtube.com/vi/${did}/hqdefault.jpg` : "",
+      embed: did ? `https://www.youtube.com/embed/${did}` : defaultVideoUrl,
+      url: defaultVideoUrl,
+    };
+    return [fallback, ...fromDb];
+  }, [galleryVideos, defaultVideoUrl]);
+  useEffect(() => {
+    const homeUrl = homeVideoSetting?.message || "";
+    const idx = homeUrl ? videoItems.findIndex((v) => v.url === homeUrl) : -1;
+    setSelectedVideo(idx >= 0 ? idx : 0);
+  }, [videoItems, homeVideoSetting]);
 
   const activeTimeline = useMemo(
     () => timelineData.find(item => item.year === activeYear),
@@ -183,7 +232,7 @@ const Home = () => {
                   <Button 
                     variant="outline" 
                     className="w-full justify-start min-h-[44px] text-sm"
-                    onClick={() => window.open("https://dadel-b2d3cba9.vercel.app/", "_blank")}
+                    onClick={() => window.open("https://dadel-20.vercel.app/", "_blank")}
                   >
                     {t('eLibrary')}
                   </Button>
@@ -310,32 +359,35 @@ const Home = () => {
                   </div>
                 </div>
                 <div className="mt-6 sm:mt-8">
-                  {(() => {
-                    const url = homeVideoSetting?.message || "";
-                    const isYouTube = /youtube\.com|youtu\.be/.test(url);
-                    if (isYouTube && url) {
-                      const idMatch = url.match(/[?&]v=([^&]+)/) || url.match(/youtu\.be\/([^?]+)/);
-                      const id = idMatch ? idMatch[1] : "";
-                      const embed = id ? `https://www.youtube.com/embed/${id}` : url;
-                      return (
-                        <div className="aspect-video rounded-lg overflow-hidden shadow-elevated bg-muted">
-                          <iframe
-                            src={embed}
-                            title="Home Video"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                            className="w-full h-full"
-                          />
-                        </div>
-                      );
-                    }
-                    const src = url || dicVideo;
-                    return (
-                      <video controls playsInline preload="metadata" className="w-full rounded-lg shadow-elevated">
-                        <source src={src} type="video/mp4" />
-                      </video>
-                    );
-                  })()}
+                  <div className="space-y-4">
+                    <div className="aspect-video rounded-lg overflow-hidden shadow-elevated bg-muted">
+                      {videoItems.length ? (
+                        <iframe
+                          src={videoItems[selectedVideo].embed}
+                          title={videoItems[selectedVideo].title}
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          className="w-full h-full"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-muted flex items-center justify-center text-muted-foreground">No videos</div>
+                      )}
+                    </div>
+                    {videoItems.length > 1 && (
+                      <div className="grid grid-cols-3 gap-2">
+                        {videoItems.map((v, i) => (
+                          <button
+                            key={i}
+                            onClick={() => setSelectedVideo(i)}
+                            className={`rounded overflow-hidden border ${selectedVideo === i ? "border-primary" : "border-transparent"}`}
+                            title={v.title}
+                          >
+                            <img src={v.poster} alt={v.title} className="aspect-video w-full object-cover" />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

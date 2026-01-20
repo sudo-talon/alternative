@@ -124,6 +124,7 @@ export type Database = {
           full_name: string
           id: string
           is_active: boolean | null
+          is_faculty: boolean | null
           photo_url: string | null
           position: string
           rank: string | null
@@ -306,6 +307,7 @@ export type Database = {
         Row: {
           bio: string | null
           category: string
+          display_category: string | null
           created_at: string
           department: string | null
           email: string
@@ -320,6 +322,7 @@ export type Database = {
         Insert: {
           bio?: string | null
           category: string
+          display_category?: string | null
           created_at?: string
           department?: string | null
           email: string
@@ -334,6 +337,7 @@ export type Database = {
         Update: {
           bio?: string | null
           category?: string
+          display_category?: string | null
           created_at?: string
           department?: string | null
           email?: string
