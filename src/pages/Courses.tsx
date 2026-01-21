@@ -98,9 +98,9 @@ const Courses = () => {
             title: course.title,
             description: course.description,
             category: course.category,
-            is_paid: course.is_paid,
-            price_cents: course.price_cents ?? null,
-            currency: course.currency,
+            is_paid: false,
+            price_cents: null,
+            currency: "NGN",
           });
           return acc;
         }, {} as Record<string, UICategory>)

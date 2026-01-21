@@ -82,7 +82,7 @@ const DicChronicaleOfCommand = () => {
           <CardContent>
             <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
               {leadership
-                ?.filter((leader) => isCommandantPosition(leader.position) && !leader.is_faculty)
+                ?.filter((leader) => isCommandantPosition(leader.position) && leader.is_active)
                 .map((leader) => {
                 const photo = overrides[normalize(leader.full_name)] || leader.photo_url || "";
                 return (

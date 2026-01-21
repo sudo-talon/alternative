@@ -101,40 +101,14 @@ const CourseDetail = () => {
 
     try {
       setLoading(true);
-      if (course.is_paid && course.price_cents && course.price_cents > 0) {
-        const { error: paymentError } = await supabase.from("payments").insert([
-          {
-            student_id: user.id,
-            course_id: course.id,
-            amount_cents: course.price_cents,
-            currency: course.currency,
-            status: "succeeded",
-            provider: "manual",
-            reference: crypto.randomUUID(),
-          },
-        ]);
-        if (paymentError) throw paymentError;
-
-        const { error: enrollmentError } = await supabase.from("enrollments").insert([
-          {
-            student_id: user.id,
-            course_id: course.id,
-            payment_status: "succeeded",
-            access_state: "active",
-          },
-        ]);
-        if (enrollmentError) throw enrollmentError;
-      } else {
-        const { error: enrollmentError } = await supabase.from("enrollments").insert([
-          {
-            student_id: user.id,
-            course_id: course.id,
-            payment_status: "free",
-            access_state: "active",
-          },
-        ]);
-        if (enrollmentError) throw enrollmentError;
-      }
+      // Simple enrollment (no payments table exists)
+      const { error: enrollmentError } = await supabase.from("enrollments").insert([
+        {
+          student_id: user.id,
+          course_id: course.id,
+        },
+      ]);
+      if (enrollmentError) throw enrollmentError;
 
       toast({
         title: "Enrollment Successful",
@@ -161,8 +135,8 @@ const CourseDetail = () => {
 
   const decodedTitle = decodedIdentifier;
   const titleToShow = course?.title || decodedTitle;
-  const isPaidCourse = course?.is_paid && (course.price_cents || 0) > 0;
-  const hasActiveAccess = isEnrolled && enrollment?.access_state !== "revoked";
+  const isPaidCourse = false; // Payment features not enabled
+  const hasActiveAccess = isEnrolled;
   const showLoadingState = loading || courseLoading;
 
   return (
@@ -279,9 +253,7 @@ const CourseDetail = () => {
                   <div>
                     <p className="font-semibold">Estimated Duration</p>
                     <p className="text-sm text-muted-foreground">
-                      {course?.duration_weeks
-                        ? `${course.duration_weeks} weeks`
-                        : "8-12 weeks"}
+                      8-12 weeks
                     </p>
                   </div>
                 </div>
@@ -289,15 +261,7 @@ const CourseDetail = () => {
                   <CreditCard className="h-5 w-5 text-primary" />
                   <div>
                     <p className="font-semibold">Pricing</p>
-                    <p className="text-sm text-muted-foreground">
-                      {isPaidCourse && course?.price_cents
-                        ? (course.price_cents / 100).toLocaleString(undefined, {
-                            style: "currency",
-                            currency: course.currency || "NGN",
-                            maximumFractionDigits: 0,
-                          })
-                        : "Free"}
-                    </p>
+                    <p className="text-sm text-muted-foreground">Free</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -344,12 +308,8 @@ const CourseDetail = () => {
                       onClick={handleEnroll} 
                       className="w-full bg-white text-primary hover:bg-white/90 min-h-[44px]"
                     >
-                      {isPaidCourse && course?.price_cents
-                        ? `Enroll for ${(course.price_cents / 100).toLocaleString(undefined, {
-                            style: "currency",
-                            currency: course.currency || "NGN",
-                            maximumFractionDigits: 0,
-                          })}`
+                      {isPaidCourse
+                        ? "Enroll - Premium Course"
                         : "Enroll Now"}
                     </Button>
                   </>

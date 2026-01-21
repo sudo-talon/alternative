@@ -68,19 +68,8 @@ const Home = () => {
   ]), [t]);
 
   const [selectedVideo, setSelectedVideo] = useState(0);
-  const { data: galleryVideos } = useQuery({
-    queryKey: ["gallery-videos-home"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("gallery_videos")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data || []) as { id: string; title?: string | null; url: string }[];
-    },
-    staleTime: 300000,
-    refetchOnWindowFocus: false,
-  });
+  // Gallery videos table doesn't exist - use empty array
+  const galleryVideos: { id: string; title?: string | null; url: string }[] = [];
   const defaultVideoUrl = "https://youtu.be/d-ZOEfxe_yc";
   const extractYouTubeId = (url: string) => {
     try {

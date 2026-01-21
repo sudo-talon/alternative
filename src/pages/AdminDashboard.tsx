@@ -190,307 +190,33 @@ const AdminDashboard = () => {
   const [watermarkUrl, setWatermarkUrl] = useState<string>("/certificate-seal.png");
   const [activeTab, setActiveTab] = useState<string>("courses");
   const ensureGalleryPicturesAvailable = useCallback(async (): Promise<boolean> => {
-    try {
-      const probe = async () => {
-        const { error } = await supabase.from("gallery_pictures").select("id").limit(1);
-        if (!error) return true;
-        const message = toReadableError(error);
-        const cacheIssue = /schema\s*cache|not\s*find\s*table|relation.*does\s*not\s*exist/i.test(message);
-        if (!cacheIssue) {
-          toast({ title: "Error", description: message, variant: "destructive" });
-          return false;
-        }
-        return "retry";
-      };
-      for (let i = 0; i < 5; i++) {
-        const res = await probe();
-        if (res === true) return true;
-        await new Promise(r => setTimeout(r, 800 + i * 600));
-      }
-      return false;
-    } catch {
-      return false;
-    }
-  }, [toast]);
+    // Gallery tables don't exist yet - return false
+    return false;
+  }, []);
   const ensureGalleryVideosAvailable = useCallback(async (): Promise<boolean> => {
-    try {
-      const probe = async () => {
-        const { error } = await supabase.from("gallery_videos").select("id").limit(1);
-        if (!error) return true;
-        const message = toReadableError(error);
-        const cacheIssue = /schema\s*cache|not\s*find\s*table|relation.*does\s*not\s*exist/i.test(message);
-        if (!cacheIssue) {
-          toast({ title: "Error", description: message, variant: "destructive" });
-          return false;
-        }
-        return "retry";
-      };
-      for (let i = 0; i < 5; i++) {
-        const res = await probe();
-        if (res === true) return true;
-        await new Promise(r => setTimeout(r, 800 + i * 600));
-      }
-      return false;
-    } catch {
-      return false;
-    }
-  }, [toast]);
+    // Gallery tables don't exist yet - return false
+    return false;
+  }, []);
   const saveGalleryVideo = async () => {
     if (!videoForm.url) return;
-    try {
-      setGallerySaving(true);
-      const url = String(videoForm.url).trim();
-      const idMatch = url.match(/[?&]v=([^&]+)/) || url.match(/youtu\.be\/([^?]+)/);
-      if (!idMatch) {
-        toast({ title: "Invalid URL", description: "Please enter a valid YouTube URL (watch?v=... or youtu.be/...).", variant: "destructive" });
-        return;
-      }
-      if (!(await ensureGalleryVideosAvailable())) throw new Error("Video gallery is temporarily unavailable");
-      if (editingGalleryVideoId) {
-        const doUpdate = async () => {
-          const { error } = await supabase
-            .from("gallery_videos")
-            .update({ title: videoForm.title || "Untitled", url })
-            .eq("id", editingGalleryVideoId);
-          if (error) throw error;
-        };
-        for (let i = 0; i < 3; i++) {
-          try { await doUpdate(); break; } catch (e) {
-            const msg = toReadableError(e);
-            if (/schema\s*cache|not\s*find\s*table|relation.*does\s*not\s*exist/i.test(msg)) {
-              await new Promise(r => setTimeout(r, 700));
-              continue;
-            }
-            throw e;
-          }
-        }
-        setGalleryVideos(list =>
-          list.map(v =>
-            v.id === editingGalleryVideoId ? { ...v, title: videoForm.title || "Untitled", url } : v,
-          ),
-        );
-        toast({ title: "Saved", description: "Video updated" });
-      } else {
-        const insertOnce = async () => {
-          const { data, error } = await supabase
-            .from("gallery_videos")
-            .insert([{ title: videoForm.title || "Untitled", url }])
-            .select("id, title, url")
-            .single();
-          if (error) throw error;
-          return data;
-        };
-        let data;
-        for (let i = 0; i < 3; i++) {
-          try { data = await insertOnce(); break; } catch (e) {
-            const msg = toReadableError(e);
-            if (/schema\s*cache|not\s*find\s*table|relation.*does\s*not\s*exist/i.test(msg)) {
-              await new Promise(r => setTimeout(r, 700));
-              continue;
-            }
-            throw e;
-          }
-        }
-        const newVideo: GalleryVideo = {
-          id: data!.id,
-          title: data!.title || "Untitled",
-          url: data!.url,
-        };
-        setGalleryVideos(list => [newVideo, ...list]);
-        toast({ title: "Saved", description: "Video added to gallery" });
-      }
-      setVideoForm({ title: "", url: "" });
-      setEditingGalleryVideoId(null);
-    } catch (error: unknown) {
-      const message = toReadableError(error);
-      toast({ title: "Error", description: message, variant: "destructive" });
-    } finally {
-      setGallerySaving(false);
-    }
+    toast({ title: "Not Available", description: "Gallery videos feature is not yet available", variant: "destructive" });
   };
   const deleteVideo = async (id: string) => {
-    try {
-      setGallerySaving(true);
-      const doDelete = async () => {
-        const { error } = await supabase
-          .from("gallery_videos")
-          .delete()
-          .eq("id", id);
-        if (error) throw error;
-      };
-      for (let i = 0; i < 3; i++) {
-        try { await doDelete(); break; } catch (e) {
-          const msg = toReadableError(e);
-          if (/schema\s*cache|not\s*find\s*table|relation.*does\s*not\s*exist/i.test(msg)) {
-            await new Promise(r => setTimeout(r, 700));
-            continue;
-          }
-          throw e;
-        }
-      }
-      setGalleryVideos(list => list.filter(v => v.id !== id));
-    } catch (error: unknown) {
-      const message = toReadableError(error);
-      toast({ title: "Error", description: message, variant: "destructive" });
-    } finally {
-      setGallerySaving(false);
-    }
+    console.log("Delete video:", id);
+    toast({ title: "Not Available", description: "Gallery videos feature is not yet available", variant: "destructive" });
   };
   const saveGalleryPicture = async () => {
     if (!pictureForm.image_url && !galleryUploadFile) return;
-    try {
-      const ok = await ensureGalleryPicturesAvailable();
-      if (!ok) {
-        toast({ title: "Error", description: "Picture gallery is temporarily unavailable. Please retry shortly.", variant: "destructive" });
-        return;
-      }
-      let imageUrl = pictureForm.image_url;
-      if (galleryUploadFile) {
-        imageUrl = await uploadGalleryImage(galleryUploadFile);
-      }
-
-      if (editingGalleryPictureId) {
-        const doUpdate = async () => {
-          const { error } = await supabase
-            .from("gallery_pictures")
-            .update({ title: pictureForm.title || "Untitled", image_url: imageUrl })
-            .eq("id", editingGalleryPictureId);
-          if (error) throw error;
-        };
-        for (let i = 0; i < 3; i++) {
-          try { await doUpdate(); break; } catch (e) {
-            const msg = toReadableError(e);
-            if (/schema\s*cache|not\s*find\s*table|relation.*does\s*not\s*exist/i.test(msg)) {
-              await new Promise(r => setTimeout(r, 700));
-              continue;
-            }
-            throw e;
-          }
-        }
-        setGalleryPictures(list =>
-          list.map(p =>
-            p.id === editingGalleryPictureId
-              ? { ...p, title: pictureForm.title || "Untitled", image_url: imageUrl }
-              : p,
-          ),
-        );
-        toast({ title: "Saved", description: "Picture updated" });
-      } else {
-        const insertOnce = async () => {
-          const { data, error } = await supabase
-            .from("gallery_pictures")
-            .insert([{ title: pictureForm.title || "Untitled", image_url: imageUrl }])
-            .select("id, title, image_url")
-            .single();
-          if (error) throw error;
-          return data;
-        };
-        let data;
-        for (let i = 0; i < 3; i++) {
-          try { data = await insertOnce(); break; } catch (e) {
-            const msg = toReadableError(e);
-            if (/schema\s*cache|not\s*find\s*table|relation.*does\s*not\s*exist/i.test(msg)) {
-              await new Promise(r => setTimeout(r, 700));
-              continue;
-            }
-            throw e;
-          }
-        }
-        if (!data) {
-          throw new Error("Failed to insert picture. Please retry.");
-        }
-        const newPicture: GalleryPicture = {
-          id: data!.id,
-          title: data!.title || "Untitled",
-          image_url: data!.image_url,
-        };
-        setGalleryPictures(list => [newPicture, ...list]);
-        toast({ title: "Saved", description: "Picture added to gallery" });
-      }
-      setPictureForm({ title: "", image_url: "" });
-      setGalleryUploadFile(null);
-      setGalleryUploadPreview(null);
-      setEditingGalleryPictureId(null);
-    } catch (error: unknown) {
-      const message = toReadableError(error);
-      toast({ title: "Error", description: message, variant: "destructive" });
-    } finally {
-      setGallerySaving(false);
-    }
+    toast({ title: "Not Available", description: "Gallery pictures feature is not yet available", variant: "destructive" });
   };
   const deletePicture = async (id: string) => {
-    try {
-      setGallerySaving(true);
-      const doDelete = async () => {
-        const { error } = await supabase
-          .from("gallery_pictures")
-          .delete()
-          .eq("id", id);
-        if (error) throw error;
-      };
-      for (let i = 0; i < 3; i++) {
-        try { await doDelete(); break; } catch (e) {
-          const msg = toReadableError(e);
-          if (/schema\s*cache|not\s*find\s*table|relation.*does\s*not\s*exist/i.test(msg)) {
-            await new Promise(r => setTimeout(r, 700));
-            continue;
-          }
-          throw e;
-        }
-      }
-      setGalleryPictures(list => list.filter(p => p.id !== id));
-    } catch (error: unknown) {
-      const message = toReadableError(error);
-      toast({ title: "Error", description: message, variant: "destructive" });
-    } finally {
-      setGallerySaving(false);
-    }
+    console.log("Delete picture:", id);
+    toast({ title: "Not Available", description: "Gallery pictures feature is not yet available", variant: "destructive" });
   };
 
   useEffect(() => {
-    if (!isAdmin) return;
-    const loadGallery = async () => {
-      try {
-        if (activeTab === "gallery") {
-          const okVideos = await ensureGalleryVideosAvailable();
-          if (okVideos) {
-            const { data: videos, error: videosError } = await supabase
-              .from("gallery_videos")
-              .select("*")
-              .order("created_at", { ascending: false });
-            if (!videosError && videos) {
-              setGalleryVideos(
-                (videos as { id: string; title: string | null; url: string }[]).map(v => ({
-                  id: v.id,
-                  title: v.title || "",
-                  url: v.url,
-                })),
-              );
-            }
-          }
-          const ok = await ensureGalleryPicturesAvailable();
-          if (ok) {
-            const { data: pictures, error: picturesError } = await supabase
-              .from("gallery_pictures")
-              .select("*")
-              .order("created_at", { ascending: false });
-            if (!picturesError && pictures) {
-              setGalleryPictures(
-                (pictures as { id: string; title: string | null; image_url: string }[]).map(p => ({
-                  id: p.id,
-                  title: p.title || "",
-                  image_url: p.image_url,
-                })),
-              );
-            }
-          }
-        }
-      } catch {
-        return;
-      }
-    };
-    loadGallery();
-  }, [isAdmin, ensureGalleryPicturesAvailable, ensureGalleryVideosAvailable, activeTab]);
+    // Gallery tables don't exist yet - skip loading
+  }, [isAdmin, activeTab]);
 
 
   type CertificateRow = {
@@ -1547,70 +1273,14 @@ const AdminDashboard = () => {
       if (courseError) throw courseError;
       if (!course) throw new Error("Course not found");
 
-      if (course.is_paid && course.price_cents && course.price_cents > 0) {
-        const { error: paymentError } = await supabase.from("payments").insert([
-          {
-            student_id: studentId,
-            course_id: courseId,
-            amount_cents: course.price_cents,
-            currency: "NGN",
-            status: "succeeded",
-            provider: "admin",
-            reference: crypto.randomUUID(),
-          },
-        ]);
-        if (paymentError) throw paymentError;
-
-        try {
-          const { error: enrollmentError } = await supabase.from("enrollments").insert([
-            {
-              student_id: studentId,
-              course_id: courseId,
-              payment_status: "succeeded",
-              access_state: "active",
-            },
-          ]);
-          if (enrollmentError) throw enrollmentError;
-        } catch (e: unknown) {
-          const msg = toReadableError(e);
-          if (msg.includes("access_state") || msg.includes("payment_status") || msg.includes("schema cache")) {
-            const { error: retryError } = await supabase.from("enrollments").insert([
-              {
-                student_id: studentId,
-                course_id: courseId,
-              },
-            ]);
-            if (retryError) throw retryError;
-          } else {
-            throw e;
-          }
-        }
-      } else {
-        try {
-          const { error: enrollmentError } = await supabase.from("enrollments").insert([
-            {
-              student_id: studentId,
-              course_id: courseId,
-              payment_status: "free",
-              access_state: "active",
-            },
-          ]);
-          if (enrollmentError) throw enrollmentError;
-        } catch (e: unknown) {
-          const msg = toReadableError(e);
-          if (msg.includes("access_state") || msg.includes("payment_status") || msg.includes("schema cache")) {
-            const { error: retryError } = await supabase.from("enrollments").insert([
-              {
-                student_id: studentId,
-                course_id: courseId,
-              },
-            ]);
-            if (retryError) throw retryError;
-          } else {
-            throw e;
-          }
-        }
-      }
+      // Simple enrollment (payments table doesn't exist in schema)
+      const { error: enrollmentError } = await supabase.from("enrollments").insert([
+        {
+          student_id: studentId,
+          course_id: courseId,
+        },
+      ]);
+      if (enrollmentError) throw enrollmentError;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-enrollments"] });
@@ -1884,10 +1554,10 @@ const AdminDashboard = () => {
                                 description: course.description || "",
                                 full_description: course.full_description || "",
                                 category: course.category || "Generic Courses",
-                                is_paid: !!course.is_paid,
-                                price: course.price_cents ? String(course.price_cents / 100) : "",
+                                is_paid: false,
+                                price: "",
                                 currency: "NGN",
-                                duration_weeks: course.duration_weeks ? String(course.duration_weeks) : "",
+                                duration_weeks: "",
                                 instructor_id: course.instructor_id || "",
                               });
                               setEditingCourseId(course.id);
@@ -2043,7 +1713,7 @@ const AdminDashboard = () => {
                     {personnel?.map((person) => (
                       <TableRow key={person.id}>
                         <TableCell className="font-medium">{person.full_name}</TableCell>
-                        <TableCell><Badge className={categoryClasses(person.display_category || person.category)}>{person.display_category || person.category}</Badge></TableCell>
+                        <TableCell><Badge className={categoryClasses(person.category)}>{person.category}</Badge></TableCell>
                         <TableCell>{person.position}</TableCell>
                         <TableCell>{person.department}</TableCell>
 
@@ -2067,7 +1737,7 @@ const AdminDashboard = () => {
                               setPersonnelPhotoFile(null);
                               setPersonnelPhotoPreview(person.photo_url || null);
                               setPersonnelCategoryUi(
-                                String(person.display_category || person.category || "").toLowerCase().includes("dia")
+                                String(person.category || "").toLowerCase().includes("dia")
                                   ? "dia"
                                   : normalizePersonnelCategory(person.category) === "military"
                                   ? "military"
@@ -2929,21 +2599,8 @@ const AdminDashboard = () => {
                     <Button
                       variant="outline"
                       disabled={gallerySaving}
-                      onClick={async () => {
-                        try {
-                          setGallerySaving(true);
-                          const { error } = await supabase
-                            .from("gallery_videos")
-                            .delete();
-                          if (error) throw error;
-                          setGalleryVideos([]);
-                          toast({ title: "Cleared", description: "All videos removed" });
-                        } catch (error: unknown) {
-                          const message = toReadableError(error);
-                          toast({ title: "Error", description: message, variant: "destructive" });
-                        } finally {
-                          setGallerySaving(false);
-                        }
+                      onClick={() => {
+                        toast({ title: "Not Available", description: "Gallery videos feature is not yet available", variant: "destructive" });
                       }}
                     >
                       Clear Videos
@@ -3186,7 +2843,7 @@ const AdminDashboard = () => {
                           {(() => {
                             const e = (enrollments || []).find((x) => x.student_id === certificateUserId && x.course_id === certificateCourseId);
                             const enrolled = !!e;
-                            const completed = !!e && ((e.payment_status && String(e.payment_status).toLowerCase() === "succeeded") || (e.access_state && String(e.access_state).toLowerCase() === "active"));
+                            const completed = !!e;
                             return (
                               <>
                                 <Badge variant={enrolled ? "default" : "outline"}>{enrolled ? "Enrolled" : "Not enrolled"}</Badge>
@@ -3282,7 +2939,7 @@ const AdminDashboard = () => {
                           issueCertificateMutation.isPending ||
                           !(() => {
                             const e = (enrollments || []).find((x) => x.student_id === certificateUserId && x.course_id === certificateCourseId);
-                            return !!e && ((e.payment_status && String(e.payment_status).toLowerCase() === "succeeded") || (e.access_state && String(e.access_state).toLowerCase() === "active"));
+                            return !!e;
                           })()
                         }
                         onClick={() => {
