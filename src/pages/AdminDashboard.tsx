@@ -190,33 +190,116 @@ const AdminDashboard = () => {
   const [watermarkUrl, setWatermarkUrl] = useState<string>("/certificate-seal.png");
   const [activeTab, setActiveTab] = useState<string>("courses");
   const ensureGalleryPicturesAvailable = useCallback(async (): Promise<boolean> => {
-    // Gallery tables don't exist yet - return false
-    return false;
+    return true;
   }, []);
   const ensureGalleryVideosAvailable = useCallback(async (): Promise<boolean> => {
-    // Gallery tables don't exist yet - return false
-    return false;
+    return true;
   }, []);
+
+  const loadGalleryData = useCallback(async () => {
+    if (!isAdmin) return;
+    try {
+      const { data: videos } = await supabase.from("gallery_videos").select("id, title, url").order("created_at", { ascending: false });
+      if (videos) setGalleryVideos(videos);
+      
+      const { data: pictures } = await supabase.from("gallery_pictures").select("id, title, image_url").order("created_at", { ascending: false });
+      if (pictures) setGalleryPictures(pictures);
+    } catch (err) {
+      console.error("Error loading gallery data:", err);
+    }
+  }, [isAdmin]);
+
   const saveGalleryVideo = async () => {
-    if (!videoForm.url) return;
-    toast({ title: "Not Available", description: "Gallery videos feature is not yet available", variant: "destructive" });
+    if (!videoForm.url || !videoForm.title) {
+      toast({ title: "Missing Fields", description: "Please provide both title and URL", variant: "destructive" });
+      return;
+    }
+    setGallerySaving(true);
+    try {
+      if (editingGalleryVideoId) {
+        const { error } = await supabase.from("gallery_videos").update({ title: videoForm.title, url: videoForm.url }).eq("id", editingGalleryVideoId);
+        if (error) throw error;
+        toast({ title: "Updated", description: "Video updated successfully" });
+      } else {
+        const { error } = await supabase.from("gallery_videos").insert([{ title: videoForm.title, url: videoForm.url }]);
+        if (error) throw error;
+        toast({ title: "Added", description: "Video added successfully" });
+      }
+      setVideoForm({ title: "", url: "" });
+      setEditingGalleryVideoId(null);
+      loadGalleryData();
+    } catch (err: unknown) {
+      toast({ title: "Error", description: toReadableError(err), variant: "destructive" });
+    } finally {
+      setGallerySaving(false);
+    }
   };
+
   const deleteVideo = async (id: string) => {
-    console.log("Delete video:", id);
-    toast({ title: "Not Available", description: "Gallery videos feature is not yet available", variant: "destructive" });
+    try {
+      const { error } = await supabase.from("gallery_videos").delete().eq("id", id);
+      if (error) throw error;
+      toast({ title: "Deleted", description: "Video removed" });
+      loadGalleryData();
+    } catch (err: unknown) {
+      toast({ title: "Error", description: toReadableError(err), variant: "destructive" });
+    }
   };
+
   const saveGalleryPicture = async () => {
-    if (!pictureForm.image_url && !galleryUploadFile) return;
-    toast({ title: "Not Available", description: "Gallery pictures feature is not yet available", variant: "destructive" });
+    if (!pictureForm.title) {
+      toast({ title: "Missing Fields", description: "Please provide a title", variant: "destructive" });
+      return;
+    }
+    setGallerySaving(true);
+    try {
+      let imageUrl = pictureForm.image_url;
+      if (galleryUploadFile) {
+        imageUrl = await uploadGalleryImage(galleryUploadFile);
+      }
+      if (!imageUrl) {
+        toast({ title: "Missing Image", description: "Please provide an image URL or upload a file", variant: "destructive" });
+        setGallerySaving(false);
+        return;
+      }
+
+      if (editingGalleryPictureId) {
+        const { error } = await supabase.from("gallery_pictures").update({ title: pictureForm.title, image_url: imageUrl }).eq("id", editingGalleryPictureId);
+        if (error) throw error;
+        toast({ title: "Updated", description: "Picture updated successfully" });
+      } else {
+        const { error } = await supabase.from("gallery_pictures").insert([{ title: pictureForm.title, image_url: imageUrl }]);
+        if (error) throw error;
+        toast({ title: "Added", description: "Picture added successfully" });
+      }
+      setPictureForm({ title: "", image_url: "" });
+      setGalleryUploadFile(null);
+      setGalleryUploadPreview(null);
+      setEditingGalleryPictureId(null);
+      loadGalleryData();
+    } catch (err: unknown) {
+      toast({ title: "Error", description: toReadableError(err), variant: "destructive" });
+    } finally {
+      setGallerySaving(false);
+    }
   };
+
   const deletePicture = async (id: string) => {
-    console.log("Delete picture:", id);
-    toast({ title: "Not Available", description: "Gallery pictures feature is not yet available", variant: "destructive" });
+    try {
+      const { error } = await supabase.from("gallery_pictures").delete().eq("id", id);
+      if (error) throw error;
+      toast({ title: "Deleted", description: "Picture removed" });
+      loadGalleryData();
+    } catch (err: unknown) {
+      toast({ title: "Error", description: toReadableError(err), variant: "destructive" });
+    }
   };
 
   useEffect(() => {
-    // Gallery tables don't exist yet - skip loading
-  }, [isAdmin, activeTab]);
+    if (isAdmin && activeTab === "gallery") {
+      loadGalleryData();
+    }
+  }, [isAdmin, activeTab, loadGalleryData]);
 
 
   type CertificateRow = {
