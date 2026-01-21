@@ -74,34 +74,13 @@ const News = () => {
       return (data as NewsItem[]) || [];
     },
   });
-  type GalleryPictureRow = Database["public"]["Tables"]["gallery_pictures"]["Row"];
+  type GalleryPictureRow = { id: string; title: string; image_url: string; created_at: string };
   const [eventPage, setEventPage] = useState(1);
   const eventPageSize = 6;
-  const { data: eventsCount } = useQuery<number>({
-    queryKey: ["events-count"],
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from("gallery_pictures")
-        .select("*", { count: "exact", head: true });
-      if (error) throw error;
-      return count || 0;
-    },
-  });
-  const totalEventPages = Math.max(1, Math.ceil((eventsCount || 0) / eventPageSize));
-  const { data: eventPictures } = useQuery<GalleryPictureRow[]>({
-    queryKey: ["gallery-pictures-page", eventPage],
-    queryFn: async () => {
-      const from = (eventPage - 1) * eventPageSize;
-      const to = from + eventPageSize - 1;
-      const { data, error } = await supabase
-        .from("gallery_pictures")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .range(from, to);
-      if (error) throw error;
-      return (data as GalleryPictureRow[]) || [];
-    },
-  });
+  // Gallery pictures table doesn't exist - use empty data
+  const eventsCount = 0;
+  const totalEventPages = 1;
+  const eventPictures: GalleryPictureRow[] = [];
 
   const { data: activeCommandant } = useQuery({
     queryKey: ["current-commandant"],
