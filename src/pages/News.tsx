@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { useQuery } from "@tanstack/react-query";
 import { supabaseClient as supabase } from "@/lib/supabase";
-import { Newspaper, Video, Image as ImageIcon, Users, BookOpen } from "lucide-react";
+import { Newspaper } from "lucide-react";
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
@@ -183,63 +183,87 @@ const News = () => {
             ) : newsItems && newsItems.length > 0 ? (
               <>
                 {/* Featured + Right List */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                  {/* Featured Story - larger, takes 3 columns */}
                   <div
-                    className="md:col-span-2 relative rounded-lg overflow-hidden shadow-elevated cursor-pointer"
+                    className="lg:col-span-3 relative rounded-lg overflow-hidden shadow-elevated cursor-pointer group"
                     onClick={() => {
                       if (newsItems && newsItems[0]) navigate(`/news/${newsItems[0].id}`);
                     }}
                   >
                     {newsItems[0]?.featured_image_url ? (
-                      <img src={newsItems[0].featured_image_url || ""} alt={newsItems[0].title} className="w-full h-full object-cover aspect-video" />
+                      <img src={newsItems[0].featured_image_url || ""} alt={newsItems[0].title} className="w-full h-full object-cover aspect-[4/3] group-hover:scale-105 transition-transform duration-300" />
                     ) : (
-                      <div className="aspect-video bg-muted" />
+                      <div className="aspect-[4/3] bg-muted" />
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
+                    {/* Featured Badge */}
+                    <div className="absolute top-4 left-4">
+                      <span className="bg-destructive text-destructive-foreground px-3 py-1 text-xs font-semibold rounded">Featured Story</span>
+                    </div>
                     <div className="absolute bottom-0 left-0 right-0 p-6">
-                      <div className="text-white text-xs mb-1">Featured Story</div>
-                      <div className="text-white text-2xl sm:text-3xl font-bold">{newsItems[0]?.title}</div>
-                      <div className="text-white/80 text-xs sm:text-sm mt-1">{newsItems[0] ? formatDistanceToNow(new Date(newsItems[0].published_at), { addSuffix: true }) : ""}</div>
+                      <div className="flex items-center gap-2 text-white/80 text-xs mb-2">
+                        <span className="text-primary font-medium">News</span>
+                        <span>•</span>
+                        <span>DIC Media</span>
+                        <span>•</span>
+                        <span>{newsItems[0] ? new Date(newsItems[0].published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ""}</span>
+                      </div>
+                      <h3 className="text-white text-xl sm:text-2xl lg:text-3xl font-bold leading-tight">{newsItems[0]?.title}</h3>
+                      <p className="text-white/70 text-sm mt-2 line-clamp-2">{newsItems[0]?.content?.substring(0, 150)}...</p>
                     </div>
                   </div>
-                  <div className="space-y-4">
+                  
+                  {/* Right sidebar list - 2 columns */}
+                  <div className="lg:col-span-2 space-y-4">
                     {[newsItems[1], newsItems[2], newsItems[3], newsItems[4]].filter(Boolean).map((item) => (
                       <button
                         key={item!.id}
-                        className="flex items-start gap-3 border-b pb-4 last:border-b-0 w-full text-left hover:bg-muted/40 rounded"
+                        className="flex items-start gap-4 w-full text-left hover:bg-muted/50 rounded-lg p-2 transition-colors"
                         onClick={() => navigate(`/news/${item!.id}`)}
                       >
                         {item!.featured_image_url ? (
-                          <img src={item!.featured_image_url || ""} alt={item!.title} className="h-16 w-24 object-cover rounded" />
+                          <img src={item!.featured_image_url || ""} alt={item!.title} className="h-20 w-28 object-cover rounded-lg flex-shrink-0" />
                         ) : (
-                          <div className="h-16 w-24 bg-muted rounded" />
+                          <div className="h-20 w-28 bg-muted rounded-lg flex-shrink-0" />
                         )}
-                        <div className="min-w-0">
-                          <div className="text-sm font-semibold line-clamp-2">{item!.title}</div>
-                          <div className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(item!.published_at), { addSuffix: true })}</div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                            <span>{new Date(item!.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                            <span>•</span>
+                            <span>5 min read</span>
+                          </div>
+                          <h4 className="text-sm font-semibold line-clamp-2 leading-snug">{item!.title}</h4>
                         </div>
                       </button>
                     ))}
                   </div>
                 </div>
+                
                 {/* Top Stories row */}
-                <div className="mt-8">
-                  <h3 className="text-xl font-bold mb-4">Top Stories</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div className="mt-10">
+                  <h3 className="text-xl font-bold mb-6 border-b pb-2">Top Stories</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                     {newsItems.slice(5, 10).map((item) => (
                       <button
                         key={item.id}
-                        className="rounded-lg overflow-hidden shadow-elevated border text-left hover:shadow-md transition-shadow"
+                        className="rounded-lg overflow-hidden border bg-card text-left hover:shadow-lg transition-shadow group"
                         onClick={() => navigate(`/news/${item.id}`)}
                       >
-                        {item.featured_image_url ? (
-                          <img src={item.featured_image_url} alt={item.title} className="w-full aspect-video object-cover" />
-                        ) : (
-                          <div className="w-full aspect-video bg-muted" />
-                        )}
+                        <div className="relative">
+                          {item.featured_image_url ? (
+                            <img src={item.featured_image_url} alt={item.title} className="w-full aspect-video object-cover group-hover:scale-105 transition-transform duration-300" />
+                          ) : (
+                            <div className="w-full aspect-video bg-muted" />
+                          )}
+                        </div>
                         <div className="p-3">
-                          <div className="text-sm font-semibold line-clamp-2">{item.title}</div>
-                          <div className="text-xs text-muted-foreground mt-1">{formatDistanceToNow(new Date(item.published_at), { addSuffix: true })}</div>
+                          <h4 className="text-sm font-semibold line-clamp-2 leading-snug">{item.title}</h4>
+                          <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+                            <span>DIC News</span>
+                            <span>•</span>
+                            <span>{formatDistanceToNow(new Date(item.published_at), { addSuffix: true })}</span>
+                          </div>
                         </div>
                       </button>
                     ))}

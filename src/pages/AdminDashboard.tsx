@@ -1686,17 +1686,15 @@ const AdminDashboard = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2 h-auto">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 h-auto">
             <TabsTrigger value="courses" className="h-full whitespace-normal min-h-[44px]"><BookOpen className="mr-1 h-4 w-4" />Courses</TabsTrigger>
             <TabsTrigger value="personnel" className="h-full whitespace-normal min-h-[44px]"><UserCog className="mr-1 h-4 w-4" />Personnel</TabsTrigger>
-            <TabsTrigger value="leadership" className="h-full whitespace-normal min-h-[44px]"><Crown className="mr-1 h-4 w-4" />Leadership</TabsTrigger>
             <TabsTrigger value="pgprograms" className="h-full whitespace-normal min-h-[44px]"><GraduationCap className="mr-1 h-4 w-4" />PG Programs</TabsTrigger>
             <TabsTrigger value="news" className="h-full whitespace-normal min-h-[44px]"><Newspaper className="mr-1 h-4 w-4" />News</TabsTrigger>
             <TabsTrigger value="magazines" className="h-full whitespace-normal min-h-[44px]"><FileText className="mr-1 h-4 w-4" />Magazines</TabsTrigger>
             <TabsTrigger value="users" className="h-full whitespace-normal min-h-[44px]"><Users className="mr-1 h-4 w-4" />Users</TabsTrigger>
             <TabsTrigger value="categories" className="h-full whitespace-normal min-h-[44px]"><Shield className="mr-1 h-4 w-4" />Categories</TabsTrigger>
             <TabsTrigger value="analytics" className="h-full whitespace-normal min-h-[44px]"><BarChart3 className="mr-1 h-4 w-4" />Analytics</TabsTrigger>
-
             <TabsTrigger value="gallery" className="h-full whitespace-normal min-h-[44px]"><ImageIcon className="mr-1 h-4 w-4" />Gallery</TabsTrigger>
             <TabsTrigger value="certificates" className="h-full whitespace-normal min-h-[44px]"><GraduationCap className="mr-1 h-4 w-4" />Certificates</TabsTrigger>
           </TabsList>
@@ -1911,150 +1909,6 @@ const AdminDashboard = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="leadership">
-            <Card>
-              <CardHeader>
-                <CardTitle>Leadership</CardTitle>
-                <CardDescription>Manage past and present commandants</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex gap-2 flex-wrap">
-                  <Button
-                    onClick={() => {
-                      setLeadershipForm({ full_name: "", position: "", role: "", rank: "", bio: "", photo_url: "", is_active: true, is_faculty: false, display_order: 0 });
-                      setLeadershipPhotoFile(null);
-                      setLeadershipPhotoPreview(null);
-                      setEditingLeadershipId(null);
-                      setLeadershipDialogOpen(true);
-                    }}
-                  >
-                    <Plus className="mr-2 h-4 w-4" />Add Leader
-                  </Button>
-                </div>
-                <Dialog open={leadershipDialogOpen} onOpenChange={setLeadershipDialogOpen}>
-                  <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-                    <DialogHeader>
-                      <DialogTitle>{editingLeadershipId ? "Edit" : "Add New"} Leader</DialogTitle>
-                      <DialogDescription>Enter leadership details</DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                      <div className="grid gap-2">
-                        <Label htmlFor="l_full_name">Full Name</Label>
-                        <Input id="l_full_name" value={leadershipForm.full_name} onChange={(e) => setLeadershipForm({ ...leadershipForm, full_name: e.target.value })} />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="l_rank">Rank</Label>
-                        <Input id="l_rank" value={leadershipForm.rank} onChange={(e) => setLeadershipForm({ ...leadershipForm, rank: e.target.value })} />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="l_position">Position</Label>
-                        <Input id="l_position" value={leadershipForm.position} onChange={(e) => setLeadershipForm({ ...leadershipForm, position: e.target.value })} />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="l_bio">Bio</Label>
-                        <Textarea id="l_bio" value={leadershipForm.bio} onChange={(e) => setLeadershipForm({ ...leadershipForm, bio: e.target.value })} rows={4} />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label>Photo</Label>
-                        <div className="flex items-start gap-4">
-                          <label className="flex-1 flex flex-col items-center justify-center p-4 border-2 border-dashed border-muted-foreground/30 rounded-lg cursor-pointer hover:border-primary/50 transition-colors">
-                            <ImageIcon className="h-8 w-8 text-muted-foreground mb-2" />
-                            <span className="text-sm text-muted-foreground">
-                              {leadershipPhotoFile ? leadershipPhotoFile.name : "Click to upload photo"}
-                            </span>
-                            <input type="file" accept="image/*" onChange={handleLeadershipPhotoChange} className="hidden" />
-                          </label>
-                          {(leadershipPhotoPreview || leadershipForm.photo_url) && (
-                            <img src={leadershipPhotoPreview || leadershipForm.photo_url} alt="Preview" className="w-20 h-20 object-cover rounded border" />
-                          )}
-                        </div>
-                      </div>
-                      <div className="grid gap-2">
-                        <Label>Active</Label>
-                        <div className="flex items-center justify-between gap-4">
-                          <span className="text-sm text-muted-foreground">
-                            {leadershipForm.is_active ? "Active Commandant" : "Former Commandant"}
-                          </span>
-                          <Switch checked={leadershipForm.is_active} onCheckedChange={(checked) => setLeadershipForm({ ...leadershipForm, is_active: checked })} />
-                        </div>
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="l_display_order">Display Order</Label>
-                        <Input id="l_display_order" type="number" value={leadershipForm.display_order} onChange={(e) => setLeadershipForm({ ...leadershipForm, display_order: Number(e.target.value || 0) })} />
-                      </div>
-                      <Button onClick={() => createLeadershipMutation.mutate()} disabled={!leadershipForm.full_name}>
-                        {editingLeadershipId ? "Update" : "Create"} Leader
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Photo</TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Rank</TableHead>
-                        <TableHead>Position</TableHead>
-                        <TableHead>Active</TableHead>
-                        <TableHead>Order</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {(leadership || []).map((l) => (
-                        <TableRow key={l.id}>
-                          <TableCell>
-                            {l.photo_url ? (
-                              <img src={l.photo_url} alt={l.full_name} className="w-12 h-12 rounded object-cover" />
-                            ) : (
-                              <div className="w-12 h-12 rounded bg-muted" />
-                            )}
-                          </TableCell>
-                          <TableCell className="font-medium">{l.full_name}</TableCell>
-                          <TableCell>{l.rank}</TableCell>
-                          <TableCell>{l.position}</TableCell>
-                          <TableCell>{l.is_active ? "Yes" : "No"}</TableCell>
-                          <TableCell>{l.display_order ?? "-"}</TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setLeadershipForm({
-                                    full_name: l.full_name,
-                                    position: l.position,
-                                    role: "",
-                                    rank: l.rank || "",
-                                    bio: l.bio || "",
-                                    photo_url: l.photo_url || "",
-                                    is_active: !!l.is_active,
-                                    is_faculty: false,
-                                    display_order: l.display_order ?? 0,
-                                  });
-                                  setLeadershipPhotoFile(null);
-                                  setLeadershipPhotoPreview(null);
-                                  setEditingLeadershipId(l.id);
-                                  setLeadershipDialogOpen(true);
-                                }}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button variant="destructive" size="sm" onClick={() => deleteLeadershipMutation.mutate(l.id)}>
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
           <TabsContent value="personnel">
             <Card>
               <CardHeader>
@@ -2158,7 +2012,7 @@ const AdminDashboard = () => {
                           checked={personnelForm.is_faculty}
                           onCheckedChange={(checked) => setPersonnelForm({...personnelForm, is_faculty: checked})}
                         />
-                        <Label htmlFor="p_is_faculty">Is Faculty Member?</Label>
+                        <Label htmlFor="p_is_faculty">Show in College Leadership (About Page)</Label>
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="p_display_order">Display Order</Label>
