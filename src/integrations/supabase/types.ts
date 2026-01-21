@@ -24,10 +24,6 @@ export type Database = {
           instructor_id: string
           title: string
           updated_at: string
-          is_paid: boolean | null
-          price_cents: number | null
-          duration_weeks: number | null
-          currency: string | null
         }
         Insert: {
           category?: string | null
@@ -38,10 +34,6 @@ export type Database = {
           instructor_id: string
           title: string
           updated_at?: string
-          is_paid?: boolean | null
-          price_cents?: number | null
-          duration_weeks?: number | null
-          currency?: string | null
         }
         Update: {
           category?: string | null
@@ -52,10 +44,6 @@ export type Database = {
           instructor_id?: string
           title?: string
           updated_at?: string
-          is_paid?: boolean | null
-          price_cents?: number | null
-          duration_weeks?: number | null
-          currency?: string | null
         }
         Relationships: [
           {
@@ -73,24 +61,18 @@ export type Database = {
           enrolled_at: string
           id: string
           student_id: string
-          payment_status: string | null
-          access_state: string | null
         }
         Insert: {
           course_id: string
           enrolled_at?: string
           id?: string
           student_id: string
-          payment_status?: string | null
-          access_state?: string | null
         }
         Update: {
           course_id?: string
           enrolled_at?: string
           id?: string
           student_id?: string
-          payment_status?: string | null
-          access_state?: string | null
         }
         Relationships: [
           {
@@ -124,7 +106,6 @@ export type Database = {
           full_name: string
           id: string
           is_active: boolean | null
-          is_faculty: boolean | null
           photo_url: string | null
           position: string
           rank: string | null
@@ -307,7 +288,6 @@ export type Database = {
         Row: {
           bio: string | null
           category: string
-          display_category: string | null
           created_at: string
           department: string | null
           email: string
@@ -322,7 +302,6 @@ export type Database = {
         Insert: {
           bio?: string | null
           category: string
-          display_category?: string | null
           created_at?: string
           department?: string | null
           email: string
@@ -337,7 +316,6 @@ export type Database = {
         Update: {
           bio?: string | null
           category?: string
-          display_category?: string | null
           created_at?: string
           department?: string | null
           email?: string
@@ -587,84 +565,6 @@ export type Database = {
           id?: string
           role?: string
           user_id?: string
-        }
-        Relationships: []
-      }
-      gallery_videos: {
-        Row: {
-          id: string
-          title: string | null
-          url: string
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          title?: string | null
-          url: string
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          title?: string | null
-          url?: string
-          created_at?: string
-        }
-        Relationships: []
-      }
-      gallery_pictures: {
-        Row: {
-          id: string
-          title: string | null
-          image_url: string
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          title?: string | null
-          image_url: string
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          title?: string | null
-          image_url?: string
-          created_at?: string
-        }
-        Relationships: []
-      }
-      payments: {
-        Row: {
-          id: string
-          student_id: string
-          course_id: string
-          amount_cents: number
-          currency: string
-          status: string
-          provider: string | null
-          reference: string
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          student_id: string
-          course_id: string
-          amount_cents: number
-          currency: string
-          status: string
-          provider?: string | null
-          reference: string
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          student_id?: string
-          course_id?: string
-          amount_cents?: number
-          currency?: string
-          status?: string
-          provider?: string | null
-          reference?: string
-          created_at?: string
         }
         Relationships: []
       }
