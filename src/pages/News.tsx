@@ -6,7 +6,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { useQuery } from "@tanstack/react-query";
 import { supabaseClient as supabase } from "@/lib/supabase";
-import { Newspaper } from "lucide-react";
+import { Newspaper, Search, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
@@ -74,13 +75,35 @@ const News = () => {
       return (data as NewsItem[]) || [];
     },
   });
-  type GalleryPictureRow = { id: string; title: string; image_url: string; created_at: string };
+  type GalleryPictureRow = { id: string; title: string; image_url: string; description: string | null; created_at: string };
   const [eventPage, setEventPage] = useState(1);
   const eventPageSize = 6;
-  // Gallery pictures table doesn't exist - use empty data
-  const eventsCount = 0;
-  const totalEventPages = 1;
-  const eventPictures: GalleryPictureRow[] = [];
+  const [lightboxImage, setLightboxImage] = useState<GalleryPictureRow | null>(null);
+  const [filterText, setFilterText] = useState("");
+  
+  // Fetch gallery pictures from database
+  const { data: allGalleryPictures = [] } = useQuery({
+    queryKey: ["gallery-pictures"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("gallery_pictures")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data || []) as GalleryPictureRow[];
+    },
+    staleTime: 300000,
+    refetchOnWindowFocus: false,
+  });
+  
+  // Filter pictures based on search
+  const filteredPictures = allGalleryPictures.filter((p) =>
+    p.title.toLowerCase().includes(filterText.toLowerCase()) ||
+    (p.description || "").toLowerCase().includes(filterText.toLowerCase())
+  );
+  const eventsCount = filteredPictures.length;
+  const totalEventPages = Math.max(1, Math.ceil(eventsCount / eventPageSize));
+  const eventPictures = filteredPictures.slice((eventPage - 1) * eventPageSize, eventPage * eventPageSize);
 
   const { data: activeCommandant } = useQuery({
     queryKey: ["current-commandant"],
@@ -284,66 +307,122 @@ const News = () => {
                     </PaginationItem>
                   </PaginationContent>
                 </Pagination>
-                {/* Picture Gallery (repositioned to replace Events Gallery) */}
+                {/* Picture Gallery with filtering and lightbox */}
                 <div className="mt-10">
-                  <h3 className="text-xl font-bold mb-4">Picture Gallery</h3>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+                    <h3 className="text-xl font-bold">Picture Gallery</h3>
+                    <div className="relative w-full sm:w-64">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Filter pictures..."
+                        value={filterText}
+                        onChange={(e) => {
+                          setFilterText(e.target.value);
+                          setEventPage(1);
+                        }}
+                        className="pl-9 pr-9"
+                      />
+                      {filterText && (
+                        <button
+                          onClick={() => {
+                            setFilterText("");
+                            setEventPage(1);
+                          }}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {(eventPictures || []).map((p) => (
-                      <div key={p.id} className="relative rounded-lg overflow-hidden shadow-elevated border group">
-                        <img src={p.image_url} alt={p.title || "Picture"} className="w-full h-full object-cover aspect-square" />
+                      <button
+                        key={p.id}
+                        onClick={() => setLightboxImage(p)}
+                        className="relative rounded-lg overflow-hidden shadow-elevated border group cursor-pointer text-left"
+                      >
+                        <img src={p.image_url} alt={p.title || "Picture"} className="w-full h-full object-cover aspect-square group-hover:scale-105 transition-transform duration-300" />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                         <div className="absolute bottom-0 left-0 right-0 p-3">
-                          <div className="text-white text-sm">{p.title || "Picture"}</div>
+                          <div className="text-white text-sm font-medium">{p.title || "Picture"}</div>
                         </div>
-                      </div>
+                      </button>
                     ))}
-                    {(eventPictures || []).length === 0 && (
-                      <>
-                        {Array.from({ length: 6 }).map((_, i) => (
-                          <div key={i} className="relative rounded-lg overflow-hidden shadow-elevated border">
-                            <div className="w-full h-full aspect-square bg-muted" />
-                          </div>
-                        ))}
-                      </>
+                    {(eventPictures || []).length === 0 && allGalleryPictures.length === 0 && (
+                      <div className="col-span-full text-center py-8 text-muted-foreground">
+                        No pictures in gallery yet
+                      </div>
+                    )}
+                    {(eventPictures || []).length === 0 && allGalleryPictures.length > 0 && (
+                      <div className="col-span-full text-center py-8 text-muted-foreground">
+                        No pictures match your filter
+                      </div>
                     )}
                   </div>
-                  <Pagination className="mt-4">
-                    <PaginationContent>
-                      <PaginationItem>
-                        <PaginationPrevious
-                          href="#"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setEventPage((p) => Math.max(1, p - 1));
-                          }}
-                        />
-                      </PaginationItem>
-                      {Array.from({ length: totalEventPages }).map((_, pageIdx) => (
-                        <PaginationItem key={pageIdx}>
-                          <PaginationLink
+                  {eventsCount > eventPageSize && (
+                    <Pagination className="mt-4">
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious
                             href="#"
-                            isActive={eventPage === pageIdx + 1}
                             onClick={(e) => {
                               e.preventDefault();
-                              setEventPage(pageIdx + 1);
+                              setEventPage((p) => Math.max(1, p - 1));
                             }}
-                          >
-                            {pageIdx + 1}
-                          </PaginationLink>
+                          />
                         </PaginationItem>
-                      ))}
-                      <PaginationItem>
-                        <PaginationNext
-                          href="#"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setEventPage((p) => Math.min(totalEventPages, p + 1));
-                          }}
-                        />
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
+                        {Array.from({ length: totalEventPages }).map((_, pageIdx) => (
+                          <PaginationItem key={pageIdx}>
+                            <PaginationLink
+                              href="#"
+                              isActive={eventPage === pageIdx + 1}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setEventPage(pageIdx + 1);
+                              }}
+                            >
+                              {pageIdx + 1}
+                            </PaginationLink>
+                          </PaginationItem>
+                        ))}
+                        <PaginationItem>
+                          <PaginationNext
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setEventPage((p) => Math.min(totalEventPages, p + 1));
+                            }}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  )}
                 </div>
+
+                {/* Lightbox Dialog */}
+                <Dialog open={!!lightboxImage} onOpenChange={() => setLightboxImage(null)}>
+                  <DialogContent className="max-w-4xl p-0 overflow-hidden">
+                    <DialogHeader className="sr-only">
+                      <DialogTitle>{lightboxImage?.title || "Picture"}</DialogTitle>
+                    </DialogHeader>
+                    {lightboxImage && (
+                      <div className="relative">
+                        <img
+                          src={lightboxImage.image_url}
+                          alt={lightboxImage.title || "Picture"}
+                          className="w-full max-h-[80vh] object-contain"
+                        />
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                          <h3 className="text-white font-bold text-lg">{lightboxImage.title}</h3>
+                          {lightboxImage.description && (
+                            <p className="text-white/80 text-sm mt-1">{lightboxImage.description}</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </DialogContent>
+                </Dialog>
               </>
             ) : (
               <Card className="shadow-elevated">
