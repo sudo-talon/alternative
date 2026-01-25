@@ -31,38 +31,16 @@ const About = () => {
     retry: false,
     refetchOnWindowFocus: false,
   });
-  const { data: personnelSettings } = useQuery<Map<string, string>>({
-    queryKey: ["about-personnel-settings"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("notifications")
-        .select("title, message")
-        .eq("type", "setting")
-        .ilike("title", "personnel:%");
-      if (error) throw error;
-      const map = new Map<string, string>();
-      (data || []).forEach((row: { title: string; message: string }) => map.set(row.title, row.message));
-      return map;
-    },
-    retry: false,
-    refetchOnWindowFocus: false,
-    staleTime: 300000,
-  });
-  const readIsFaculty = (p: PersonnelRow): boolean => {
-    const fallback = personnelSettings?.get(`personnel:is_faculty:${p.id}`);
-    if (typeof (p as unknown as { is_faculty?: boolean }).is_faculty === "boolean") return !!(p as unknown as { is_faculty?: boolean }).is_faculty;
-    if (typeof fallback === "string") return /true|1|yes/i.test(fallback);
-    return false;
+  const readIsFaculty = (p: PersonnelRow & { is_faculty?: boolean }): boolean => {
+    return p.is_faculty === true;
   };
-  const readDisplayOrder = (p: PersonnelRow): number => {
-    const raw = personnelSettings?.get(`personnel:display_order:${p.id}`);
-    const n = Number(raw);
-    return Number.isFinite(n) ? n : 0;
+  const readDisplayOrder = (p: PersonnelRow & { display_order?: number }): number => {
+    return typeof p.display_order === 'number' ? p.display_order : 0;
   };
-  const settingsLoading = personnelLoading || !personnelSettings;
+  const settingsLoading = personnelLoading;
   const leadershipOrdered = (() => {
-    const filtered = (personnel || []).filter(p => readIsFaculty(p));
-    const list = filtered.slice().sort((a, b) => readDisplayOrder(a) - readDisplayOrder(b));
+    const filtered = (personnel || []).filter(p => readIsFaculty(p as PersonnelRow & { is_faculty?: boolean }));
+    const list = filtered.slice().sort((a, b) => readDisplayOrder(a as PersonnelRow & { display_order?: number }) - readDisplayOrder(b as PersonnelRow & { display_order?: number }));
     const remaining = [...list];
     const prioritized: PersonnelRow[] = [];
     const pullByMatch = (matcher: (pos: string) => boolean) => {

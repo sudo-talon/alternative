@@ -241,6 +241,13 @@ const Home = () => {
                   <Button 
                     variant="outline" 
                     className="w-full justify-start min-h-[44px] text-sm"
+                    onClick={() => window.open("https://dic-exams.vercel.app/", "_blank")}
+                  >
+                    {t('ePromexPortal') || 'e-Promex Portal'}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start min-h-[44px] text-sm"
                     onClick={() => navigate("/e-magazine")}
                   >
                     {t('eMagazine') || 'E-Magazine'}
