@@ -36,6 +36,7 @@ const translations: Record<Language, Record<string, string>> = {
     eLibrary: "e-Library",
     collegePortal: "College Portal",
     browseCourses: "Browse Courses",
+    ePromexPortal: "e-Promex Portal",
     
     // Common
     email: "Email",
@@ -196,6 +197,7 @@ const translations: Record<Language, Record<string, string>> = {
     eLibrary: "e-Laburare",
     collegePortal: "Ƙofar Kwalejin",
     browseCourses: "Duba Darussa",
+    ePromexPortal: "e-Promex Portal",
     
     // Common
     email: "Imel",

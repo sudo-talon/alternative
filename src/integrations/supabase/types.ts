@@ -341,9 +341,11 @@ export type Database = {
           category: string
           created_at: string
           department: string | null
+          display_order: number | null
           email: string
           full_name: string
           id: string
+          is_faculty: boolean | null
           phone: string | null
           photo_url: string | null
           position: string
@@ -355,9 +357,11 @@ export type Database = {
           category: string
           created_at?: string
           department?: string | null
+          display_order?: number | null
           email: string
           full_name: string
           id?: string
+          is_faculty?: boolean | null
           phone?: string | null
           photo_url?: string | null
           position: string
@@ -369,9 +373,11 @@ export type Database = {
           category?: string
           created_at?: string
           department?: string | null
+          display_order?: number | null
           email?: string
           full_name?: string
           id?: string
+          is_faculty?: boolean | null
           phone?: string | null
           photo_url?: string | null
           position?: string
