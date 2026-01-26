@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { supabaseClient } from "@/lib/supabase";
-import { Newspaper, Trash2, Plus, Users, GraduationCap, Edit, BarChart3, Shield, BookOpen, UserCog, Crown, FileText, Image as ImageIcon, Video } from "lucide-react";
+import { Newspaper, Trash2, Plus, Users, GraduationCap, Edit, BarChart3, Shield, BookOpen, UserCog, FileText, Image as ImageIcon, Video, Info } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -18,7 +18,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { MagazineUploadDialog } from "@/components/MagazineUploadDialog";
-import { Tooltip, Legend, ResponsiveContainer, LineChart, Line, XAxis, YAxis, PieChart, Pie, Cell } from "recharts";
+import { Tooltip as RechartsTooltip, Legend, ResponsiveContainer, LineChart, Line, XAxis, YAxis, PieChart, Pie, Cell } from "recharts";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import dicLogo from "@/assets/dic-logo.png";
 
 const supabase = supabaseClient;
@@ -1768,7 +1769,17 @@ const AdminDashboard = () => {
                         <Label htmlFor="p_is_faculty">Show in College Leadership (About Page)</Label>
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="p_display_order">Display Order</Label>
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor="p_display_order">Display Order</Label>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Lower numbers appear first in the College Leadership section</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
                         <Input
                           id="p_display_order"
                           type="number"
@@ -2582,7 +2593,7 @@ const AdminDashboard = () => {
                       <LineChart data={completionRateTrend}>
                         <XAxis dataKey="month" tick={{ fontSize: 12 }} />
                         <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
-                        <Tooltip formatter={(val) => `${val}%`} />
+                        <RechartsTooltip formatter={(val) => `${val}%`} />
                         <Legend />
                         <Line type="monotone" dataKey="rate" name="Completion %" stroke="#10b981" strokeWidth={2} dot={false} />
                       </LineChart>
