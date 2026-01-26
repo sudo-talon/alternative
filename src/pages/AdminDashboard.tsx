@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { supabaseClient } from "@/lib/supabase";
-import { Newspaper, Trash2, Plus, Users, GraduationCap, Edit, BarChart3, Shield, BookOpen, UserCog, FileText, Image as ImageIcon, Video, Info } from "lucide-react";
+import { Newspaper, Trash2, Plus, Users, GraduationCap, Edit, BarChart3, Shield, BookOpen, UserCog, FileText, Image as ImageIcon, Video, Info, Crown } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -1148,42 +1148,23 @@ const AdminDashboard = () => {
         photoUrl = await uploadAvatarImage(personnelPhotoFile, "personnel");
       }
       const now = new Date().toISOString();
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { is_faculty, display_order, ...cleanForm } = personnelForm;
-      const basePayload = { ...cleanForm, photo_url: photoUrl };
+      const basePayload = { 
+        ...cleanForm, 
+        photo_url: photoUrl,
+        is_faculty: is_faculty,
+        display_order: display_order
+      };
       const desiredCategory = personnelCategoryUi;
       const attempt = async () => {
         const payload = { ...basePayload, category: desiredCategory };
-        let targetId = editingPersonnelId;
 
         if (editingPersonnelId) {
           const { error } = await supabase.from("personnel").update({ ...payload, updated_at: now }).eq("id", editingPersonnelId);
           if (error) throw error;
         } else {
-          const { data, error } = await supabase.from("personnel").insert([{ ...payload, created_at: now, updated_at: now }]).select("id").single();
+          const { error } = await supabase.from("personnel").insert([{ ...payload, created_at: now, updated_at: now }]);
           if (error) throw error;
-          targetId = data.id;
-        }
-
-        if (targetId) {
-          const notifs: Database["public"]["Tables"]["notifications"]["Insert"][] = [];
-          // Always save fallback fields since they are not in the personnel table
-          notifs.push({
-            title: `personnel:is_faculty:${targetId}`,
-            message: String(is_faculty),
-            type: "setting",
-            user_id: currentUserId || ""
-          });
-          notifs.push({
-            title: `personnel:display_order:${targetId}`,
-            message: String(display_order),
-            type: "setting",
-            user_id: currentUserId || ""
-          });
-          
-          if (notifs.length > 0) {
-            await supabase.from("notifications").upsert(notifs);
-          }
         }
       };
       try {
@@ -1443,6 +1424,7 @@ const AdminDashboard = () => {
           <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 h-auto">
             <TabsTrigger value="courses" className="h-full whitespace-normal min-h-[44px]"><BookOpen className="mr-1 h-4 w-4" />Courses</TabsTrigger>
             <TabsTrigger value="personnel" className="h-full whitespace-normal min-h-[44px]"><UserCog className="mr-1 h-4 w-4" />Personnel</TabsTrigger>
+            <TabsTrigger value="chronicle" className="h-full whitespace-normal min-h-[44px]"><Crown className="mr-1 h-4 w-4" />Chronicle</TabsTrigger>
             <TabsTrigger value="pgprograms" className="h-full whitespace-normal min-h-[44px]"><GraduationCap className="mr-1 h-4 w-4" />PG Programs</TabsTrigger>
             <TabsTrigger value="news" className="h-full whitespace-normal min-h-[44px]"><Newspaper className="mr-1 h-4 w-4" />News</TabsTrigger>
             <TabsTrigger value="magazines" className="h-full whitespace-normal min-h-[44px]"><FileText className="mr-1 h-4 w-4" />Magazines</TabsTrigger>
@@ -1856,6 +1838,181 @@ const AdminDashboard = () => {
           </TabsContent>
 
 
+          <TabsContent value="chronicle">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Crown className="h-5 w-5 text-primary" />
+                  Chronicle of Command
+                </CardTitle>
+                <CardDescription>Manage the commandant marquee section and command history</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <Button onClick={() => {
+                  setLeadershipForm({ full_name: "", position: "", role: "", rank: "", bio: "", photo_url: "", is_active: true, is_faculty: false, display_order: 0 });
+                  setEditingLeadershipId(null);
+                  setLeadershipPhotoFile(null);
+                  setLeadershipPhotoPreview(null);
+                  setLeadershipDialogOpen(true);
+                }}>
+                  <Plus className="mr-2 h-4 w-4" />Add Commandant
+                </Button>
+
+                <Dialog open={leadershipDialogOpen} onOpenChange={setLeadershipDialogOpen}>
+                  <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>{editingLeadershipId ? "Edit" : "Add"} Commandant</DialogTitle>
+                      <DialogDescription>Enter commandant details for the Chronicle of Command</DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="l_full_name">Full Name</Label>
+                        <Input id="l_full_name" value={leadershipForm.full_name} onChange={(e) => setLeadershipForm({...leadershipForm, full_name: e.target.value})} placeholder="e.g. John Doe" />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="l_rank">Rank</Label>
+                        <Input id="l_rank" value={leadershipForm.rank} onChange={(e) => setLeadershipForm({...leadershipForm, rank: e.target.value})} placeholder="e.g. Commodore, Rear Admiral" />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="l_position">Position</Label>
+                        <Input id="l_position" value={leadershipForm.position} onChange={(e) => setLeadershipForm({...leadershipForm, position: e.target.value})} placeholder="e.g. Commandant DIC, Former Commandant DIC" />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="l_bio">Bio</Label>
+                        <Textarea id="l_bio" value={leadershipForm.bio} onChange={(e) => setLeadershipForm({...leadershipForm, bio: e.target.value})} rows={3} placeholder="Brief biography..." />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Photo</Label>
+                        <div className="flex items-start gap-4">
+                          <label className="flex-1 flex flex-col items-center justify-center p-4 border-2 border-dashed border-muted-foreground/30 rounded-lg cursor-pointer hover:border-primary/50 transition-colors">
+                            <ImageIcon className="h-8 w-8 text-muted-foreground mb-2" />
+                            <span className="text-sm text-muted-foreground">
+                              {leadershipPhotoFile ? leadershipPhotoFile.name : "Click to upload photo"}
+                            </span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  setLeadershipPhotoFile(file);
+                                  setLeadershipPhotoPreview(URL.createObjectURL(file));
+                                }
+                              }}
+                              className="hidden"
+                            />
+                          </label>
+                          {(leadershipPhotoPreview || leadershipForm.photo_url) && (
+                            <img
+                              src={leadershipPhotoPreview || leadershipForm.photo_url}
+                              alt="Photo preview"
+                              className="w-20 h-20 object-cover rounded border"
+                            />
+                          )}
+                        </div>
+                      </div>
+                      <div className="grid gap-2">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor="l_display_order">Display Order</Label>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Lower numbers appear first in the marquee section</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                        <Input
+                          id="l_display_order"
+                          type="number"
+                          value={leadershipForm.display_order}
+                          onChange={(e) => setLeadershipForm({...leadershipForm, display_order: parseInt(e.target.value) || 0})}
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          id="l_is_active"
+                          checked={leadershipForm.is_active}
+                          onCheckedChange={(checked) => setLeadershipForm({...leadershipForm, is_active: checked})}
+                        />
+                        <Label htmlFor="l_is_active">Current/Active Commandant</Label>
+                      </div>
+                      <Button onClick={() => createLeadershipMutation.mutate()} disabled={!leadershipForm.full_name || !leadershipForm.position}>
+                        {editingLeadershipId ? "Update" : "Add"} Commandant
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Photo</TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Rank</TableHead>
+                        <TableHead>Position</TableHead>
+                        <TableHead>Order</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {leadership?.map((leader) => (
+                        <TableRow key={leader.id}>
+                          <TableCell>
+                            {leader.photo_url ? (
+                              <img src={leader.photo_url} alt={leader.full_name} className="w-12 h-12 rounded-full object-cover" />
+                            ) : (
+                              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                                <Crown className="h-5 w-5 text-muted-foreground" />
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell className="font-medium">{leader.full_name}</TableCell>
+                          <TableCell>{leader.rank}</TableCell>
+                          <TableCell>{leader.position}</TableCell>
+                          <TableCell>{leader.display_order}</TableCell>
+                          <TableCell>
+                            <Badge variant={leader.is_active ? "default" : "secondary"}>
+                              {leader.is_active ? "Current" : "Former"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button variant="outline" size="sm" onClick={() => {
+                                setLeadershipForm({
+                                  full_name: leader.full_name,
+                                  position: leader.position,
+                                  role: "",
+                                  rank: leader.rank || "",
+                                  bio: leader.bio || "",
+                                  photo_url: leader.photo_url || "",
+                                  is_active: leader.is_active ?? true,
+                                  is_faculty: false,
+                                  display_order: leader.display_order || 0
+                                });
+                                setEditingLeadershipId(leader.id);
+                                setLeadershipPhotoFile(null);
+                                setLeadershipPhotoPreview(leader.photo_url || null);
+                                setLeadershipDialogOpen(true);
+                              }}>
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="destructive" size="sm" onClick={() => deleteLeadershipMutation.mutate(leader.id)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="news">
             <Card>
