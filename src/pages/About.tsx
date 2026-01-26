@@ -102,7 +102,7 @@ const About = () => {
                     <Carousel opts={{ align: "start", loop: true }}>
                       <CarouselContent>
                         {[
-                          { src: "/gallery-pics/SY AUDU.jpg", caption: "SY Audu Hall" },
+                          { src: "/gallery-pics/sy-audu.jpg", caption: "SY Audu Hall" },
                           { src: "/gallery-pics/library.jpg", caption: "College Library" },
                           { src: "/gallery-pics/gym.jpg", caption: "College Gym" },
                           { src: "/gallery-pics/court.jpg", caption: "Basketball Court" },
