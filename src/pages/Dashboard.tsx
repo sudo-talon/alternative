@@ -133,7 +133,8 @@ const Dashboard = () => {
           profiles:student_id(full_name, email)
         `)
         .in("course_id", courseIds)
-        .eq("is_approved", false) as any;
+        .eq("is_approved", false)
+        .eq("status", "pending") as any;
       
       if (error) throw error;
       return data;
@@ -147,6 +148,9 @@ const Dashboard = () => {
         .from("enrollments")
         .update({
           is_approved: approved,
+          status: approved ? "approved" : "rejected",
+          approved_by: user?.id,
+          approved_at: new Date().toISOString(),
         })
         .eq("id", id);
       if (error) throw error;

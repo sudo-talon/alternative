@@ -243,7 +243,11 @@ const Home = () => {
                     className="w-full justify-start min-h-[44px] text-sm"
                     onClick={() => window.open("https://dic-exams.vercel.app/", "_blank")}
                   >
+<<<<<<< HEAD
                     {t('ePromexPortal') || 'e-Promex Portal'}
+=======
+                    e‑Promex Portal
+>>>>>>> chore/db-enrollments-fix
                   </Button>
                   <Button 
                     variant="outline" 
