@@ -68,20 +68,20 @@ const Courses = () => {
       ],
     },
     {
-      category: "Language Courses",
-      courses: [
-        { title: "Basic French Course", description: "Foundation French language training" },
-        { title: "Intermediate French Language Course", description: "Intermediate French proficiency" },
-        { title: "Basic German Language Course", description: "Foundation German language training" },
-      ],
-    },
-    {
       category: "Strategic Courses",
       courses: [
         { title: "The National Security Training Seminar", description: "National security strategy and policy" },
         { title: "Intelligence Analysis Course", description: "Strategic intelligence assessment" },
         { title: "Peace and Conflict Studies", description: "Peace operations and conflict resolution" },
         { title: "Strategic Security Course", description: "Strategic security planning and management" },
+      ],
+    },
+    {
+      category: "Language Courses",
+      courses: [
+        { title: "Basic French Course", description: "Foundation French language training" },
+        { title: "Intermediate French Language Course", description: "Intermediate French proficiency" },
+        { title: "Basic German Language Course", description: "Foundation German language training" },
       ],
     },
   ];
@@ -107,7 +107,20 @@ const Courses = () => {
       )
     : null;
 
-  const courseCategories = dynamicCategories && dynamicCategories.length > 0 ? dynamicCategories : staticCategories;
+  const categoryOrder: Record<string, number> = {
+    "Generic Courses": 0,
+    "Specialized Courses": 1,
+    "Strategic Courses": 2,
+    "Language Courses": 3,
+  };
+
+  const baseCategories = dynamicCategories && dynamicCategories.length > 0 ? dynamicCategories : staticCategories;
+
+  const courseCategories = [...baseCategories].sort((a, b) => {
+    const aRank = categoryOrder[a.category] ?? 99;
+    const bRank = categoryOrder[b.category] ?? 99;
+    return aRank - bRank;
+  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -175,7 +188,7 @@ const Courses = () => {
                       )}
                       {course.is_paid === false && (
                         <Badge variant="outline" className="text-xs">
-                          Free
+                          Admin Control
                         </Badge>
                       )}
                     </div>

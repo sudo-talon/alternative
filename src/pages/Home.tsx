@@ -241,6 +241,13 @@ const Home = () => {
                   <Button 
                     variant="outline" 
                     className="w-full justify-start min-h-[44px] text-sm"
+                    onClick={() => window.open("https://dic-exams.vercel.app/", "_blank")}
+                  >
+                    e‑Promex Portal
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start min-h-[44px] text-sm"
                     onClick={() => navigate("/e-magazine")}
                   >
                     {t('eMagazine') || 'E-Magazine'}
@@ -361,8 +368,8 @@ const Home = () => {
                   </div>
                 </div>
                 <div className="mt-6 sm:mt-8">
-                  <div className="space-y-4">
-                    <div className="aspect-video rounded-lg overflow-hidden shadow-elevated bg-muted">
+                  <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_220px] gap-4 items-start">
+                    <div className="aspect-video rounded-lg overflow-hidden shadow-elevated bg-muted w-full">
                       {videoItems.length ? (
                         <iframe
                           src={videoItems[selectedVideo].embed}
@@ -376,17 +383,19 @@ const Home = () => {
                       )}
                     </div>
                     {videoItems.length > 1 && (
-                      <div className="grid grid-cols-3 gap-2">
-                        {videoItems.map((v, i) => (
-                          <button
-                            key={i}
-                            onClick={() => setSelectedVideo(i)}
-                            className={`rounded overflow-hidden border ${selectedVideo === i ? "border-primary" : "border-transparent"}`}
-                            title={v.title}
-                          >
-                            <img src={v.poster} alt={v.title} className="aspect-video w-full object-cover" />
-                          </button>
-                        ))}
+                      <div className="md:max-h-[380px] overflow-auto rounded-lg border bg-card p-2">
+                        <div className="grid gap-2">
+                          {videoItems.map((v, i) => (
+                            <button
+                              key={i}
+                              onClick={() => setSelectedVideo(i)}
+                              className={`rounded overflow-hidden border ${selectedVideo === i ? "border-primary" : "border-transparent"}`}
+                              title={v.title}
+                            >
+                              <img src={v.poster} alt={v.title} className="w-full h-16 object-cover" />
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>

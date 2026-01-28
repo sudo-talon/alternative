@@ -6,18 +6,22 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { useQuery } from "@tanstack/react-query";
 import { supabaseClient as supabase } from "@/lib/supabase";
-import { Newspaper, Search, X } from "lucide-react";
+import { Newspaper, Search, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import cdreBugaje from "@/assets/cdre-bugaje.jpeg";
 import dicBg from "@/assets/dic-bg.png";
 import type { Database } from "@/integrations/supabase/types";
 import { EMagazineSidebar } from "@/components/EMagazineSidebar";
+import { cn } from "@/lib/utils";
 
 const News = () => {
   const navigate = useNavigate();
+  const isAbortError = (e: unknown) =>
+    (e instanceof DOMException && e.name === "AbortError") ||
+    (e instanceof Error && /AbortError|aborted|ERR_ABORTED/i.test(e.message));
   type LeadershipRow = Database["public"]["Tables"]["leadership"]["Row"];
   const overrides: Record<string, string> = {
     "Cdre UM BUGAJE": cdreBugaje,
@@ -53,33 +57,59 @@ const News = () => {
   const { data: newsCount } = useQuery<number>({
     queryKey: ["news-count"],
     queryFn: async () => {
-      const { count, error } = await supabase
-        .from("news")
-        .select("*", { count: "exact", head: true });
-      if (error) throw error;
-      return count || 0;
+      try {
+        const { count, error } = await supabase
+          .from("news")
+          .select("*", { count: "exact", head: true });
+        if (error) throw error;
+        return count || 0;
+      } catch (err) {
+        if (isAbortError(err)) return 0;
+        throw err as Error;
+      }
     },
+    retry: false,
+    refetchOnWindowFocus: false,
   });
   const totalNewsPages = Math.max(1, Math.ceil((newsCount || 0) / newsPageSize));
   const { data: newsItems, isLoading } = useQuery<NewsItem[]>({
     queryKey: ["news-page", newsPage],
     queryFn: async () => {
-      const from = (newsPage - 1) * newsPageSize;
-      const to = from + newsPageSize - 1;
-      const { data, error } = await supabase
-        .from("news")
-        .select("*")
-        .order("published_at", { ascending: false })
-        .range(from, to);
-      if (error) throw error;
-      return (data as NewsItem[]) || [];
+      try {
+        const from = (newsPage - 1) * newsPageSize;
+        const to = from + newsPageSize - 1;
+        const { data, error } = await supabase
+          .from("news")
+          .select("*")
+          .order("published_at", { ascending: false })
+          .range(from, to);
+        if (error) throw error;
+        return (data as NewsItem[]) || [];
+      } catch (err) {
+        if (isAbortError(err)) return [];
+        throw err as Error;
+      }
     },
+    retry: false,
+    refetchOnWindowFocus: false,
   });
-  type GalleryPictureRow = { id: string; title: string; image_url: string; description: string | null; created_at: string };
+  
+  type GalleryPictureRow = { id: string; title: string; image_url: string; description: string | null; created_at: string; category_id: string | null };
   const [eventPage, setEventPage] = useState(1);
-  const eventPageSize = 6;
+  const eventPageSize = 12; // Increased for collage
   const [lightboxImage, setLightboxImage] = useState<GalleryPictureRow | null>(null);
   const [filterText, setFilterText] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+
+  // Fetch gallery categories
+  const { data: galleryCategories } = useQuery({
+    queryKey: ["gallery-categories"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("gallery_categories").select("*").order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
   
   // Fetch gallery pictures from database
   const { data: allGalleryPictures = [] } = useQuery({
@@ -96,14 +126,50 @@ const News = () => {
     refetchOnWindowFocus: false,
   });
   
-  // Filter pictures based on search
-  const filteredPictures = allGalleryPictures.filter((p) =>
-    p.title.toLowerCase().includes(filterText.toLowerCase()) ||
-    (p.description || "").toLowerCase().includes(filterText.toLowerCase())
-  );
+  // Filter pictures based on search and category
+  const filteredPictures = allGalleryPictures.filter((p) => {
+    const matchesText = p.title.toLowerCase().includes(filterText.toLowerCase()) ||
+      (p.description || "").toLowerCase().includes(filterText.toLowerCase());
+    const matchesCategory = selectedCategory === "all" || p.category_id === selectedCategory;
+    return matchesText && matchesCategory;
+  });
+
   const eventsCount = filteredPictures.length;
   const totalEventPages = Math.max(1, Math.ceil(eventsCount / eventPageSize));
   const eventPictures = filteredPictures.slice((eventPage - 1) * eventPageSize, eventPage * eventPageSize);
+
+  // Lightbox Navigation
+  const handleNextImage = useCallback(() => {
+    if (!lightboxImage) return;
+    const currentIndex = filteredPictures.findIndex(p => p.id === lightboxImage.id);
+    if (currentIndex !== -1 && currentIndex < filteredPictures.length - 1) {
+      setLightboxImage(filteredPictures[currentIndex + 1]);
+    } else if (currentIndex === filteredPictures.length - 1) {
+      setLightboxImage(filteredPictures[0]); // Loop back to start
+    }
+  }, [lightboxImage, filteredPictures]);
+
+  const handlePrevImage = useCallback(() => {
+    if (!lightboxImage) return;
+    const currentIndex = filteredPictures.findIndex(p => p.id === lightboxImage.id);
+    if (currentIndex > 0) {
+      setLightboxImage(filteredPictures[currentIndex - 1]);
+    } else if (currentIndex === 0) {
+      setLightboxImage(filteredPictures[filteredPictures.length - 1]); // Loop to end
+    }
+  }, [lightboxImage, filteredPictures]);
+
+  // Keyboard navigation for lightbox
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!lightboxImage) return;
+      if (e.key === "ArrowRight") handleNextImage();
+      if (e.key === "ArrowLeft") handlePrevImage();
+      if (e.key === "Escape") setLightboxImage(null);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [lightboxImage, handleNextImage, handlePrevImage]);
 
   const { data: activeCommandant } = useQuery({
     queryKey: ["current-commandant"],
@@ -150,7 +216,7 @@ const News = () => {
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-primary-foreground mb-4 md:mb-6">
-              News & Blog
+              News & Gallery
             </h1>
             <p className="text-lg sm:text-xl text-primary-foreground/90">
               Stay updated with the latest from Defence Intelligence College
@@ -308,60 +374,110 @@ const News = () => {
                   </PaginationContent>
                 </Pagination>
                 {/* Picture Gallery with filtering and lightbox */}
-                <div className="mt-10">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-                    <h3 className="text-xl font-bold">Picture Gallery</h3>
-                    <div className="relative w-full sm:w-64">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Filter pictures..."
-                        value={filterText}
-                        onChange={(e) => {
-                          setFilterText(e.target.value);
-                          setEventPage(1);
-                        }}
-                        className="pl-9 pr-9"
-                      />
-                      {filterText && (
-                        <button
-                          onClick={() => {
-                            setFilterText("");
+                <div className="mt-16">
+                  <div className="flex flex-col gap-6 mb-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <h3 className="text-2xl font-bold">Picture Gallery</h3>
+                      <div className="relative w-full sm:w-64">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Search pictures..."
+                          value={filterText}
+                          onChange={(e) => {
+                            setFilterText(e.target.value);
                             setEventPage(1);
                           }}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                          className="pl-9 pr-9"
+                        />
+                        {filterText && (
+                          <button
+                            onClick={() => {
+                              setFilterText("");
+                              setEventPage(1);
+                            }}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Category Tabs */}
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant={selectedCategory === "all" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => { setSelectedCategory("all"); setEventPage(1); }}
+                        className="rounded-full"
+                      >
+                        All Photos
+                      </Button>
+                      {galleryCategories?.map((cat: any) => (
+                        <Button
+                          key={cat.id}
+                          variant={selectedCategory === cat.id ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => { setSelectedCategory(cat.id); setEventPage(1); }}
+                          className="rounded-full"
                         >
-                          <X className="h-4 w-4" />
-                        </button>
-                      )}
+                          {cat.name}
+                        </Button>
+                      ))}
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {(eventPictures || []).map((p) => (
-                      <button
-                        key={p.id}
-                        onClick={() => setLightboxImage(p)}
-                        className="relative rounded-lg overflow-hidden shadow-elevated border group cursor-pointer text-left"
-                      >
-                        <img src={p.image_url} alt={p.title || "Picture"} className="w-full h-full object-cover aspect-square group-hover:scale-105 transition-transform duration-300" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                        <div className="absolute bottom-0 left-0 right-0 p-3">
-                          <div className="text-white text-sm font-medium">{p.title || "Picture"}</div>
-                        </div>
-                      </button>
-                    ))}
+
+                  {/* Collage Grid */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 auto-rows-[200px]">
+                    {(eventPictures || []).map((p, idx) => {
+                      // Create a collage effect by spanning some items
+                      const isLarge = idx % 5 === 0; // Every 5th item is large
+                      const isWide = idx % 7 === 0 && !isLarge; // Every 7th item is wide (if not large)
+                      
+                      return (
+                        <button
+                          key={p.id}
+                          onClick={() => setLightboxImage(p)}
+                          className={cn(
+                            "relative rounded-xl overflow-hidden shadow-sm border group cursor-pointer text-left transition-all hover:shadow-lg",
+                            isLarge ? "col-span-2 row-span-2" : isWide ? "col-span-2" : "col-span-1"
+                          )}
+                        >
+                          <img 
+                            src={p.image_url} 
+                            alt={p.title || "Picture"} 
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                              <div className="text-white font-semibold line-clamp-1">{p.title || "Picture"}</div>
+                              {p.description && <div className="text-white/80 text-xs line-clamp-2 mt-1">{p.description}</div>}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                    
                     {(eventPictures || []).length === 0 && allGalleryPictures.length === 0 && (
-                      <div className="col-span-full text-center py-8 text-muted-foreground">
-                        No pictures in gallery yet
+                      <div className="col-span-full text-center py-12 text-muted-foreground bg-muted/30 rounded-xl border border-dashed">
+                        <div className="flex flex-col items-center gap-2">
+                          <Newspaper className="h-10 w-10 opacity-20" />
+                          <p>No pictures in gallery yet</p>
+                        </div>
                       </div>
                     )}
                     {(eventPictures || []).length === 0 && allGalleryPictures.length > 0 && (
-                      <div className="col-span-full text-center py-8 text-muted-foreground">
-                        No pictures match your filter
+                      <div className="col-span-full text-center py-12 text-muted-foreground bg-muted/30 rounded-xl border border-dashed">
+                         <div className="flex flex-col items-center gap-2">
+                          <Search className="h-10 w-10 opacity-20" />
+                          <p>No pictures match your filter</p>
+                        </div>
                       </div>
                     )}
                   </div>
+                  
                   {eventsCount > eventPageSize && (
-                    <Pagination className="mt-4">
+                    <Pagination className="mt-8">
                       <PaginationContent>
                         <PaginationItem>
                           <PaginationPrevious
@@ -400,24 +516,45 @@ const News = () => {
                   )}
                 </div>
 
-                {/* Lightbox Dialog */}
+                {/* Lightbox Dialog with Navigation */}
                 <Dialog open={!!lightboxImage} onOpenChange={() => setLightboxImage(null)}>
-                  <DialogContent className="max-w-4xl p-0 overflow-hidden">
+                  <DialogContent className="max-w-[90vw] md:max-w-5xl p-0 overflow-hidden bg-black/95 border-none">
                     <DialogHeader className="sr-only">
                       <DialogTitle>{lightboxImage?.title || "Picture"}</DialogTitle>
                     </DialogHeader>
                     {lightboxImage && (
-                      <div className="relative">
+                      <div className="relative w-full h-[80vh] flex items-center justify-center group">
                         <img
                           src={lightboxImage.image_url}
                           alt={lightboxImage.title || "Picture"}
-                          className="w-full max-h-[80vh] object-contain"
+                          className="max-w-full max-h-full object-contain"
                         />
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-                          <h3 className="text-white font-bold text-lg">{lightboxImage.title}</h3>
+                        
+                        {/* Navigation Buttons */}
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handlePrevImage(); }}
+                          className="absolute left-4 p-2 rounded-full bg-black/50 text-white hover:bg-white/20 transition-colors"
+                          aria-label="Previous image"
+                        >
+                          <ChevronLeft className="h-8 w-8" />
+                        </button>
+                        
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handleNextImage(); }}
+                          className="absolute right-4 p-2 rounded-full bg-black/50 text-white hover:bg-white/20 transition-colors"
+                          aria-label="Next image"
+                        >
+                          <ChevronRight className="h-8 w-8" />
+                        </button>
+
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/70 to-transparent p-6 text-white">
+                          <h3 className="font-bold text-xl md:text-2xl">{lightboxImage.title}</h3>
                           {lightboxImage.description && (
-                            <p className="text-white/80 text-sm mt-1">{lightboxImage.description}</p>
+                            <p className="text-gray-300 mt-2 max-w-3xl">{lightboxImage.description}</p>
                           )}
+                          <div className="mt-2 text-xs text-gray-500">
+                            {formatDistanceToNow(new Date(lightboxImage.created_at), { addSuffix: true })}
+                          </div>
                         </div>
                       </div>
                     )}
@@ -457,8 +594,10 @@ const News = () => {
                         </div>
                       </div>
                       <div className="text-center w-full">
-                        <div className="font-bold text-lg">{activeCommandant.full_name}</div>
-                        <div className="text-sm text-muted-foreground mb-2">{activeCommandant.rank}</div>
+                        <div className="font-bold text-lg">
+                          {activeCommandant.rank ? `${activeCommandant.rank} ${activeCommandant.full_name}` : activeCommandant.full_name}
+                        </div>
+                        <div className="text-sm text-muted-foreground mb-2">{activeCommandant.position}</div>
                         <Button variant="outline" size="sm" className="w-full sm:hidden min-h-[44px]" onClick={() => setResumeOpen(true)}>
                           Preview Résumé
                         </Button>
@@ -476,13 +615,23 @@ const News = () => {
               <Dialog open={resumeOpen} onOpenChange={setResumeOpen}>
                 <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                   <DialogHeader>
-                    <DialogTitle>{activeCommandant?.full_name}</DialogTitle>
+                    <DialogTitle>
+                      {activeCommandant
+                        ? (activeCommandant.rank ? `${activeCommandant.rank} ${activeCommandant.full_name}` : activeCommandant.full_name)
+                        : ""}
+                    </DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4">
                     {activeCommandant?.photo_url && (
-                      <img src={activeCommandant.photo_url} alt={activeCommandant.full_name || ""} className="w-full h-64 object-cover rounded" />
+                      <div className="w-full bg-muted rounded overflow-hidden">
+                        <img
+                          src={activeCommandant.photo_url}
+                          alt={activeCommandant.full_name || ""}
+                          className="w-full max-h-[60vh] object-contain"
+                        />
+                      </div>
                     )}
-                    <div className="text-sm text-muted-foreground">{activeCommandant?.rank} • {activeCommandant?.position}</div>
+                    <div className="text-sm text-muted-foreground">{activeCommandant?.position}</div>
                     <div className="text-foreground leading-relaxed whitespace-pre-wrap text-sm">{activeCommandant?.bio}</div>
                   </div>
                 </DialogContent>

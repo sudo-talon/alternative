@@ -86,9 +86,52 @@ const AdminDashboard = () => {
   const [selectedRole, setSelectedRole] = useState("");
   const [selectedUserCategory, setSelectedUserCategory] = useState("");
   const [videoForm, setVideoForm] = useState({ title: "", url: "" });
-  const [pictureForm, setPictureForm] = useState({ title: "", image_url: "" });
+  const [pictureForm, setPictureForm] = useState({ title: "", image_url: "", category_id: "" });
   const [galleryUploadFile, setGalleryUploadFile] = useState<File | null>(null);
   const [galleryUploadPreview, setGalleryUploadPreview] = useState<string | null>(null);
+
+  // Gallery Categories
+  const [newGalleryCategoryName, setNewGalleryCategoryName] = useState("");
+  const [galleryCategoryDialogOpen, setGalleryCategoryDialogOpen] = useState(false);
+  const { data: galleryCategories, refetch: refetchGalleryCategories } = useQuery({
+    queryKey: ["gallery-categories"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("gallery_categories").select("*").order("name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: isAdmin,
+  });
+
+  const createGalleryCategoryMutation = useMutation({
+    mutationFn: async (name: string) => {
+      const { error } = await supabase.from("gallery_categories").insert({ name, created_by: currentUserId });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Category created" });
+      refetchGalleryCategories();
+      setNewGalleryCategoryName("");
+      setGalleryCategoryDialogOpen(false);
+    },
+    onError: (err) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const deleteGalleryCategoryMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("gallery_categories").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Category deleted" });
+      refetchGalleryCategories();
+    },
+    onError: (err) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
 
   const handleGalleryUploadChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -103,7 +146,7 @@ const AdminDashboard = () => {
   };
 
   type GalleryVideo = { id: string; title: string; url: string };
-  type GalleryPicture = { id: string; title: string; image_url: string };
+  type GalleryPicture = { id: string; title: string; image_url: string; category_id?: string | null };
   const [galleryVideos, setGalleryVideos] = useState<GalleryVideo[]>([]);
   const [galleryPictures, setGalleryPictures] = useState<GalleryPicture[]>([]);
   const [editingGalleryVideoId, setEditingGalleryVideoId] = useState<string | null>(null);
@@ -264,15 +307,23 @@ const AdminDashboard = () => {
       }
 
       if (editingGalleryPictureId) {
-        const { error } = await supabase.from("gallery_pictures").update({ title: pictureForm.title, image_url: imageUrl }).eq("id", editingGalleryPictureId);
+        const { error } = await supabase.from("gallery_pictures").update({ 
+          title: pictureForm.title, 
+          image_url: imageUrl,
+          category_id: pictureForm.category_id || null
+        }).eq("id", editingGalleryPictureId);
         if (error) throw error;
         toast({ title: "Updated", description: "Picture updated successfully" });
       } else {
-        const { error } = await supabase.from("gallery_pictures").insert([{ title: pictureForm.title, image_url: imageUrl }]);
+        const { error } = await supabase.from("gallery_pictures").insert([{ 
+          title: pictureForm.title, 
+          image_url: imageUrl,
+          category_id: pictureForm.category_id || null
+        }]);
         if (error) throw error;
         toast({ title: "Added", description: "Picture added successfully" });
       }
-      setPictureForm({ title: "", image_url: "" });
+      setPictureForm({ title: "", image_url: "", category_id: "" });
       setGalleryUploadFile(null);
       setGalleryUploadPreview(null);
       setEditingGalleryPictureId(null);
@@ -1346,6 +1397,27 @@ const AdminDashboard = () => {
     }
     return "Unknown error";
   };
+  const updateEnrollmentApprovalMutation = useMutation<unknown, unknown, { enrollmentId: string; approved: boolean }>({
+    mutationFn: async ({ enrollmentId, approved }) => {
+      const payload: Database["public"]["Tables"]["enrollments"]["Update"] = approved
+        ? { is_approved: true }
+        : { is_approved: false };
+      const { error } = await supabase.from("enrollments").update(payload).eq("id", enrollmentId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-enrollments"] });
+      toast({ title: "Success", description: "Enrollment updated" });
+    },
+    onError: (error: unknown) => {
+      const message = toReadableError(error);
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive",
+      });
+    },
+  });
   const manualEnrollMutation = useMutation<unknown, unknown, { studentId: string; courseId: string }>({
     mutationFn: async ({ studentId, courseId }) => {
       const { data: course, error: courseError } = await supabase
@@ -1356,13 +1428,12 @@ const AdminDashboard = () => {
       if (courseError) throw courseError;
       if (!course) throw new Error("Course not found");
 
-      // Simple enrollment (payments table doesn't exist in schema)
-      const { error: enrollmentError } = await supabase.from("enrollments").insert([
-        {
-          student_id: studentId,
-          course_id: courseId,
-        },
-      ]);
+      const payload: Database["public"]["Tables"]["enrollments"]["Insert"] = {
+        student_id: studentId,
+        course_id: courseId,
+        is_approved: true,
+      };
+      const { error: enrollmentError } = await supabase.from("enrollments").insert([payload]);
       if (enrollmentError) throw enrollmentError;
     },
     onSuccess: () => {
@@ -1446,6 +1517,7 @@ const AdminDashboard = () => {
             <TabsTrigger value="news" className="h-full whitespace-normal min-h-[44px]"><Newspaper className="mr-1 h-4 w-4" />News</TabsTrigger>
             <TabsTrigger value="magazines" className="h-full whitespace-normal min-h-[44px]"><FileText className="mr-1 h-4 w-4" />Magazines</TabsTrigger>
             <TabsTrigger value="users" className="h-full whitespace-normal min-h-[44px]"><Users className="mr-1 h-4 w-4" />Users</TabsTrigger>
+            <TabsTrigger value="enrollments" className="h-full whitespace-normal min-h-[44px]"><Crown className="mr-1 h-4 w-4" />Enrollments</TabsTrigger>
             <TabsTrigger value="categories" className="h-full whitespace-normal min-h-[44px]"><Shield className="mr-1 h-4 w-4" />Categories</TabsTrigger>
             <TabsTrigger value="analytics" className="h-full whitespace-normal min-h-[44px]"><BarChart3 className="mr-1 h-4 w-4" />Analytics</TabsTrigger>
             <TabsTrigger value="gallery" className="h-full whitespace-normal min-h-[44px]"><ImageIcon className="mr-1 h-4 w-4" />Gallery</TabsTrigger>
@@ -1555,10 +1627,10 @@ const AdminDashboard = () => {
                         <Label>Course Type</Label>
                         <div className="flex items-center justify-between gap-4">
                           <span className="text-sm text-muted-foreground">
-                            {courseForm.is_paid ? "Paid course" : "Free course"}
+                            {courseForm.is_paid ? "Paid course" : "Admin Control"}
                           </span>
                           <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground">Free</span>
+                            <span className="text-xs text-muted-foreground">Admin Control</span>
                             <Switch
                               checked={courseForm.is_paid}
                               onCheckedChange={(checked) => setCourseForm({ ...courseForm, is_paid: checked })}
@@ -2255,6 +2327,70 @@ const AdminDashboard = () => {
             </Card>
           </TabsContent>
 
+          <TabsContent value="enrollments">
+            <Card>
+              <CardHeader>
+                <CardTitle>Enrollment Approvals</CardTitle>
+                <CardDescription>Approve or revoke course access for students</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Course</TableHead>
+                        <TableHead>Student</TableHead>
+                        <TableHead>Requested</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Approved By</TableHead>
+                        <TableHead>Approved At</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(enrollments || []).map((enrollment) => {
+                        const student = (users || []).find((u) => u.id === enrollment.student_id);
+                        const course = (courses || []).find((c) => c.id === enrollment.course_id);
+                        const approved = !!enrollment.is_approved;
+                        const approver = approved ? (users || []).find((u) => u.id === enrollment.approved_by) : null;
+                        return (
+                          <TableRow key={enrollment.id}>
+                            <TableCell className="font-medium">{course?.title || "Unknown course"}</TableCell>
+                            <TableCell>{student?.full_name || "Unknown student"}</TableCell>
+                            <TableCell>{enrollment.enrolled_at ? new Date(enrollment.enrolled_at).toLocaleString() : "N/A"}</TableCell>
+                            <TableCell>
+                              <Badge variant={approved ? "default" : "outline"}>
+                                {approved ? "Approved" : "Pending"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{approver?.full_name || (enrollment.approved_by ? "Admin" : "—")}</TableCell>
+                            <TableCell>{enrollment.approved_at ? new Date(enrollment.approved_at).toLocaleString() : "—"}</TableCell>
+                            <TableCell>
+                              <Button
+                                size="sm"
+                                variant={approved ? "outline" : "default"}
+                                disabled={updateEnrollmentApprovalMutation.isPending}
+                                onClick={() =>
+                                  updateEnrollmentApprovalMutation.mutate({
+                                    enrollmentId: enrollment.id,
+                                    approved: !approved,
+                                  })
+                                }
+                                className="min-h-[32px]"
+                              >
+                                {approved ? "Revoke" : "Approve"}
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="categories">
             <Card>
               <CardHeader>
@@ -2764,6 +2900,61 @@ const AdminDashboard = () => {
                     <Input id="p_title" value={pictureForm.title} onChange={(e) => setPictureForm({ ...pictureForm, title: e.target.value })} />
                   </div>
                   <div className="grid gap-2">
+                    <div className="flex justify-between items-center">
+                      <Label>Category</Label>
+                      <Button variant="link" size="sm" className="h-auto p-0" onClick={() => setGalleryCategoryDialogOpen(true)}>
+                        Manage Categories
+                      </Button>
+                    </div>
+                    <Select
+                      value={pictureForm.category_id || "none"}
+                      onValueChange={(val) => setPictureForm({ ...pictureForm, category_id: val === "none" ? "" : val })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a category (optional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        {galleryCategories?.map((cat: any) => (
+                          <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <Dialog open={galleryCategoryDialogOpen} onOpenChange={setGalleryCategoryDialogOpen}>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Gallery Categories</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div className="flex gap-2">
+                            <Input 
+                              placeholder="New Category Name" 
+                              value={newGalleryCategoryName}
+                              onChange={(e) => setNewGalleryCategoryName(e.target.value)}
+                            />
+                            <Button onClick={() => createGalleryCategoryMutation.mutate(newGalleryCategoryName)} disabled={!newGalleryCategoryName}>
+                              Add
+                            </Button>
+                          </div>
+                          <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                            {galleryCategories?.map((cat: any) => (
+                              <div key={cat.id} className="flex justify-between items-center border p-2 rounded">
+                                <span>{cat.name}</span>
+                                <Button variant="ghost" size="sm" onClick={() => deleteGalleryCategoryMutation.mutate(cat.id)}>
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ))}
+                            {(!galleryCategories || galleryCategories.length === 0) && (
+                              <div className="text-sm text-muted-foreground text-center py-4">No categories created yet</div>
+                            )}
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                  <div className="grid gap-2">
                     <Label>Image</Label>
                     <div className="flex items-start gap-4">
                       <label className="flex-1 flex flex-col items-center justify-center p-4 border-2 border-dashed border-muted-foreground/30 rounded-lg cursor-pointer hover:border-primary/50 transition-colors">
@@ -2796,7 +2987,7 @@ const AdminDashboard = () => {
                       variant="outline"
                       disabled={gallerySaving}
                       onClick={() => {
-                        setPictureForm({ title: "", image_url: "" });
+                        setPictureForm({ title: "", image_url: "", category_id: "" });
                         setGalleryUploadFile(null);
                         setGalleryUploadPreview(null);
                         setEditingGalleryPictureId(null);
@@ -2814,7 +3005,7 @@ const AdminDashboard = () => {
                             size="icon"
                             variant="secondary"
                             onClick={() => {
-                              setPictureForm({ title: p.title || "", image_url: p.image_url });
+                              setPictureForm({ title: p.title || "", image_url: p.image_url, category_id: p.category_id || "" });
                               setGalleryUploadPreview(p.image_url);
                               setEditingGalleryPictureId(p.id);
                             }}
@@ -2926,11 +3117,11 @@ const AdminDashboard = () => {
                           {(() => {
                             const e = (enrollments || []).find((x) => x.student_id === certificateUserId && x.course_id === certificateCourseId);
                             const enrolled = !!e;
-                            const completed = !!e;
+                            const accessGranted = !!(e && e.is_approved);
                             return (
                               <>
                                 <Badge variant={enrolled ? "default" : "outline"}>{enrolled ? "Enrolled" : "Not enrolled"}</Badge>
-                                <Badge variant={completed ? "default" : "outline"}>{completed ? "Access granted" : "Access pending"}</Badge>
+                                <Badge variant={accessGranted ? "default" : "outline"}>{accessGranted ? "Access granted" : "Access pending"}</Badge>
                               </>
                             );
                           })()}

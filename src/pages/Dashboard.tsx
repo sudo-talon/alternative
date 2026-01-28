@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabaseClient as supabase } from "@/lib/supabase";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { User, Session } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { BookOpen, Users, GraduationCap, LogOut, Lock } from "lucide-react";
+import { BookOpen, Users, GraduationCap, LogOut, Lock, Check, X } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { useInactivityLogout } from "@/hooks/useInactivityLogout";
 import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
@@ -17,6 +17,7 @@ import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
 const Dashboard = () => {
   useInactivityLogout();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
@@ -110,6 +111,55 @@ const Dashboard = () => {
     enabled: !!user?.id,
   });
 
+  // Fetch pending enrollments for instructor's courses
+  const { data: pendingEnrollments } = useQuery<any>({
+    queryKey: ["instructor-pending-enrollments", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const { data: courses } = await supabase
+        .from("courses")
+        .select("id")
+        .eq("instructor_id", user.id);
+      
+      if (!courses?.length) return [];
+      
+      const courseIds = courses.map(c => c.id);
+      
+      const { data, error } = await supabase
+        .from("enrollments")
+        .select(`
+          *,
+          courses(title),
+          profiles:student_id(full_name, email)
+        `)
+        .in("course_id", courseIds)
+        .eq("is_approved", false) as any;
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: profile?.role === "instructor",
+  });
+
+  const updateEnrollmentMutation = useMutation({
+    mutationFn: async ({ id, approved }: { id: string; approved: boolean }) => {
+      const { error } = await supabase
+        .from("enrollments")
+        .update({
+          is_approved: approved,
+        })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Enrollment status updated");
+      queryClient.invalidateQueries({ queryKey: ["instructor-pending-enrollments"] });
+    },
+    onError: (error) => {
+      toast.error(`Error: ${error.message}`);
+    },
+  });
+
   const handleSignOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
@@ -163,12 +213,6 @@ const Dashboard = () => {
               <BookOpen className="mr-2 h-4 w-4" />
               My Courses
             </TabsTrigger>
-            {profile?.role === "instructor" && (
-              <TabsTrigger value="manage">
-                <Users className="mr-2 h-4 w-4" />
-                Manage Courses
-              </TabsTrigger>
-            )}
             <TabsTrigger value="profile">
               <GraduationCap className="mr-2 h-4 w-4" />
               Profile
@@ -221,24 +265,6 @@ const Dashboard = () => {
               </CardContent>
             </Card>
           </TabsContent>
-
-          {profile?.role === "instructor" && (
-            <TabsContent value="manage">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Manage Your Courses</CardTitle>
-                  <CardDescription>
-                    Create and manage courses for your students
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button onClick={() => navigate("/courses/create")}>
-                    Create New Course
-                  </Button>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          )}
 
           <TabsContent value="profile">
             <div className="grid gap-6 md:grid-cols-2">
