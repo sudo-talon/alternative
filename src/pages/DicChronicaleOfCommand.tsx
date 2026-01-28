@@ -124,13 +124,23 @@ const DicChronicaleOfCommand = () => {
       <Dialog open={!!selectedLeader} onOpenChange={() => setSelectedLeader(null)}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{selectedLeader?.full_name}</DialogTitle>
+            <DialogTitle>
+              {selectedLeader
+                ? (selectedLeader.rank ? `${selectedLeader.rank} ${selectedLeader.full_name}` : selectedLeader.full_name)
+                : ""}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {selectedLeader?.photo_url && (
-              <img src={selectedLeader.photo_url} alt={selectedLeader.full_name || ""} className="w-full h-64 object-cover rounded" />
+              <div className="w-full bg-muted rounded overflow-hidden">
+                <img
+                  src={selectedLeader.photo_url}
+                  alt={selectedLeader.full_name || ""}
+                  className="w-full max-h-[60vh] object-contain"
+                />
+              </div>
             )}
-            <div className="text-sm text-muted-foreground">{selectedLeader?.rank} • {selectedLeader?.position}</div>
+            <div className="text-sm text-muted-foreground">{selectedLeader?.position}</div>
             <div className="text-foreground leading-relaxed whitespace-pre-wrap text-sm">{selectedLeader?.bio}</div>
           </div>
         </DialogContent>

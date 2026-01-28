@@ -26,7 +26,7 @@ const translations: Record<Language, Record<string, string>> = {
     departments: "Departments",
     courses: "Courses",
     pgProgram: "PG Program",
-    news: "News & Blog",
+    news: "News & Gallery",
     contact: "Contact Us",
     login: "Log In",
     logout: "Log Out",

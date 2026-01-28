@@ -18,18 +18,27 @@ import {
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<any>(null);
+  const [role, setRole] = useState<string | null>(null);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const navigate = useNavigate();
   const { t } = useLanguage();
 
   useEffect(() => {
+    const fetchRole = async (uid: string) => {
+      const { data } = await supabase.from('profiles').select('role').eq('id', uid).maybeSingle();
+      if (data) setRole(data.role);
+    };
+
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user);
+      if (user) fetchRole(user.id);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      if (session?.user) fetchRole(session.user.id);
+      else setRole(null);
     });
 
     return () => subscription.unsubscribe();
@@ -161,6 +170,19 @@ export const Navbar = () => {
                     <LayoutDashboard className="mr-2 h-4 w-4" />
                     {t('dashboard') || 'Dashboard'}
                   </Button>
+                  {(role === 'instructor' || role === 'admin') && (
+                    <Button 
+                      onClick={() => {
+                        navigate("/instructor");
+                        setIsOpen(false);
+                      }}
+                      variant="ghost"
+                      className="w-full text-primary-foreground hover:bg-primary-foreground/10 justify-start h-12 text-base"
+                    >
+                      <Users className="mr-2 h-4 w-4" />
+                      Instructor Dashboard
+                    </Button>
+                  )}
                   <Button 
                     onClick={() => {
                       setChangePasswordOpen(true);

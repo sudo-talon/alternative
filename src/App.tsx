@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import Courses from "./pages/Courses";
 import CourseDetail from "./pages/CourseDetail";
 import AdminDashboard from "./pages/AdminDashboard";
+import InstructorDashboard from "./pages/InstructorDashboard";
 import About from "./pages/About";
 import Departments from "./pages/Departments";
 import News from "./pages/News";
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/" element={<Home />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/instructor" element={<InstructorDashboard />} />
             <Route path="/courses" element={<Courses />} />
             <Route path="/course/:courseTitle" element={<CourseDetail />} />
             <Route path="/admin" element={<AdminDashboard />} />

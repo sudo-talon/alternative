@@ -60,18 +60,27 @@ export type Database = {
           course_id: string
           enrolled_at: string
           id: string
+          is_approved: boolean | null
+          approved_at: string | null
+          approved_by: string | null
           student_id: string
         }
         Insert: {
           course_id: string
           enrolled_at?: string
           id?: string
+          is_approved?: boolean | null
+          approved_at?: string | null
+          approved_by?: string | null
           student_id: string
         }
         Update: {
           course_id?: string
           enrolled_at?: string
           id?: string
+          is_approved?: boolean | null
+          approved_at?: string | null
+          approved_by?: string | null
           student_id?: string
         }
         Relationships: [
@@ -98,8 +107,38 @@ export type Database = {
           },
         ]
       }
+      gallery_categories: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gallery_categories_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gallery_pictures: {
         Row: {
+          category_id: string | null
           created_at: string
           description: string | null
           id: string
@@ -107,6 +146,7 @@ export type Database = {
           title: string
         }
         Insert: {
+          category_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -114,13 +154,22 @@ export type Database = {
           title: string
         }
         Update: {
+          category_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
           image_url?: string
           title?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "gallery_pictures_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "gallery_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       gallery_videos: {
         Row: {

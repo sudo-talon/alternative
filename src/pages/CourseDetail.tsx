@@ -101,18 +101,19 @@ const CourseDetail = () => {
 
     try {
       setLoading(true);
-      // Simple enrollment (no payments table exists)
+      // Create enrollment request (approval required)
       const { error: enrollmentError } = await supabase.from("enrollments").insert([
         {
           student_id: user.id,
           course_id: course.id,
+          is_approved: false,
         },
       ]);
       if (enrollmentError) throw enrollmentError;
 
       toast({
-        title: "Enrollment Successful",
-        description: `You have been enrolled in ${course.title}`,
+        title: "Enrollment Request Submitted",
+        description: `Your enrollment request for ${course.title} is pending approval`,
       });
       await checkEnrollment();
     } catch (err: unknown) {
@@ -136,7 +137,7 @@ const CourseDetail = () => {
   const decodedTitle = decodedIdentifier;
   const titleToShow = course?.title || decodedTitle;
   const isPaidCourse = false; // Payment features not enabled
-  const hasActiveAccess = isEnrolled;
+  const hasActiveAccess = !!enrollment && !!enrollment.is_approved;
   const showLoadingState = loading || courseLoading;
 
   return (
@@ -169,7 +170,7 @@ const CourseDetail = () => {
                       <span>{titleToShow}</span>
                       {course && (
                         <Badge variant={isPaidCourse ? "secondary" : "outline"} className="text-xs">
-                          {isPaidCourse ? "Paid" : "Free"}
+                          {isPaidCourse ? "Paid" : "Admin Control"}
                         </Badge>
                       )}
                     </CardTitle>
@@ -261,7 +262,7 @@ const CourseDetail = () => {
                   <CreditCard className="h-5 w-5 text-primary" />
                   <div>
                     <p className="font-semibold">Pricing</p>
-                    <p className="text-sm text-muted-foreground">Free</p>
+                    <p className="text-sm text-muted-foreground">Admin Control</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -285,7 +286,7 @@ const CourseDetail = () => {
                     <p className="text-primary-foreground font-semibold mb-4">
                       {hasActiveAccess
                         ? "You are enrolled in this course"
-                        : "Your access to this course is currently revoked"}
+                        : "Your enrollment is pending approval by your instructor or admin"}
                     </p>
                     {hasActiveAccess && (
                       <Button
