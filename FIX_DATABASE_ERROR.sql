@@ -11,7 +11,10 @@ ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ;
 ALTER TABLE public.enrollments
 ADD COLUMN IF NOT EXISTS approved_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL;
 
--- 2. Create policies for enrollment approval
+-- 2. Create policies for enrollment approval (Drop first to avoid conflicts)
+DROP POLICY IF EXISTS "Instructors can update enrollments for their courses" ON public.enrollments;
+DROP POLICY IF EXISTS "Admins can manage all enrollments" ON public.enrollments;
+
 -- Allow instructors to update enrollments for their own courses
 CREATE POLICY "Instructors can update enrollments for their courses"
   ON public.enrollments FOR UPDATE
@@ -50,7 +53,12 @@ CREATE TABLE IF NOT EXISTS public.gallery_categories (
 -- Enable RLS on gallery_categories
 ALTER TABLE public.gallery_categories ENABLE ROW LEVEL SECURITY;
 
--- Policies for gallery_categories
+-- Policies for gallery_categories (Drop first to avoid conflicts)
+DROP POLICY IF EXISTS "Gallery categories are viewable by everyone" ON public.gallery_categories;
+DROP POLICY IF EXISTS "Admins can insert gallery categories" ON public.gallery_categories;
+DROP POLICY IF EXISTS "Admins can update gallery categories" ON public.gallery_categories;
+DROP POLICY IF EXISTS "Admins can delete gallery categories" ON public.gallery_categories;
+
 CREATE POLICY "Gallery categories are viewable by everyone" 
 ON public.gallery_categories FOR SELECT 
 USING (true);
